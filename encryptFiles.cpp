@@ -6,6 +6,13 @@
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 
+/**
+ * encryptFile - encrypts a file using AES256 in CBC mode.
+ * @param inputFile the file to be encrypted.
+ * @param outputFile the file to store the encrypted content.
+ * @param password the password used to encrypt the file.
+ * @return True if encryption succeeds, else False.
+ */
 bool encryptFile(const std::string &inputFile, const std::string &outputFile, const std::string &password) {
     const int bufferSize = 8192;
 
