@@ -3,7 +3,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <dirent.h>
+#include <filesystem>
 #include <sodium.h>
 #include <thread>
 
@@ -55,30 +55,14 @@ std::string calculateBlake2b(const std::string &filePath) {
  * @param files a vector to store the information from the files found in the directory.
  */
 void traverseDirectory(const std::string &directoryPath, std::vector<FileInfo> &files) {
-    DIR *dir = opendir(directoryPath.c_str());
-    if (!dir) {
-        std::cerr << "Failed to open directory: " << directoryPath << std::endl;
-        return;
-    }
-
-    struct dirent *entry;
-    while ((entry = readdir(dir)) != nullptr) {
-        std::string fileName = entry->d_name;
-        std::string fullPath = directoryPath + "/" + fileName;
-
-        if (entry->d_type == DT_DIR) {
-            if (fileName != "." && fileName != "..") {
-                traverseDirectory(fullPath, files);
-            }
-        } else {
+    for (const auto &entry: fs::recursive_directory_iterator(directoryPath)) {
+        if (entry.is_regular_file()) {
             FileInfo fileInfo;
-            fileInfo.path = fullPath;
+            fileInfo.path = entry.path().string();
             fileInfo.hash = "";  // Hash will be calculated later
             files.push_back(fileInfo);
         }
     }
-
-    closedir(dir);
 }
 
 
@@ -95,11 +79,11 @@ void calculateHashes(std::vector<FileInfo> &files, size_t start, size_t end) {
     }
 
     for (size_t i = start; i < end; ++i) {
-        FileInfo fileInfoCopy = files[i];
-        fileInfoCopy.hash = calculateBlake2b(fileInfoCopy.path);
+        FileInfo fileCopy = files[i];
+        fileCopy.hash = calculateBlake2b(fileCopy.path);
 
         // Assign the modified copy back to the original object in the vector
-        files[i].hash = fileInfoCopy.hash;
+        files[i].hash = fileCopy.hash;
     }
 }
 
@@ -115,13 +99,13 @@ bool findDuplicates(const std::string &directoryPath) {
     std::vector<FileInfo> files;
     traverseDirectory(directoryPath, files);
 
-    // Number of threads to use (adjust as needed)
+    // Number of threads to use
     const unsigned int numThreads = std::thread::hardware_concurrency();
 
     // Divide files among threads and calculate hashes in parallel
     std::vector<std::thread> threads;
-    int filesPerThread = files.size() / numThreads;
-    int start = 0;
+    size_t filesPerThread = files.size() / numThreads;
+    size_t start = 0;
 
     for (int i = 0; i < numThreads - 1; ++i) {
         threads.emplace_back(calculateHashes, std::ref(files), start, start + filesPerThread);
