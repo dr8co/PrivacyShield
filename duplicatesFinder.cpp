@@ -100,3 +100,64 @@ void calculateHashes(std::vector<FileInfo> &files, size_t start, size_t end) {
         files[i].hash = fileInfoCopy.hash;
     }
 }
+
+/**
+ * findDuplicates - finds duplicate files (by content) in a directory.
+ * @param directoryPath - the directory to process.
+ * @return True if duplicates are found, else False.
+ */
+bool findDuplicates(const std::string &directoryPath) {
+    bool duplicatesPresent = false;
+
+    // Collect file information
+    std::vector<FileInfo> files;
+    traverseDirectory(directoryPath, files);
+
+    // Number of threads to use (adjust as needed)
+    const unsigned int numThreads = std::thread::hardware_concurrency();
+
+    // Divide files among threads and calculate hashes in parallel
+    std::vector<std::thread> threads;
+    int filesPerThread = files.size() / numThreads;
+    int start = 0;
+
+    for (int i = 0; i < numThreads - 1; ++i) {
+        threads.emplace_back(calculateHashes, std::ref(files), start, start + filesPerThread);
+        start += filesPerThread;
+    }
+
+    // The last thread may handle slightly more files to account for division remainder
+    threads.emplace_back(calculateHashes, std::ref(files), start, files.size());
+
+    // Wait for all threads to finish
+    for (auto &thread: threads) {
+        thread.join();
+    }
+
+    // Map to store hashes and corresponding file paths
+    std::unordered_map<std::string, std::vector<std::string>> hashMap;
+
+    // Iterate over files and identify duplicates
+    for (const auto &fileInfo: files) {
+        const std::string &hash = fileInfo.hash;
+        const std::string &filePath = fileInfo.path;
+
+        hashMap[hash].push_back(filePath);
+    }
+
+    // Display duplicate files
+    std::cout << "Duplicate files:" << std::endl;
+    for (const auto &pair: hashMap) {
+        const std::vector<std::string> &duplicates = pair.second;
+
+        if (duplicates.size() > 1) {
+            std::cout << "Hash: " << pair.first << std::endl;
+            for (const std::string &filePath: duplicates) {
+                std::cout << "  " << filePath << std::endl;
+            }
+            duplicatesPresent = true;
+        }
+    }
+
+    return duplicatesPresent;
+}
