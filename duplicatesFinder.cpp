@@ -1,6 +1,9 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <unordered_map>
+#include <vector>
+#include <dirent.h>
 #include <sodium.h>
 #include <thread>
 
@@ -42,4 +45,58 @@ std::string calculateBlake2b(const std::string &filePath) {
 
     file.close();
     return blake2bHash;
+}
+
+/**
+ * traverseDirectory - recursively traverses a directory and collects file information.
+ * @param directoryPath the directory to process.
+ * @param files a vector to store the information from the files found in the directory.
+ */
+void traverseDirectory(const std::string &directoryPath, std::vector<FileInfo> &files) {
+    DIR *dir = opendir(directoryPath.c_str());
+    if (!dir) {
+        std::cerr << "Failed to open directory: " << directoryPath << std::endl;
+        return;
+    }
+
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != nullptr) {
+        std::string fileName = entry->d_name;
+        std::string fullPath = directoryPath + "/" + fileName;
+
+        if (entry->d_type == DT_DIR) {
+            if (fileName != "." && fileName != "..") {
+                traverseDirectory(fullPath, files);
+            }
+        } else {
+            FileInfo fileInfo;
+            fileInfo.path = fullPath;
+            fileInfo.hash = "";  // Hash will be calculated later
+            files.push_back(fileInfo);
+        }
+    }
+
+    closedir(dir);
+}
+
+
+/**
+ * calculateHashes - calculates hashes for a range of files.
+ * @param files the files to process.
+ * @param start the index where processing starts.
+ * @param end the index where processing ends.
+ */
+void calculateHashes(std::vector<FileInfo> &files, size_t start, size_t end) {
+    if (sodium_init() == -1) {
+        std::cerr << "Failed to initialize libsodium" << std::endl;
+        return;
+    }
+
+    for (size_t i = start; i < end; ++i) {
+        FileInfo fileInfoCopy = files[i];
+        fileInfoCopy.hash = calculateBlake2b(fileInfoCopy.path);
+
+        // Assign the modified copy back to the original object in the vector
+        files[i].hash = fileInfoCopy.hash;
+    }
 }
