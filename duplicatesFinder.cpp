@@ -37,7 +37,7 @@ std::string calculateBlake2b(const std::string &filePath) {
         crypto_generichash_blake2b_update(&state, reinterpret_cast<const unsigned char *>(buffer.data()), bufferSize);
     }
 
-    int remainingBytes = file.gcount();
+    size_t remainingBytes = file.gcount();
     crypto_generichash_blake2b_update(&state, reinterpret_cast<const unsigned char *>(buffer.data()), remainingBytes);
 
     unsigned char hash[crypto_generichash_blake2b_BYTES];
