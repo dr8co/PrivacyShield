@@ -7,6 +7,8 @@
 #include <sodium.h>
 #include <thread>
 
+namespace fs = std::filesystem;
+
 // Structure to store file information.
 struct FileInfo {
     std::string path; // path to the file.
@@ -26,17 +28,17 @@ std::string calculateBlake2b(const std::string &filePath) {
     }
 
     const size_t bufferSize = 4096;
-    char buffer[bufferSize];
+    std::vector<char> buffer(bufferSize);
 
     crypto_generichash_blake2b_state state;
     crypto_generichash_blake2b_init(&state, nullptr, 0, crypto_generichash_blake2b_BYTES);
 
-    while (file.read(buffer, bufferSize)) {
-        crypto_generichash_blake2b_update(&state, reinterpret_cast<const unsigned char *>(buffer), bufferSize);
+    while (file.read(buffer.data(), bufferSize)) {
+        crypto_generichash_blake2b_update(&state, reinterpret_cast<const unsigned char *>(buffer.data()), bufferSize);
     }
 
     int remainingBytes = file.gcount();
-    crypto_generichash_blake2b_update(&state, reinterpret_cast<const unsigned char *>(buffer), remainingBytes);
+    crypto_generichash_blake2b_update(&state, reinterpret_cast<const unsigned char *>(buffer.data()), remainingBytes);
 
     unsigned char hash[crypto_generichash_blake2b_BYTES];
     crypto_generichash_blake2b_final(&state, hash, crypto_generichash_blake2b_BYTES);
