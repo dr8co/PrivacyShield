@@ -131,13 +131,16 @@ bool findDuplicates(const std::string &directoryPath) {
         hashMap[hash].push_back(filePath);
     }
 
+    size_t duplicatesSet = 0;
+
     // Display duplicate files
     std::cout << "Duplicate files:" << std::endl;
     for (const auto &pair: hashMap) {
         const std::vector<std::string> &duplicates = pair.second;
 
         if (duplicates.size() > 1) {
-            std::cout << "Hash: " << pair.first << std::endl;
+            ++duplicatesSet;
+            std::cout << "Duplicate files set " << duplicatesSet << ":" << std::endl;
             for (const std::string &filePath: duplicates) {
                 std::cout << "  " << filePath << std::endl;
             }
