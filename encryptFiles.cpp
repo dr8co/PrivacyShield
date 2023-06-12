@@ -107,6 +107,9 @@ bool decryptFile(const std::string &inputFile, const std::string &outputFile, co
     EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), nullptr, nullptr, nullptr);
     EVP_DecryptInit_ex(ctx, nullptr, nullptr, reinterpret_cast<const unsigned char *>(password.c_str()), iv);
 
+    // Adjust the input file reading position
+    inputFileStream.seekg(EVP_MAX_IV_LENGTH, std::ios::beg);
+
     // Allocate memory for input and output buffers
     std::vector<unsigned char> inBuffer(bufferSize);
     std::vector<unsigned char> outBuffer(bufferSize + EVP_MAX_BLOCK_LENGTH);
