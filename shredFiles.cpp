@@ -27,3 +27,24 @@ void overwriteRandom(const std::string& filename) {
 
     file.close();
 }
+
+template<typename T>
+void overwriteConstantByte(std::string& filename, T byte){
+    std::ofstream file(filename, std::ios::binary | std::ios::in);
+    if (!file) {
+        std::cerr << "Failed to open the file: " << filename << std::endl;
+        return;
+    }
+
+    // Get the file size
+    file.seekp(0, std::ios::end);
+    std::streamoff fileSize = file.tellp();
+    file.seekp(0, std::ios::beg);
+
+    // Overwrite with the byte
+    for (std::streamoff pos = 0; pos < fileSize; ++pos) {
+        file.write(reinterpret_cast<char*>(&byte), sizeof(T));
+    }
+
+    file.close();
+}
