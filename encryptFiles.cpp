@@ -19,6 +19,27 @@ public:
     ~OpenSSLCleanup() { EVP_cleanup(); }
 };
 
+// Function to generate a random salt
+std::vector<unsigned char> generateSalt(int saltSize) {
+    std::vector<unsigned char> salt(saltSize);
+    if (RAND_bytes(salt.data(), saltSize) != 1) {
+        std::cerr << "Error generating salt." << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    return salt;
+}
+
+// Function to derive the symmetric key from the password and salt
+std::vector<unsigned char> deriveKey(const std::string &password, const std::vector<unsigned char> &salt) {
+    std::vector<unsigned char> key(MAX_KEY_SIZE);
+    if (PKCS5_PBKDF2_HMAC(password.data(), password.size(), salt.data(), salt.size(), 10000, EVP_sha256(), MAX_KEY_SIZE,
+                          key.data()) != 1) {
+        std::cerr << "Error deriving key." << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    return key;
+}
+
 /**
  * encryptFile - encrypts a file using AES256 in CBC mode.
  * @param inputFile the file to be encrypted.
