@@ -8,7 +8,7 @@
  * @param fileSize the size of the file in bytes
  * @param nPasses the number of passes to overwrite the file
  */
-void overwriteRandom(std::ofstream& file, const size_t fileSize, int nPasses=1) {
+void overwriteRandom(std::ofstream &file, const size_t fileSize, int nPasses = 1) {
 
     // Create a random device for generating secure random numbers
     std::random_device rd;
@@ -21,7 +21,7 @@ void overwriteRandom(std::ofstream& file, const size_t fileSize, int nPasses=1) 
         // Overwrite the file with random data
         for (size_t pos = 0; pos < fileSize; ++pos) {
             uint8_t randomByte = dist(gen);
-            file.write(reinterpret_cast<char*>(&randomByte), sizeof(uint8_t));
+            file.write(reinterpret_cast<char *>(&randomByte), sizeof(uint8_t));
         }
     }
 
@@ -36,11 +36,11 @@ void overwriteRandom(std::ofstream& file, const size_t fileSize, int nPasses=1) 
  *
  */
 template<typename T>
-void overwriteConstantByte(std::ofstream& file, T byte, const size_t fileSize){
+void overwriteConstantByte(std::ofstream &file, T byte, const size_t fileSize) {
 
     // Overwrite with the byte
     for (std::streamoff pos = 0; pos < fileSize; ++pos) {
-        file.write(reinterpret_cast<char*>(&byte), sizeof(T));
+        file.write(reinterpret_cast<char *>(&byte), sizeof(T));
     }
 
 }
@@ -49,7 +49,7 @@ void overwriteConstantByte(std::ofstream& file, T byte, const size_t fileSize){
  * simpleShred - shreds a file by overwriting it with random bytes
  * @param filename path to the file being overwritten
  */
-void simpleShred(const std::string& filename) {
+void simpleShred(const std::string &filename) {
     std::ofstream file(filename, std::ios::binary | std::ios::in);
     if (!file) {
         std::cerr << "Failed to open the file: " << filename << std::endl;
@@ -72,7 +72,7 @@ void simpleShred(const std::string& filename) {
  * The U.S Department of Defence (DoD) 5220.22-M Standard algorithm.
  * @param filename - the path to the file to be shred.
  */
-void dod5220Shred(const std::string& filename){
+void dod5220Shred(const std::string &filename) {
     std::ofstream file(filename, std::ios::binary | std::ios::in);
     if (!file) {
         std::cerr << "Failed to open the file: " << filename << std::endl;
@@ -86,12 +86,14 @@ void dod5220Shred(const std::string& filename){
 
     // Pass 1: Overwrite with zeros
     uint8_t zeroByte = 0;
-    overwriteConstantByte(file,zeroByte, fileSize);
+    overwriteConstantByte(file, zeroByte, fileSize);
 
     // Pass 2: Overwrite with ones
     uint8_t oneByte = 0xFF;
-    overwriteConstantByte(file,oneByte, fileSize);
+    overwriteConstantByte(file, oneByte, fileSize);
 
     // Pass 3: Overwrite with random data
     overwriteRandom(file, fileSize);
+
+    file.close();
 }
