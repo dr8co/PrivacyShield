@@ -2,6 +2,10 @@
 #include <fstream>
 #include <random>
 
+/**
+ * overwriteRandom - overwrites a file with random bytes
+ * @param filename path to the file
+ */
 void overwriteRandom(const std::string& filename) {
     std::ofstream file(filename, std::ios::binary | std::ios::in);
     if (!file) {
@@ -28,6 +32,12 @@ void overwriteRandom(const std::string& filename) {
     file.close();
 }
 
+/**
+ * overwriteConstantByte - overwrites a file wih a constant byte.
+ * @tparam T type of the byte.
+ * @param filename the path to the file to be overwritten.
+ * @param byte the byte to overwrite the file with
+ */
 template<typename T>
 void overwriteConstantByte(std::string& filename, T byte){
     std::ofstream file(filename, std::ios::binary | std::ios::in);
