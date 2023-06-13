@@ -58,3 +58,11 @@ void overwriteConstantByte(std::string& filename, T byte){
 
     file.close();
 }
+
+/**
+ * simpleShred - shreds a file by overwriting it with random bytes
+ * @param filename
+ */
+void simpleShred(const std::string& filename) {
+    overwriteRandom(filename);
+}
