@@ -2,9 +2,22 @@
 #include <fstream>
 #include <string>
 #include <vector>
-#include <span>
+#include <memory>
 #include <openssl/evp.h>
 #include <openssl/rand.h>
+
+constexpr int EVP_SALT_SIZE = 8;
+constexpr int MAX_KEY_SIZE = EVP_MAX_KEY_LENGTH;
+constexpr int MAX_IV_SIZE = EVP_MAX_IV_LENGTH;
+constexpr int CHUNK_SIZE = 1024;
+
+// Class for OpenSSL cleanup functions
+class OpenSSLCleanup {
+public:
+    OpenSSLCleanup() { OpenSSL_add_all_algorithms(); }
+
+    ~OpenSSLCleanup() { EVP_cleanup(); }
+};
 
 /**
  * encryptFile - encrypts a file using AES256 in CBC mode.
