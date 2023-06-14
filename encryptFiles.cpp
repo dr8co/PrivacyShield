@@ -34,7 +34,12 @@ std::vector<unsigned char> generateSalt(int saltSize) {
  */
 std::vector<unsigned char> deriveKey(const std::string &password, const std::vector<unsigned char> &salt) {
     std::vector<unsigned char> key(MAX_KEY_SIZE);
-    if (PKCS5_PBKDF2_HMAC(password.data(), password.size(), salt.data(), salt.size(), 10000, EVP_sha256(), MAX_KEY_SIZE,
+    if (PKCS5_PBKDF2_HMAC(password.data(),
+                          static_cast<int>(password.size()),
+                          salt.data(),
+                          static_cast<int>(salt.size()),
+                          10000, EVP_sha256(),
+                          MAX_KEY_SIZE,
                           key.data()) != 1) {
         std::cerr << "Error deriving key." << std::endl;
         exit(EXIT_FAILURE);
@@ -79,8 +84,8 @@ bool encryptFile(const std::string &inputFile, const std::string &outputFile, co
     std::ofstream outFile(outputFile, std::ios::binary);
 
     // Write the salt and IV to the output file
-    outFile.write(reinterpret_cast<const char *>(salt.data()), salt.size());
-    outFile.write(reinterpret_cast<const char *>(iv.data()), iv.size());
+    outFile.write(reinterpret_cast<const char *>(salt.data()), static_cast<std::streamsize>(salt.size()));
+    outFile.write(reinterpret_cast<const char *>(iv.data()), static_cast<std::streamsize>(iv.size()));
 
     // Encrypt the file
     std::vector<unsigned char> inBuf(CHUNK_SIZE);
@@ -88,8 +93,8 @@ bool encryptFile(const std::string &inputFile, const std::string &outputFile, co
     int bytesRead, bytesWritten;
 
     while (true) {
-        inFile.read(reinterpret_cast<char *>(inBuf.data()), inBuf.size());
-        bytesRead = inFile.gcount();
+        inFile.read(reinterpret_cast<char *>(inBuf.data()), static_cast<std::streamsize>(inBuf.size()));
+        bytesRead = static_cast<int>(inFile.gcount());
         if (bytesRead <= 0) {
             break;
         }
@@ -135,8 +140,8 @@ bool decryptFile(const std::string &inputFile, const std::string &outputFile, co
     std::vector<unsigned char> iv(MAX_IV_SIZE);
 
     // Read the salt and IV from the input file
-    inFile.read(reinterpret_cast<char *>(salt.data()), salt.size());
-    inFile.read(reinterpret_cast<char *>(iv.data()), iv.size());
+    inFile.read(reinterpret_cast<char *>(salt.data()), static_cast<std::streamsize>(salt.size()));
+    inFile.read(reinterpret_cast<char *>(iv.data()), static_cast<std::streamsize>(iv.size()));
 
     std::vector<unsigned char> key = deriveKey(password, salt);
 
@@ -162,8 +167,8 @@ bool decryptFile(const std::string &inputFile, const std::string &outputFile, co
     int bytesRead, bytesWritten;
 
     while (true) {
-        inFile.read(reinterpret_cast<char *>(inBuf.data()), inBuf.size());
-        bytesRead = inFile.gcount();
+        inFile.read(reinterpret_cast<char *>(inBuf.data()), static_cast<std::streamsize>(inBuf.size()));
+        bytesRead = static_cast<int>(inFile.gcount());
         if (bytesRead <= 0) {
             break;
         }
