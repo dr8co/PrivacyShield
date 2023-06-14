@@ -48,61 +48,73 @@ std::vector<unsigned char> deriveKey(const std::string &password, const std::vec
  * @return True if encryption succeeds, else False.
  */
 bool encryptFile(const std::string &inputFile, const std::string &outputFile, const std::string &password) {
-    const int bufferSize = 8192;
+    std::vector<unsigned char> salt = generateSalt(EVP_SALT_SIZE);
+    std::vector<unsigned char> key = deriveKey(password, salt);
 
-    // Initialize OpenSSL library
-    OpenSSL_add_all_algorithms();
-
-    // Generate a random initialization vector (IV)
-    unsigned char iv[EVP_MAX_IV_LENGTH];
-    if (RAND_bytes(iv, EVP_MAX_IV_LENGTH) != 1) {
-        std::cerr << "Error generating random IV." << std::endl;
+    std::vector<unsigned char> iv(MAX_IV_SIZE);
+    if (RAND_bytes(iv.data(), MAX_IV_SIZE) != 1) {
+        std::cerr << "Error generating IV." << std::endl;
         return false;
     }
 
-    // Open the input and output files
-    std::ifstream inputFileStream(inputFile, std::ios::binary);
-    if (!inputFileStream) {
-        std::cerr << "Error opening input file: " << inputFile << std::endl;
-        return false;
-    }
-
-    std::ofstream outputFileStream(outputFile, std::ios::binary);
-    if (!outputFileStream) {
-        std::cerr << "Error opening output file: " << outputFile << std::endl;
-        return false;
-    }
-
-    // Create and initialize the encryption context
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
-    EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), nullptr, nullptr, nullptr);
-    EVP_EncryptInit_ex(ctx, nullptr, nullptr, reinterpret_cast<const unsigned char *>(password.c_str()), iv);
-
-    // Allocate memory for input and output buffers
-    std::vector<unsigned char> inBuffer(bufferSize);
-    std::vector<unsigned char> outBuffer(bufferSize + EVP_MAX_BLOCK_LENGTH);
-
-    // Read the input file and encrypt its contents
-    while (inputFileStream) {
-        inputFileStream.read(reinterpret_cast<char *>(inBuffer.data()), bufferSize);
-        int bytesRead = inputFileStream.gcount();
-
-        int outLength = 0;
-        EVP_EncryptUpdate(ctx, outBuffer.data(), &outLength, inBuffer.data(), bytesRead);
-        outputFileStream.write(reinterpret_cast<const char *>(outBuffer.data()), outLength);
+    if (ctx == nullptr) {
+        std::cerr << "Error creating cipher context." << std::endl;
+        return false;
     }
 
-    // Finalize the encryption process
-    int outLength = 0;
-    EVP_EncryptFinal_ex(ctx, outBuffer.data(), &outLength);
-    outputFileStream.write(reinterpret_cast<const char *>(outBuffer.data()), outLength);
+    std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
 
-    // Clean up
-    EVP_CIPHER_CTX_free(ctx);
-    inputFileStream.close();
-    outputFileStream.close();
+    if (EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), nullptr, key.data(), iv.data()) != 1) {
+        std::cerr << "Error initializing encryption." << std::endl;
+        return false;
+    }
 
-    std::cout << "Encryption completed successfully." << std::endl;
+    // Set automatic padding handling
+    EVP_CIPHER_CTX_set_padding(ctx, EVP_PADDING_PKCS7);
+
+    std::ifstream inFile(inputFile, std::ios::binary);
+    std::ofstream outFile(outputFile, std::ios::binary);
+
+    // Write the salt and IV to the output file
+    outFile.write(reinterpret_cast<const char *>(salt.data()), salt.size());
+    outFile.write(reinterpret_cast<const char *>(iv.data()), iv.size());
+
+    // Encrypt the file
+    std::vector<unsigned char> inBuf(CHUNK_SIZE);
+    std::vector<unsigned char> outBuf(CHUNK_SIZE + EVP_MAX_BLOCK_LENGTH);
+    int bytesRead, bytesWritten;
+
+    while (true) {
+        inFile.read(reinterpret_cast<char *>(inBuf.data()), inBuf.size());
+        bytesRead = inFile.gcount();
+        if (bytesRead <= 0) {
+            break;
+        }
+
+        if (EVP_EncryptUpdate(ctx, outBuf.data(), &bytesWritten, inBuf.data(), bytesRead) != 1) {
+            std::cerr << "Error encrypting data." << std::endl;
+            return false;
+        }
+
+        outFile.write(reinterpret_cast<const char *>(outBuf.data()), bytesWritten);
+        outFile.flush();
+    }
+
+    if (EVP_EncryptFinal_ex(ctx, outBuf.data(), &bytesWritten) != 1) {
+        std::cerr << "Error finalizing encryption." << std::endl;
+        return false;
+    }
+
+    outFile.write(reinterpret_cast<const char *>(outBuf.data()), bytesWritten);
+    outFile.flush();
+
+    // Close the streams
+    inFile.close();
+    outFile.close();
+
+    std::cout << "Encryption complete. Encrypted file: " << outputFile << std::endl;
+
     return true;
 }
 
