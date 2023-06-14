@@ -38,7 +38,7 @@ std::vector<unsigned char> deriveKey(const std::string &password, const std::vec
                           static_cast<int>(password.size()),
                           salt.data(),
                           static_cast<int>(salt.size()),
-                          10000, EVP_sha256(),
+                          10000, EVP_blake2b512(),
                           MAX_KEY_SIZE,
                           key.data()) != 1) {
         std::cerr << "Error deriving key." << std::endl;
