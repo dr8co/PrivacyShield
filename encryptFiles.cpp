@@ -11,7 +11,12 @@ constexpr int MAX_KEY_SIZE = EVP_MAX_KEY_LENGTH;
 constexpr int MAX_IV_SIZE = EVP_MAX_IV_LENGTH;
 constexpr int CHUNK_SIZE = 1024;
 
-// Function to generate a random salt
+
+/**
+ * generateSalt - Generates a random salt
+ * @param saltSize number of bytes of salt to generate
+ * @return the generated salt as a vector
+ */
 std::vector<unsigned char> generateSalt(int saltSize) {
     std::vector<unsigned char> salt(saltSize);
     if (RAND_bytes(salt.data(), saltSize) != 1) {
@@ -21,7 +26,12 @@ std::vector<unsigned char> generateSalt(int saltSize) {
     return salt;
 }
 
-// Function to derive the symmetric key from the password and salt
+/**
+ * deriveKey - derives a symmetric key from a password and a salt
+ * @param password the password
+ * @param salt the salt
+ * @return the generated key vector
+ */
 std::vector<unsigned char> deriveKey(const std::string &password, const std::vector<unsigned char> &salt) {
     std::vector<unsigned char> key(MAX_KEY_SIZE);
     if (PKCS5_PBKDF2_HMAC(password.data(), password.size(), salt.data(), salt.size(), 10000, EVP_sha256(), MAX_KEY_SIZE,
@@ -160,7 +170,7 @@ bool decryptFile(const std::string &inputFile, const std::string &outputFile, co
 
         if (EVP_DecryptUpdate(ctx, outBuf.data(), &bytesWritten, inBuf.data(), bytesRead) != 1) {
             std::cerr << "Error decrypting data." << std::endl;
-            exit(EXIT_FAILURE);
+            return false;
         }
 
         outFile.write(reinterpret_cast<const char *>(outBuf.data()), bytesWritten);
