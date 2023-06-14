@@ -11,14 +11,6 @@ constexpr int MAX_KEY_SIZE = EVP_MAX_KEY_LENGTH;
 constexpr int MAX_IV_SIZE = EVP_MAX_IV_LENGTH;
 constexpr int CHUNK_SIZE = 1024;
 
-// Class for OpenSSL cleanup functions
-class OpenSSLCleanup {
-public:
-    OpenSSLCleanup() { OpenSSL_add_all_algorithms(); }
-
-    ~OpenSSLCleanup() { EVP_cleanup(); }
-};
-
 // Function to generate a random salt
 std::vector<unsigned char> generateSalt(int saltSize) {
     std::vector<unsigned char> salt(saltSize);
