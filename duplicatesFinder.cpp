@@ -73,10 +73,6 @@ void traverseDirectory(const std::string &directoryPath, std::vector<FileInfo> &
  * @param end the index where processing ends.
  */
 void calculateHashes(std::vector<FileInfo> &files, size_t start, size_t end) {
-    if (sodium_init() == -1) {
-        std::cerr << "Failed to initialize libsodium" << std::endl;
-        return;
-    }
 
     for (size_t i = start; i < end; ++i) {
         FileInfo fileCopy = files[i];
@@ -93,6 +89,10 @@ void calculateHashes(std::vector<FileInfo> &files, size_t start, size_t end) {
  * @return True if duplicates are found, else False.
  */
 bool findDuplicates(const std::string &directoryPath) {
+    if (sodium_init() == -1) {
+        std::cerr << "Failed to initialize libsodium" << std::endl;
+        return false;
+    }
     bool duplicatesPresent = false;
 
     // Collect file information
