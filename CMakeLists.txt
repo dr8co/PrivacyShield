@@ -9,6 +9,9 @@ find_package(OpenSSL REQUIRED)
 find_package(Sodium REQUIRED)
 find_package(CryptoPP REQUIRED)
 
-add_executable(privacyShield main.cpp encryptFiles.cpp main.hpp duplicatesFinder.cpp)
+add_executable(privacyShield
+        main.cpp main.hpp
+        encryptFiles.cpp duplicatesFinder.cpp
+        shredFiles.cpp privacyTracks.cpp)
 
 target_link_libraries(privacyShield ssl sodium crypto)
