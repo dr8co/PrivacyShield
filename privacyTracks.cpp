@@ -4,6 +4,10 @@
 
 namespace fs = std::filesystem;
 
+/**
+ * Detects common browsers installed in a system
+ * @return a vector of detected browsers
+ */
 std::vector<std::string> detectBrowsers() {
     std::vector<std::string> browsers;
 
