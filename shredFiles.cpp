@@ -1,6 +1,9 @@
 #include <iostream>
 #include <fstream>
 #include <random>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 /**
  * overwriteRandom - overwrites a file with random bytes.
@@ -65,6 +68,7 @@ void simpleShred(const std::string &filename) {
     overwriteRandom(file, fileSize);
 
     file.close();
+    fs::remove(filename);
 }
 
 /**
@@ -96,4 +100,5 @@ void dod5220Shred(const std::string &filename) {
     overwriteRandom(file, fileSize);
 
     file.close();
+    fs::remove(filename);
 }
