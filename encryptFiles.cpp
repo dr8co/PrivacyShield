@@ -10,6 +10,7 @@ constexpr int EVP_SALT_SIZE = 8;
 constexpr int MAX_KEY_SIZE = EVP_MAX_KEY_LENGTH;
 constexpr int MAX_IV_SIZE = EVP_MAX_IV_LENGTH;
 constexpr int CHUNK_SIZE = 1024;
+constexpr int AES256_KEY_SIZE = 32;
 
 
 /**
@@ -32,14 +33,17 @@ std::vector<unsigned char> generateSalt(int saltSize) {
  * @param salt the salt
  * @return the generated key vector
  */
-std::vector<unsigned char> deriveKey(const std::string &password, const std::vector<unsigned char> &salt) {
-    std::vector<unsigned char> key(MAX_KEY_SIZE);
+std::vector<unsigned char> deriveKey(const std::string &password, const std::vector<unsigned char> &salt, const int &keySize=AES256_KEY_SIZE) {
+    if (keySize > MAX_KEY_SIZE || keySize < 1)
+        throw std::runtime_error("Invalid Key size.");
+
+    std::vector<unsigned char> key(keySize);
     if (PKCS5_PBKDF2_HMAC(password.data(),
                           static_cast<int>(password.size()),
                           salt.data(),
                           static_cast<int>(salt.size()),
                           10000, EVP_blake2b512(),
-                          MAX_KEY_SIZE,
+                          keySize,
                           key.data()) != 1) {
         std::cerr << "Error deriving key." << std::endl;
         exit(EXIT_FAILURE);
@@ -58,11 +62,7 @@ bool encryptFile(const std::string &inputFile, const std::string &outputFile, co
     std::vector<unsigned char> salt = generateSalt(EVP_SALT_SIZE);
     std::vector<unsigned char> key = deriveKey(password, salt);
 
-    std::vector<unsigned char> iv(MAX_IV_SIZE);
-    if (RAND_bytes(iv.data(), MAX_IV_SIZE) != 1) {
-        std::cerr << "Error generating IV." << std::endl;
-        return false;
-    }
+    std::vector<unsigned char> iv = generateSalt(MAX_IV_SIZE);
 
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
     if (ctx == nullptr) {
