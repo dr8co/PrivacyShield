@@ -49,3 +49,36 @@ std::string base64Decode(const std::string &encodedData) {
 
     return reinterpret_cast<const char *>(decodedData.data());
 }
+
+/**
+ * @brief Performs Hex encoding.
+ * @param data binary data to be encoded.
+ * @return the encoded string.
+ */
+std::string hexEncode(const std::vector<unsigned char> &data) {
+    std::stringstream ss;
+    ss << std::hex << std::setfill('0');
+
+    for (const auto &byte: data) {
+        ss << std::setw(2) << static_cast<int>(byte);
+    }
+    return ss.str();
+}
+
+/**
+ * @brief Performs Hex decoding.
+ * @param encodedData Hex encoded string.
+ * @return binary data.
+ */
+std::vector<unsigned char> hexDecode(const std::string &encodedData) {
+    std::vector<unsigned char> decoded_data(encodedData.length() / 2);
+
+    for (size_t i = 0; i < encodedData.length(); i += 2) {
+        std::stringstream ss;
+        ss << std::hex << encodedData.substr(i, 2);
+        int byte_value;
+        ss >> byte_value;
+        decoded_data[i / 2] = static_cast<unsigned char>(byte_value);
+    }
+    return decoded_data;
+}
