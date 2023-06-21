@@ -2,6 +2,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include <readline/readline.h>
+#include <openssl/evp.h>
 
 /**
  * @brief reads sensitive input from a terminal without echoing them.
@@ -22,11 +23,43 @@ std::string getSensitiveInfo(const std::string &prompt = "") {
     // Read password from input
     tmp = readline(prompt.c_str());
     password = std::string(tmp);
-    std::free(tmp);
+    OPENSSL_secure_free(tmp);
 
     // Restore terminal settings
     tcsetattr(STDIN_FILENO, TCSANOW, &oldSettings);
     std::cout << std::endl;
 
     return password;
+}
+
+/**
+ * @brief Checks the strength of a password.
+ * @param password the password to process.
+ * @return True if the password is strong, False otherwise.
+ */
+bool isPasswordStrong(const std::string &password) noexcept {
+    // Check the length
+    if (password.length() < 8) {
+        return false;
+    }
+
+    // Check for at least one uppercase letter, one lowercase letter, and one digit
+    bool hasUppercase = false;
+    bool hasLowercase = false;
+    bool hasDigit = false;
+
+    for (char ch: password) {
+        if (std::isupper(ch))
+            hasUppercase = true;
+        else if (std::islower(ch))
+            hasLowercase = true;
+        else if (std::isdigit(ch))
+            hasDigit = true;
+
+        // Break out of the loop as soon as all conditions are satisfied
+        if (hasUppercase && hasLowercase && hasDigit)
+            return true;
+    }
+
+    return false;
 }
