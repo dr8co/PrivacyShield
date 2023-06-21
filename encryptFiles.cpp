@@ -12,6 +12,9 @@ constexpr int MAX_IV_SIZE = EVP_MAX_IV_LENGTH;
 constexpr int CHUNK_SIZE = 1024;
 constexpr int AES256_KEY_SIZE = 32;
 
+OSSL_LIB_CTX *libctx = nullptr;
+const char *propq = nullptr;
+
 
 /**
  * generateSalt - Generates a random salt
@@ -33,7 +36,8 @@ std::vector<unsigned char> generateSalt(int saltSize) {
  * @param salt the salt
  * @return the generated key vector
  */
-std::vector<unsigned char> deriveKey(const std::string &password, const std::vector<unsigned char> &salt, const int &keySize=AES256_KEY_SIZE) {
+std::vector<unsigned char>
+deriveKey(const std::string &password, const std::vector<unsigned char> &salt, const int &keySize = AES256_KEY_SIZE) {
     if (keySize > MAX_KEY_SIZE || keySize < 1)
         throw std::runtime_error("Invalid Key size.");
 
@@ -70,9 +74,17 @@ bool encryptFile(const std::string &inputFile, const std::string &outputFile, co
         return false;
     }
 
-    std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
+    EVP_CIPHER *cipher = EVP_CIPHER_fetch(libctx, "AES-256-CBC", propq);
+    if (cipher == nullptr) {
+        std::cerr << "Error fetching cipher." << std::endl;
+        return false;
+    }
 
-    if (EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), nullptr, key.data(), iv.data()) != 1) {
+
+    std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
+    std::unique_ptr<EVP_CIPHER, decltype(&EVP_CIPHER_free)> cipherPtr(cipher, EVP_CIPHER_free);
+
+    if (EVP_EncryptInit_ex2(ctx, cipher, key.data(), iv.data(), nullptr) != 1) {
         std::cerr << "Error initializing encryption." << std::endl;
         return false;
     }
@@ -151,9 +163,17 @@ bool decryptFile(const std::string &inputFile, const std::string &outputFile, co
         return false;
     }
 
-    std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
+    EVP_CIPHER *cipher = EVP_CIPHER_fetch(libctx, "AES-256-CBC", propq);
+    if (cipher == nullptr) {
+        std::cerr << "Error fetching cipher." << std::endl;
+        return false;
+    }
 
-    if (EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), nullptr, key.data(), iv.data()) != 1) {
+    std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
+    std::unique_ptr<EVP_CIPHER, decltype(&EVP_CIPHER_free)> cipherPtr(cipher, EVP_CIPHER_free);
+
+
+    if (EVP_DecryptInit_ex2(ctx, cipher, key.data(), iv.data(), nullptr) != 1) {
         std::cerr << "Error initializing decryption." << std::endl;
         return false;
     }
