@@ -16,16 +16,14 @@ struct FileInfo {
 };
 
 /**
- * calculateBlake2b - Calculates the Blake2b hash of a file.
+ * @brief Calculates the Blake2b hash of a file.
  * @param filePath path to the file.
  * @return a string of the hash of the file.
  */
 std::string calculateBlake2b(const std::string &filePath) {
     std::ifstream file(filePath, std::ios::binary);
-    if (!file) {
-        std::cerr << "Failed to open file: " << filePath << std::endl;
-        return "";
-    }
+    if (!file)
+        throw std::runtime_error("Failed to open file: " + filePath);
 
     const size_t bufferSize = 4096;
     std::vector<char> buffer(bufferSize);
@@ -50,7 +48,7 @@ std::string calculateBlake2b(const std::string &filePath) {
 }
 
 /**
- * traverseDirectory - recursively traverses a directory and collects file information.
+ * @brief recursively traverses a directory and collects file information.
  * @param directoryPath the directory to process.
  * @param files a vector to store the information from the files found in the directory.
  */
@@ -61,50 +59,49 @@ void traverseDirectory(const std::string &directoryPath, std::vector<FileInfo> &
             fileInfo.path = entry.path().string();
             fileInfo.hash = "";  // Hash will be calculated later
             files.push_back(fileInfo);
-        }
+        } else if (!entry.is_directory())
+            std::cout << "Not processing: " << entry << ". Not a regular file." << std::endl;
     }
 }
 
 
 /**
- * calculateHashes - calculates hashes for a range of files.
+ * @brief calculates hashes for a range of files.
  * @param files the files to process.
  * @param start the index where processing starts.
  * @param end the index where processing ends.
  */
 void calculateHashes(std::vector<FileInfo> &files, size_t start, size_t end) {
+    if (start > end || end > files.size())
+        throw std::runtime_error("Invalid range");
 
     for (size_t i = start; i < end; ++i) {
-        FileInfo fileCopy = files[i];
-        fileCopy.hash = calculateBlake2b(fileCopy.path);
-
-        // Assign the modified copy back to the original object in the vector
-        files[i].hash = fileCopy.hash;
+        files[i].hash = calculateBlake2b(files[i].path);
     }
 }
 
 /**
- * findDuplicates - finds duplicate files (by content) in a directory.
+ * @brief finds duplicate files (by content) in a directory.
  * @param directoryPath - the directory to process.
  * @return True if duplicates are found, else False.
  */
-bool findDuplicates(const std::string &directoryPath) {
+std::pair<bool, size_t> findDuplicates(const std::string &directoryPath) {
+    std::pair<bool, size_t> ret{false, 0};
     if (sodium_init() == -1) {
-        std::cerr << "Failed to initialize libsodium" << std::endl;
-        return false;
+        throw std::runtime_error("Failed to initialize libsodium");
     }
-    bool duplicatesPresent = false;
 
     // Collect file information
     std::vector<FileInfo> files;
     traverseDirectory(directoryPath, files);
 
-    // Number of threads to use
+    // Number of threads to use (Simple C11 threads for now)
     const unsigned int numThreads = std::thread::hardware_concurrency();
 
     // Divide files among threads and calculate hashes in parallel
     std::vector<std::thread> threads;
-    size_t filesPerThread = files.size() / numThreads;
+    size_t filesProcessed = files.size();
+    size_t filesPerThread = filesProcessed / numThreads;
     size_t start = 0;
 
     for (int i = 0; i < numThreads - 1; ++i) {
@@ -131,22 +128,26 @@ bool findDuplicates(const std::string &directoryPath) {
         hashMap[hash].push_back(filePath);
     }
 
-    size_t duplicatesSet = 0;
+    size_t duplicatesSet = 0, duplicateFiles = 0;
 
     // Display duplicate files
-    std::cout << "Duplicate files:" << std::endl;
+    std::cout << "Duplicates found:" << std::endl;
     for (const auto &pair: hashMap) {
         const std::vector<std::string> &duplicates = pair.second;
 
         if (duplicates.size() > 1) {
+            ret.first = true;
             ++duplicatesSet;
+
             std::cout << "Duplicate files set " << duplicatesSet << ":" << std::endl;
             for (const std::string &filePath: duplicates) {
                 std::cout << "  " << filePath << std::endl;
+                ++duplicateFiles;
             }
-            duplicatesPresent = true;
         }
     }
+    std::cout << "\nFiles processed: " << filesProcessed << std::endl;
+    ret.second = duplicateFiles;
 
-    return duplicatesPresent;
+    return ret;
 }

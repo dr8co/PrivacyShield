@@ -16,7 +16,7 @@ public:
 
 bool encryptFile(const std::string &inputFile, const std::string &outputFile, const std::string &password);
 
-bool findDuplicates(const std::string &directoryPath);
+std::pair<bool, size_t> findDuplicates(const std::string &directoryPath);
 
 bool decryptFile(const std::string &inputFile, const std::string &outputFile, const std::string &password);
 
