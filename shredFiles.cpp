@@ -6,10 +6,10 @@
 namespace fs = std::filesystem;
 
 /**
- * overwriteRandom - overwrites a file with random bytes.
- * @param file output file stream object
- * @param fileSize the size of the file in bytes
- * @param nPasses the number of passes to overwrite the file
+ * @brief overwrites a file with random bytes.
+ * @param file output file stream object.
+ * @param fileSize the size of the file in bytes.
+ * @param nPasses the number of passes to overwrite the file.
  */
 void overwriteRandom(std::ofstream &file, const size_t fileSize, int nPasses = 1) {
 
@@ -18,7 +18,7 @@ void overwriteRandom(std::ofstream &file, const size_t fileSize, int nPasses = 1
     std::uniform_int_distribution<uint8_t> dist(0, 255);
 
     for (int i = 0; i < nPasses; ++i) {
-        // Seed the Mersenne Twister engine
+        // (Re)seed the Mersenne Twister engine in every iteration
         std::mt19937_64 gen(rd());
 
         // Overwrite the file with random data
@@ -31,17 +31,15 @@ void overwriteRandom(std::ofstream &file, const size_t fileSize, int nPasses = 1
 }
 
 /**
- * overwriteConstantByte - overwrites a file wih a constant byte.
+ * @brief overwrites a file wih a constant byte.
  * @tparam T type of the byte.
  * @param filename the path to the file to be overwritten.
- * @param byte the byte to overwrite the file with
- * @param fileSize the size of the file in bytes
+ * @param byte the byte to overwrite the file with.
+ * @param fileSize the size of the file in bytes.
  *
  */
 template<typename T>
 void overwriteConstantByte(std::ofstream &file, T byte, const size_t fileSize) {
-
-    // Overwrite with the byte
     for (std::streamoff pos = 0; pos < fileSize; ++pos) {
         file.write(reinterpret_cast<char *>(&byte), sizeof(T));
     }
@@ -49,10 +47,10 @@ void overwriteConstantByte(std::ofstream &file, T byte, const size_t fileSize) {
 }
 
 /**
- * simpleShred - shreds a file by overwriting it with random bytes
+ * @brief shreds a file by overwriting it with random bytes
  * @param filename path to the file being overwritten
  */
-void simpleShred(const std::string &filename) {
+void simpleShred(const std::string &filename, const int &nPasses=3) {
     std::ofstream file(filename, std::ios::binary | std::ios::in);
     if (!file) {
         std::cerr << "Failed to open the file: " << filename << std::endl;
@@ -65,14 +63,14 @@ void simpleShred(const std::string &filename) {
     file.seekp(0, std::ios::beg);
 
     // Shred the file
-    overwriteRandom(file, fileSize);
+    overwriteRandom(file, fileSize, nPasses);
 
     file.close();
     fs::remove(filename);
 }
 
 /**
- * dod5220Shred - shreds a file using a simple version of
+ * @brief shreds a file using a simple version of
  * The U.S Department of Defence (DoD) 5220.22-M Standard algorithm.
  * @param filename - the path to the file to be shred.
  */
