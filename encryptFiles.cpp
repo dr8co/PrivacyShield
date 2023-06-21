@@ -270,3 +270,66 @@ std::string encryptString(const std::string &plaintext, const std::string &passw
 
     return result;
 }
+
+/**
+ * @brief decrypts a string using AES256 cipher in CBC mode.
+ * @param ciphertext the string to be decrypted.
+ * @param password the string to be used to derive the decryption key.
+ * @return the decrypted string (the plaintext)
+ */
+std::string decryptString(const std::string &ciphertext, const std::string &password) {
+    std::vector<unsigned char> salt(SALT_SIZE);
+    std::vector<unsigned char> iv(IV_SIZE);
+    std::string encryptedText;
+
+    if (ciphertext.size() > salt.size() + iv.size()) {
+        // Read the salt and IV from the ciphertext
+        salt.assign(ciphertext.begin(), ciphertext.begin() + salt.size());
+        iv.assign(ciphertext.begin() + salt.size(), ciphertext.begin() + salt.size() + iv.size());
+
+        encryptedText.assign(ciphertext.begin() + salt.size() + iv.size(), ciphertext.end());
+    } else {
+        throw std::runtime_error("invalid ciphertext.");
+    }
+
+    // Derive the decryption key from the password and the salt
+    std::vector<unsigned char> key = deriveKey(password, salt);
+
+    // Fetch the cipher context and the cipher
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    if (ctx == nullptr)
+        throw std::runtime_error("Failed to create the cipher context.");
+
+    EVP_CIPHER *cipher = EVP_CIPHER_fetch(libContext, "AES-256-CBC", propertyQuery);
+    if (cipher == nullptr)
+        throw std::runtime_error("Failed to fetch AES-256-CBC cipher.");
+
+    // Memory management
+    std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
+    std::unique_ptr<EVP_CIPHER, decltype(&EVP_CIPHER_free)> cipherPtr(cipher, EVP_CIPHER_free);
+
+    int block_size = EVP_CIPHER_get_block_size(cipher);
+    std::vector<unsigned char> plaintext(encryptedText.length() + block_size);
+    int plaintextLength = 0;
+
+    // Initialize the decryption operation
+    if (EVP_DecryptInit_ex2(ctx, cipher, key.data(), iv.data(), nullptr) != 1)
+        throw std::runtime_error("Failed to initialize decryption.");
+
+    if (EVP_DecryptUpdate(ctx, plaintext.data(), &plaintextLength,
+                          reinterpret_cast<const unsigned char *>(encryptedText.c_str()),
+                          static_cast<int>(encryptedText.length())) != 1) {
+        throw std::runtime_error("Failed to decrypt the data.");
+    }
+
+    // Finalize the decryption operation
+    int finalLength = 0;
+    if (EVP_DecryptFinal_ex(ctx, plaintext.data() + plaintextLength, &finalLength) != 1) {
+        throw std::runtime_error("Failed to finalize decryption.");
+    }
+    plaintextLength += finalLength;
+
+    std::string decryptedText(reinterpret_cast<char *>(plaintext.data()), plaintextLength);
+
+    return decryptedText;
+}
