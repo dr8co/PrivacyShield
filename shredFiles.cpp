@@ -50,12 +50,10 @@ void overwriteConstantByte(std::ofstream &file, T byte, const size_t fileSize) {
  * @brief shreds a file by overwriting it with random bytes
  * @param filename path to the file being overwritten
  */
-void simpleShred(const std::string &filename, const int &nPasses=3) {
+void simpleShred(const std::string &filename, const int &nPasses = 3) {
     std::ofstream file(filename, std::ios::binary | std::ios::in);
-    if (!file) {
-        std::cerr << "Failed to open the file: " << filename << std::endl;
-        return;
-    }
+    if (!file)
+        throw std::runtime_error("Failed to open file: " + filename);
 
     // Get the file size
     file.seekp(0, std::ios::end);
@@ -76,10 +74,8 @@ void simpleShred(const std::string &filename, const int &nPasses=3) {
  */
 void dod5220Shred(const std::string &filename) {
     std::ofstream file(filename, std::ios::binary | std::ios::in);
-    if (!file) {
-        std::cerr << "Failed to open the file: " << filename << std::endl;
-        return;
-    }
+    if (!file)
+        throw std::runtime_error("Failed to open file: " + filename);
 
     // Get the file size
     file.seekp(0, std::ios::end);
