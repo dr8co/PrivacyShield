@@ -69,7 +69,7 @@ bool encryptFile(const std::string &inputFile, const std::string &outputFile, co
     std::vector<unsigned char> salt = generateSalt(SALT_SIZE);
     std::vector<unsigned char> iv = generateSalt(IV_SIZE);
 
-    // Derive the decryption key
+    // Derive the encryption key (and hence, the decryption key. Symmetric-key cryptography)
     std::vector<unsigned char> key = deriveKey(password, salt);
 
     // Fetch the cipher context and the cipher

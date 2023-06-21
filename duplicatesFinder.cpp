@@ -23,7 +23,7 @@ struct FileInfo {
 std::string calculateBlake2b(const std::string &filePath) {
     std::ifstream file(filePath, std::ios::binary);
     if (!file)
-        throw std::runtime_error("Failed to open file: " + filePath);
+        throw std::runtime_error("Failed to open: " + filePath + " for hashing.");
 
     const size_t bufferSize = 4096;
     std::vector<char> buffer(bufferSize);
@@ -73,7 +73,7 @@ void traverseDirectory(const std::string &directoryPath, std::vector<FileInfo> &
  */
 void calculateHashes(std::vector<FileInfo> &files, size_t start, size_t end) {
     if (start > end || end > files.size())
-        throw std::runtime_error("Invalid range");
+        throw std::runtime_error("Invalid range.");
 
     for (size_t i = start; i < end; ++i) {
         files[i].hash = calculateBlake2b(files[i].path);
@@ -87,8 +87,9 @@ void calculateHashes(std::vector<FileInfo> &files, size_t start, size_t end) {
  */
 std::pair<bool, size_t> findDuplicates(const std::string &directoryPath) {
     std::pair<bool, size_t> ret{false, 0};
+
     if (sodium_init() == -1) {
-        throw std::runtime_error("Failed to initialize libsodium");
+        throw std::runtime_error("Failed to initialize libsodium.");
     }
 
     // Collect file information
