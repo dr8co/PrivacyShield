@@ -27,3 +27,25 @@ std::string base64Encode(const std::string &input) {
 
     return encodedData;
 }
+
+/**
+ * @brief Performs Base64 decoding.
+ * @param encodedData Base64 encoded string.
+ * @return binary string.
+ */
+std::string base64Decode(const std::string &encodedData) {
+    BIO *bio, *b64;
+
+    std::vector<unsigned char> decodedData(encodedData.size());
+
+    b64 = BIO_new(BIO_f_base64());
+    bio = BIO_new_mem_buf(encodedData.data(), static_cast<int>(encodedData.size()));
+    bio = BIO_push(b64, bio);
+
+    BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
+    BIO_read(bio, decodedData.data(), static_cast<int>(decodedData.size()));
+
+    BIO_free_all(bio);
+
+    return reinterpret_cast<const char *>(decodedData.data());
+}
