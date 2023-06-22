@@ -11,7 +11,8 @@ find_package(CryptoPP REQUIRED)
 
 add_executable(privacyShield
         main.cpp main.hpp
-        encryptFiles.cpp duplicatesFinder.cpp
-        shredFiles.cpp privacyTracks.cpp)
+        encryptDecrypt.cpp duplicatesFinder.cpp
+        shredFiles.cpp privacyTracks.cpp
+        passwords.cpp stringUtils.cpp)
 
-target_link_libraries(privacyShield ssl sodium crypto)
+target_link_libraries(privacyShield ssl sodium crypto readline)

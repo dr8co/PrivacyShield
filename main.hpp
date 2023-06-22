@@ -16,8 +16,16 @@ public:
 
 bool encryptFile(const std::string &inputFile, const std::string &outputFile, const std::string &password);
 
+bool decryptFile(const std::string &inputFile, const std::string &outputFile, const std::string &password);
+
+std::string encryptString(const std::string &plaintext, const std::string &password);
+
+std::string decryptString(const std::string &ciphertext, const std::string &password);
+
 std::pair<bool, size_t> findDuplicates(const std::string &directoryPath);
 
-bool decryptFile(const std::string &inputFile, const std::string &outputFile, const std::string &password);
+std::string base64Encode(const std::string &input);
+
+std::string base64Decode(const std::string &encodedData);
 
 #endif //PRIVACY_SHIELD_MAIN_HPP
