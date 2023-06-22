@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <readline/readline.h>
 #include <openssl/evp.h>
+#include <random>
 
 /**
  * @brief reads sensitive input from a terminal without echoing them.
@@ -62,4 +63,26 @@ bool isPasswordStrong(const std::string &password) noexcept {
     }
 
     return false;
+}
+
+/**
+ * @brief Generates a random password.
+ * @param length the length of the password.
+ * @return a random password.
+ */
+std::string generatePassword(int length) {
+    const std::string characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()-=_+";
+
+    std::random_device rd;
+    std::mt19937_64 generator(rd());
+
+    std::uniform_int_distribution<int> distribution(0, static_cast<int>(characters.size()) - 1);
+
+    std::string password;
+    password.reserve(length);
+    for (int i = 0; i < length; ++i) {
+        password += characters[distribution(generator)];
+    }
+
+    return password;
 }
