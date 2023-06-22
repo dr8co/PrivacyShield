@@ -104,8 +104,7 @@ bool savePasswords(const std::vector<std::pair<std::string, std::string>> &passw
                    const std::string &filePath, const std::string &encryptionKey) {
     std::ofstream file(filePath);
     if (!file)
-        throw std::runtime_error("Failed to open file for writing.");
-
+        throw std::runtime_error("Failed to open the password file for writing.");
 
     for (const auto &password: passwords) {
         std::string encryptedPassword = encryptString(password.second, encryptionKey);
@@ -119,4 +118,51 @@ bool savePasswords(const std::vector<std::pair<std::string, std::string>> &passw
     file.close();
 
     return true;
+}
+
+/**
+ * @brief Loads the encrypted passwords from the disk, and decrypts them.
+ * @param filePath path to the password file.
+ * @param decryptionKey the key/password to decrypt the passwords.
+ * @return decrypted passwords records.
+ */
+std::vector<std::pair<std::string, std::string>>
+loadPasswords(const std::string &filePath, const std::string &decryptionKey) {
+    std::vector<std::pair<std::string, std::string>> passwords;
+
+    std::ifstream file(filePath);
+    if (!file)
+        throw std::runtime_error("Failed to open the password file for reading.");
+
+    std::string line;
+    std::string site;
+    std::string encryptedPassword;
+    bool readingPassword = false;
+
+    while (std::getline(file, line)) {
+        if (!readingPassword) {
+            std::size_t delimiterPos = line.find(':');
+
+            if (delimiterPos == std::string::npos) {
+                std::cerr << "Invalid password entry: " << line << std::endl;
+                continue;
+            }
+
+            site = line.substr(0, delimiterPos);
+            readingPassword = true;
+        } else {
+            encryptedPassword = line;
+            std::string decryptedPassword = decryptString(encryptedPassword, decryptionKey);
+
+            if (decryptedPassword.empty()) {
+                std::cerr << "Failed to decrypt password for " << site << std::endl;
+                continue;
+            }
+
+            passwords.emplace_back(site, decryptedPassword);
+            readingPassword = false;
+        }
+    }
+
+    return passwords;
 }
