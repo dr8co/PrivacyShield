@@ -71,18 +71,22 @@ bool isPasswordStrong(const std::string &password) noexcept {
  * @return a random password.
  */
 std::string generatePassword(int length) {
+    if (length < 1)  // A sanity check won't hurt.
+        throw std::length_error("Invalid password length.");
+
     const std::string characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()-=_+";
 
+    // Seed the Mersenne Twister engine with a random source (ideally non-deterministic)
     std::random_device rd;
     std::mt19937_64 generator(rd());
 
+    // Uniform probability
     std::uniform_int_distribution<int> distribution(0, static_cast<int>(characters.size()) - 1);
 
     std::string password;
     password.reserve(length);
-    for (int i = 0; i < length; ++i) {
+    for (int i = 0; i < length; ++i)
         password += characters[distribution(generator)];
-    }
 
     return password;
 }
