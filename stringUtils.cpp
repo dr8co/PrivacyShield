@@ -15,10 +15,16 @@ std::string base64Encode(const std::string &input) {
 
     b64 = BIO_new(BIO_f_base64());
     bio = BIO_new(BIO_s_mem());
+
+    if (b64 == nullptr || bio == nullptr)
+        throw std::bad_alloc();  // Memory allocation failed
+
     bio = BIO_push(b64, bio);
 
     BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
-    BIO_write(bio, input.data(), static_cast<int>(input.size()));
+    if (BIO_write(bio, input.data(), static_cast<int>(input.size())) < 0)
+        throw std::runtime_error("BIO_write() failed.");
+
     BIO_flush(bio);
     BIO_get_mem_ptr(bio, &bufferPtr);
 
@@ -40,10 +46,16 @@ std::string base64Decode(const std::string &encodedData) {
 
     b64 = BIO_new(BIO_f_base64());
     bio = BIO_new_mem_buf(encodedData.data(), static_cast<int>(encodedData.size()));
+
+    if (b64 == nullptr || bio == nullptr)
+        throw std::bad_alloc();  // Memory allocation failed
+
     bio = BIO_push(b64, bio);
 
     BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
-    BIO_read(bio, decodedData.data(), static_cast<int>(decodedData.size()));
+
+    if (BIO_read(bio, decodedData.data(), static_cast<int>(decodedData.size())) < 0)
+        throw std::runtime_error("BIO_read() failed.");
 
     BIO_free_all(bio);
 
