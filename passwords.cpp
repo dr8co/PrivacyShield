@@ -4,6 +4,8 @@
 #include <readline/readline.h>
 #include <openssl/evp.h>
 #include <random>
+#include <fstream>
+#include "main.hpp"
 
 /**
  * @brief reads sensitive input from a terminal without echoing them.
@@ -89,4 +91,32 @@ std::string generatePassword(int length) {
         password += characters[distribution(generator)];
 
     return password;
+}
+
+/**
+ * @brief Encrypts and then saves passwords to a file.
+ * @param passwords a vector of sites and passwords.
+ * @param filePath the path where the file is saved.
+ * @param encryptionKey the key/password to encrypt the passwords in the process.
+ * @return True, if successful.
+ */
+bool savePasswords(const std::vector<std::pair<std::string, std::string>> &passwords,
+                   const std::string &filePath, const std::string &encryptionKey) {
+    std::ofstream file(filePath);
+    if (!file)
+        throw std::runtime_error("Failed to open file for writing.");
+
+
+    for (const auto &password: passwords) {
+        std::string encryptedPassword = encryptString(password.second, encryptionKey);
+
+        if (encryptedPassword.empty())
+            throw std::runtime_error("Failed to encrypt password for " + password.first);
+
+        file << password.first << ":" << std::endl;
+        file << encryptedPassword << std::endl;
+    }
+    file.close();
+
+    return true;
 }
