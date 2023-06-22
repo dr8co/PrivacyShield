@@ -5,7 +5,10 @@
 #include <openssl/evp.h>
 #include <random>
 #include <fstream>
+#include <filesystem>
 #include "main.hpp"
+
+namespace fs = std::filesystem;
 
 /**
  * @brief reads sensitive input from a terminal without echoing them.
@@ -165,4 +168,132 @@ loadPasswords(const std::string &filePath, const std::string &decryptionKey) {
     }
 
     return passwords;
+}
+
+/**
+ * @brief a minimalistic password manager.
+ */
+void passwordManager() {
+    std::vector<std::pair<std::string, std::string>> passwords;
+    std::string passwordFile = "/to/be/determined/later";
+
+    const std::string encryptionKey = getSensitiveInfo("Enter the master password: ");
+
+    if (!encryptionKey.empty() && fs::exists(passwordFile)) {
+        std::cout << "Executed" << std::endl;
+        passwords = loadPasswords(passwordFile, encryptionKey);
+    }
+
+    while (true) {
+        std::cout << "---------------------------" << std::endl;
+        std::cout << "1. Add Password" << std::endl;
+        std::cout << "2. Generate Password" << std::endl;
+        std::cout << "3. View Passwords" << std::endl;
+        std::cout << "4. Update Password" << std::endl;
+        std::cout << "5. Delete Password" << std::endl;
+        std::cout << "6. Save and Exit" << std::endl;
+        std::cout << "---------------------------" << std::endl;
+        std::cout << "Enter your choice: ";
+        int choice;
+        std::cin >> choice;
+        std::cin.ignore();
+
+        if (choice == 1) {
+            std::cout << "Enter the site/platform: ";
+            std::string site;
+            std::cin >> site;
+            std::cin.ignore();
+
+            std::string password = getSensitiveInfo("Enter the password: ");
+
+            if (!isPasswordStrong(password)) {
+                std::cout
+                        << "Weak password! Password should have at least 8 characters and include "
+                           "uppercase letters, lowercase letters, and digits. Consider changing it."
+                        << std::endl;
+                continue;
+            }
+
+            std::string encryptedPassword = encryptString(password, encryptionKey);
+            passwords.emplace_back(site, encryptedPassword);
+
+            std::cout << "Password added!" << std::endl;
+        } else if (choice == 2) {
+            std::cout << "Enter the length of the password to generate: ";
+            int length, tries{0};
+            std::cin >> length;
+
+            while (length < 8 && tries < 3) {
+                std::cout << "A strong password should be at least 8 characters long." << std::endl;
+                std::cout << 2 - tries << " Trial(s) left." << " Try again: ";
+                std::cin >> length;
+                ++tries;
+            }
+            if (tries == 3)
+                continue;
+
+            std::string generatedPassword = generatePassword(length);
+
+            while (!isPasswordStrong(generatedPassword))
+                generatedPassword = generatePassword(length);
+
+            std::cout << "Generated password: " << generatedPassword << std::endl;
+        } else if (choice == 3) {
+            std::cout << "All passwords:" << std::endl;
+            for (const auto &password: passwords) {
+                std::cout << "Site: " << password.first << std::endl;
+                std::cout << "Password: " << decryptString(password.second, encryptionKey) << std::endl;
+                std::cout << "--------------------------------" << std::endl;
+            }
+        } else if (choice == 4) {
+            std::cout << "Enter the site to update: ";
+            std::string site;
+            std::cin >> site;
+
+            auto it = std::find_if(passwords.begin(), passwords.end(), [&site](const auto &password) {
+                return password.first == site;
+            });
+
+            if (it != passwords.end()) {
+                std::string newPassword = getSensitiveInfo("Enter the new password: ");
+
+                if (!isPasswordStrong(newPassword)) {
+                    std::cout
+                            << "Weak password! Password should have at least 8 characters and include "
+                               "uppercase letters, lowercase letters, and digits. Consider using a stronger one."
+                            << std::endl;
+                    continue;
+                }
+
+                it->second = encryptString(newPassword, encryptionKey);
+                std::cout << "Password updated!" << std::endl;
+            } else {
+                std::cout << "Site not found!" << std::endl;
+            }
+        } else if (choice == 5) {
+            std::cout << "Enter the site to delete: ";
+            std::string site;
+            std::cin >> site;
+
+            auto it = std::find_if(passwords.begin(), passwords.end(), [&site](const auto &password) {
+                return password.first == site;
+            });
+
+            if (it != passwords.end()) {
+                passwords.erase(it);
+                std::cout << "Password deleted!" << std::endl;
+            } else {
+                std::cout << "Site not found!" << std::endl;
+            }
+        } else if (choice == 6) {
+            savePasswords(passwords, passwordFile, encryptionKey);
+
+            std::cout << "Passwords and encryption key saved!" << std::endl;
+            break;
+        } else {
+            std::cout << "Invalid choice!" << std::endl;
+            exit(1);
+        }
+    }
+
 }
