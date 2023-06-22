@@ -5,6 +5,7 @@
 #include <memory>
 #include <openssl/evp.h>
 #include <openssl/rand.h>
+#include "main.hpp"
 
 constexpr int SALT_SIZE = 8;
 constexpr int MAX_KEY_SIZE = EVP_MAX_KEY_LENGTH;
@@ -212,7 +213,7 @@ bool decryptFile(const std::string &inputFile, const std::string &outputFile, co
  * @brief encrypts a string using AES256 cipher in CBC mode.
  * @param plaintext the string to be encrypted.
  * @param password the string to be used to derive the encryption key.
- * @return the encrypted string (the ciphertext)
+ * @return Base64-encoded ciphertext (the encrypted data)
  */
 std::string encryptString(const std::string &plaintext, const std::string &password) {
     // Generate the salt and the initialization vector (IV)
@@ -268,19 +269,23 @@ std::string encryptString(const std::string &plaintext, const std::string &passw
 
     result.append(encryptedText);
 
-    return result;
+    // Return Base64-encoded ciphertext
+    return base64Encode(result);
 }
 
 /**
  * @brief decrypts a string using AES256 cipher in CBC mode.
- * @param ciphertext the string to be decrypted.
+ * @param encodedCiphertext Base64-encoded ciphertext to be decrypted.
  * @param password the string to be used to derive the decryption key.
  * @return the decrypted string (the plaintext)
  */
-std::string decryptString(const std::string &ciphertext, const std::string &password) {
+std::string decryptString(const std::string &encodedCiphertext, const std::string &password) {
     std::vector<unsigned char> salt(SALT_SIZE);
     std::vector<unsigned char> iv(IV_SIZE);
     std::string encryptedText;
+
+    // Base64 decode the encrypted data
+    std::string ciphertext = base64Decode(encodedCiphertext);
 
     if (ciphertext.size() > salt.size() + iv.size()) {
         // Read the salt and IV from the ciphertext
