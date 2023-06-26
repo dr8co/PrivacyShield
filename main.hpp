@@ -22,7 +22,7 @@ std::string encryptString(const std::string &plaintext, const std::string &passw
 
 std::string decryptString(const std::string &ciphertext, const std::string &password);
 
-std::pair<bool, size_t> findDuplicates(const std::string &directoryPath);
+size_t findDuplicates(const std::string &directoryPath);
 
 std::string base64Encode(const std::string &input);
 

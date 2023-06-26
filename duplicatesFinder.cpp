@@ -85,9 +85,7 @@ void calculateHashes(std::vector<FileInfo> &files, size_t start, size_t end) {
  * @param directoryPath - the directory to process.
  * @return True if duplicates are found, else False.
  */
-std::pair<bool, size_t> findDuplicates(const std::string &directoryPath) {
-    std::pair<bool, size_t> ret{false, 0};
-
+size_t findDuplicates(const std::string &directoryPath) {
     if (sodium_init() == -1) {
         throw std::runtime_error("Failed to initialize libsodium.");
     }
@@ -137,7 +135,6 @@ std::pair<bool, size_t> findDuplicates(const std::string &directoryPath) {
         const std::vector<std::string> &duplicates = pair.second;
 
         if (duplicates.size() > 1) {
-            ret.first = true;
             ++duplicatesSet;
 
             std::cout << "Duplicate files set " << duplicatesSet << ":" << std::endl;
@@ -148,7 +145,6 @@ std::pair<bool, size_t> findDuplicates(const std::string &directoryPath) {
         }
     }
     std::cout << "\nFiles processed: " << filesProcessed << std::endl;
-    ret.second = duplicateFiles;
 
-    return ret;
+    return duplicateFiles;
 }
