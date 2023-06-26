@@ -29,17 +29,27 @@ std::string calculateBlake2b(const std::string &filePath) {
     std::vector<char> buffer(bufferSize);
 
     crypto_generichash_blake2b_state state;
-    crypto_generichash_blake2b_init(&state, nullptr, 0, crypto_generichash_blake2b_BYTES);
+    if (crypto_generichash_blake2b_init(&state, nullptr, 0, crypto_generichash_blake2b_BYTES) != 0)
+        throw std::runtime_error("Failed to initialize Blake2b hashing.");
+
 
     while (file.read(buffer.data(), bufferSize)) {
-        crypto_generichash_blake2b_update(&state, reinterpret_cast<const unsigned char *>(buffer.data()), bufferSize);
+        if (crypto_generichash_blake2b_update(&state,
+                                              reinterpret_cast<const unsigned char *>(buffer.data()),
+                                              bufferSize) != 0)
+            throw std::runtime_error("Failed to calculate Blake2b hash.");
     }
 
     size_t remainingBytes = file.gcount();
-    crypto_generichash_blake2b_update(&state, reinterpret_cast<const unsigned char *>(buffer.data()), remainingBytes);
+    if (crypto_generichash_blake2b_update(&state,
+                                          reinterpret_cast<const unsigned char *>(buffer.data()),
+                                          remainingBytes) != 0)
+        throw std::runtime_error("Failed to calculate Blake2b hash.");
+
 
     unsigned char hash[crypto_generichash_blake2b_BYTES];
-    crypto_generichash_blake2b_final(&state, hash, crypto_generichash_blake2b_BYTES);
+    if (crypto_generichash_blake2b_final(&state, hash, crypto_generichash_blake2b_BYTES) != 0)
+        throw std::runtime_error("Failed to finalize Blake2b hash calculation.");
 
     std::string blake2bHash(reinterpret_cast<const char *>(hash), crypto_generichash_blake2b_BYTES);
 
