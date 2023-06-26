@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <openssl/evp.h>
 #include <openssl/buffer.h>
+#include <readline/readline.h>
 
 /**
  * @brief Performs base64 encoding.
@@ -93,4 +94,45 @@ std::vector<unsigned char> hexDecode(const std::string &encodedData) {
         decoded_data[i / 2] = static_cast<unsigned char>(byte_value);
     }
     return decoded_data;
+}
+
+/**
+ * @brief Captures the user's response while offering editing capabilities
+ * while the user is entering the data.
+ * @param prompt the prompt displayed to the user for the input.
+ * @return the user's input (string) if successful, else nullptr.
+ */
+std::string getResponseStr(const std::string &prompt = "") {
+    char *tmp;
+    std::string str;
+
+    tmp = readline(prompt.c_str());
+    str = std::string(tmp);
+
+    // tmp must be freed
+    free(tmp);
+
+    return str;
+}
+
+/**
+ * @brief Captures the user's response while offering editing capabilities
+ * while the user is entering the data.
+ * @param prompt the prompt displayed to the user for the input.
+ * @return the user's input (an integer) on success, else 0.
+ */
+int getResponseInt(const std::string &prompt = "") {
+    int num{0};
+    const std::string str = getResponseStr(prompt);
+
+    // Convert string to int
+    errno = 0;
+    num = static_cast<int>(std::strtol(str.c_str(), nullptr, 10));
+
+    // Return 0 on any conversion error, and suppress the error message
+    if (errno != 0)
+        return 0;
+
+    return num;
+
 }

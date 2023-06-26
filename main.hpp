@@ -28,4 +28,8 @@ std::string base64Encode(const std::string &input);
 
 std::string base64Decode(const std::string &encodedData);
 
+int getResponseInt(const std::string &prompt = "");
+
+std::string getResponseStr(const std::string &prompt = "");
+
 #endif //PRIVACY_SHIELD_MAIN_HPP
