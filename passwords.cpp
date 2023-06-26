@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <termios.h>
 #include <unistd.h>
+#include <sodium.h>
 #include <readline/readline.h>
 #include "main.hpp"
 
@@ -94,6 +95,37 @@ std::string generatePassword(int length) {
 
     return password;
 }
+
+/**
+ * @brief Hashes a password (using Argon2id implementation from Sodium)
+ * for verification without having to store the password.
+ * @param password the password being hashed.
+ * @return a string of the password hash and it's associated data.
+ */
+std::string hashPassword(const std::string &password) {
+    char hashedPassword[crypto_pwhash_STRBYTES];
+
+    if (crypto_pwhash_str
+                (hashedPassword, password.c_str(), password.size(),
+                 crypto_pwhash_OPSLIMIT_SENSITIVE, crypto_pwhash_MEMLIMIT_SENSITIVE) != 0) {
+        throw std::runtime_error("Out of memory for password hashing.");
+    }
+
+    return std::string{hashedPassword};
+}
+
+/**
+ * @brief verifies a password.
+ * @param password the password being verified.
+ * @param storedHash the hash to verify the password against.
+ * @return true if the verification succeeds, else false.
+ */
+bool verifyPassword(const std::string &password, const std::string &storedHash) {
+    return crypto_pwhash_str_verify(storedHash.c_str(),
+                                    password.c_str(),
+                                    password.size()) == 0;
+}
+
 
 /**
  * @brief Encrypts and then saves passwords to a file.
