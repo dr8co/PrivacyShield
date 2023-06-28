@@ -49,10 +49,11 @@ bool isPasswordStrong(const std::string &password) noexcept {
         return false;
     }
 
-    // Check for at least one uppercase letter, one lowercase letter, and one digit
+    // Check for at least one uppercase letter, one lowercase letter, one digit, and one special character.
     bool hasUppercase = false;
     bool hasLowercase = false;
     bool hasDigit = false;
+    bool hasPunctuation = false;
 
     for (char ch: password) {
         if (std::isupper(ch))
@@ -61,9 +62,11 @@ bool isPasswordStrong(const std::string &password) noexcept {
             hasLowercase = true;
         else if (std::isdigit(ch))
             hasDigit = true;
+        else if (std::ispunct(ch))
+            hasPunctuation = true;
 
         // Break out of the loop as soon as all conditions are satisfied
-        if (hasUppercase && hasLowercase && hasDigit)
+        if (hasUppercase && hasLowercase && hasDigit && hasPunctuation)
             return true;
     }
 
@@ -76,22 +79,31 @@ bool isPasswordStrong(const std::string &password) noexcept {
  * @return a random password.
  */
 std::string generatePassword(int length) {
-    if (length < 1)  // A sanity check won't hurt.
-        throw std::length_error("Invalid password length.");
+    // a password should not be too short, nor too long
+    if (length < 8)
+        throw std::length_error("Password too short.");
+    if (length > 30)
+        throw std::length_error("Password too long.");
 
-    const std::string characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()-=_+";
+    // generate from a set of printable ascii characters
+    const std::string characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()-=_~+[]{}<>";
 
     // Seed the Mersenne Twister engine with a random source (ideally non-deterministic)
     std::random_device rd;
     std::mt19937_64 generator(rd());
 
-    // Uniform probability
+    // Uniform probability minimizes predictability
     std::uniform_int_distribution<int> distribution(0, static_cast<int>(characters.size()) - 1);
 
     std::string password;
     password.reserve(length);
-    for (int i = 0; i < length; ++i)
-        password += characters[distribution(generator)];
+
+    // Generate a strong password by default
+    do {
+        password.clear();  // reset the password
+        for (int i = 0; i < length; ++i)
+            password += characters[distribution(generator)];
+    } while (!isPasswordStrong(password));
 
     return password;
 }
@@ -232,10 +244,9 @@ void passwordManager() {
 
             if (!isPasswordStrong(password)) {
                 std::cout
-                        << "Weak password! Password should have at least 8 characters and include "
-                           "uppercase letters, lowercase letters, and digits. Please consider updating it."
+                        << "Weak password! Password should have at least 8 characters and include uppercase letters, "
+                           "lowercase letters, special characters and digits. Please consider updating it."
                         << std::endl;
-                continue;
             }
 
             std::string encryptedPassword = encryptString(password, encryptionKey);
@@ -258,9 +269,6 @@ void passwordManager() {
 
             std::string generatedPassword = generatePassword(length);
 
-            while (!isPasswordStrong(generatedPassword))
-                generatedPassword = generatePassword(length);
-
             std::cout << "Generated password: " << generatedPassword << std::endl;
         } else if (choice == 3) {
             std::cout << "All passwords:" << std::endl;
@@ -281,10 +289,9 @@ void passwordManager() {
 
                 if (!isPasswordStrong(newPassword)) {
                     std::cout
-                            << "Weak password! Password should have at least 8 characters and include "
-                               "uppercase letters, lowercase letters, and digits. Please consider using a stronger one."
+                            << "Weak password! Password should have at least 8 characters and include uppercase letters, "
+                               "lowercase letters, special characters, and digits. Please consider using a stronger one."
                             << std::endl;
-                    continue;
                 }
 
                 it->second = encryptString(newPassword, encryptionKey);
