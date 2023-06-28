@@ -10,9 +10,9 @@
 constexpr int SALT_SIZE = 8;
 constexpr int MAX_KEY_SIZE = EVP_MAX_KEY_LENGTH;
 constexpr int IV_SIZE = EVP_MAX_IV_LENGTH;
-constexpr int CHUNK_SIZE = 1024;
+constexpr int CHUNK_SIZE = 4096;
 constexpr int AES256_KEY_SIZE = 32;
-constexpr int PBKDF2_ITERATIONS = 10'000;
+constexpr int PBKDF2_ITERATIONS = 1'000'000;
 
 OSSL_LIB_CTX *libContext = nullptr;
 const char *propertyQuery = nullptr;
@@ -42,7 +42,7 @@ std::vector<unsigned char>
 deriveKey(const std::string &password, const std::vector<unsigned char> &salt, const int &keySize = AES256_KEY_SIZE) {
     // A sanity check
     if (keySize > MAX_KEY_SIZE || keySize < 1)
-        throw std::runtime_error("Invalid Key size.");
+        throw std::length_error("Invalid Key size.");
 
     // Derive the key using PBKDF2, with Blake2b digest.
     std::vector<unsigned char> key(keySize);
