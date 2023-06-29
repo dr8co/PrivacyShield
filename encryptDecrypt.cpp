@@ -4,6 +4,8 @@
 #include <vector>
 #include <memory>
 #include <openssl/evp.h>
+#include <openssl/kdf.h>
+#include <openssl/core_names.h>
 #include <openssl/rand.h>
 #include "main.hpp"
 
@@ -11,7 +13,7 @@ constexpr int SALT_SIZE = 32;
 constexpr int MAX_KEY_SIZE = EVP_MAX_KEY_LENGTH;
 constexpr int CHUNK_SIZE = 4096;
 constexpr int AES256_KEY_SIZE = 32;
-constexpr int PBKDF2_ITERATIONS = 1'000'000;
+constexpr unsigned int PBKDF2_ITERATIONS = 1'000'000;
 
 OSSL_LIB_CTX *libContext = nullptr;
 const char *propertyQuery = nullptr;
@@ -43,17 +45,46 @@ deriveKey(const std::string &password, const std::vector<unsigned char> &salt, c
     if (keySize > MAX_KEY_SIZE || keySize < 1)
         throw std::length_error("Invalid Key size.");
 
-    // Derive the key using PBKDF2, with Blake2b digest.
+    OSSL_PARAM params[6], *p = params;
+
+    // Fetch the PBKDF2 implementation
+    EVP_KDF *kdf = EVP_KDF_fetch(libContext, "PBKDF2", propertyQuery);
+    if (kdf == nullptr)
+        throw std::runtime_error("Failed to fetch PBKDF2 implementation.");
+
+    // Create a context for the key derivation operation
+    EVP_KDF_CTX *kdfCtx = EVP_KDF_CTX_new(kdf);
+    if (kdfCtx == nullptr)
+        throw std::runtime_error("Failed to create key derivation context.");
+
+    // Memory management
+    std::unique_ptr<EVP_KDF_CTX, decltype(&EVP_KDF_CTX_free)> ctxPtr(kdfCtx, EVP_KDF_CTX_free);
+    std::unique_ptr<EVP_KDF, decltype(&EVP_KDF_free)> kdfPtr(kdf, EVP_KDF_free);
+
+    // Set password
+    *p++ = OSSL_PARAM_construct_octet_string(OSSL_KDF_PARAM_PASSWORD, (void *) password.data(), password.size());
+
+    // Set salt
+    *p++ = OSSL_PARAM_construct_octet_string(OSSL_KDF_PARAM_SALT, (void *) salt.data(), salt.size());
+
+    // Set iterations
+    unsigned int iterations{PBKDF2_ITERATIONS};
+    *p++ = OSSL_PARAM_construct_uint(OSSL_KDF_PARAM_ITER, &iterations);
+
+    // Set BLAKE2b512 hash function
+    *p++ = OSSL_PARAM_construct_utf8_string(OSSL_KDF_PARAM_DIGEST, (char *) "BLAKE2B512", 0);
+
+    // Enable SP800-132 compliance checks (iterations >= 1000, salt >= 128 bits, key >= 112 bits)
+    int pkcs5 = 0;
+    *p++ = OSSL_PARAM_construct_int(OSSL_KDF_PARAM_PKCS5, &pkcs5);
+
+    *p = OSSL_PARAM_construct_end();
+
+    // Derive the key
     std::vector<unsigned char> key(keySize);
-    if (PKCS5_PBKDF2_HMAC(password.data(),
-                          static_cast<int>(password.size()),
-                          salt.data(),
-                          static_cast<int>(salt.size()),
-                          PBKDF2_ITERATIONS, EVP_blake2b512(),
-                          keySize,
-                          key.data()) != 1) {
+    if (EVP_KDF_derive(kdfCtx, key.data(), key.size(), params) != 1)
         throw std::runtime_error("Failed to derive key.");
-    }
+
     return key;
 }
 
