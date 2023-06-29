@@ -13,7 +13,7 @@ constexpr int SALT_SIZE = 32;
 constexpr int MAX_KEY_SIZE = EVP_MAX_KEY_LENGTH;
 constexpr int CHUNK_SIZE = 4096;
 constexpr int AES256_KEY_SIZE = 32;
-constexpr unsigned int PBKDF2_ITERATIONS = 1'000'000;
+constexpr unsigned int PBKDF2_ITERATIONS = 10'000;
 
 OSSL_LIB_CTX *libContext = nullptr;
 const char *propertyQuery = nullptr;
@@ -37,7 +37,7 @@ std::vector<unsigned char> generateSalt(int saltSize) {
  * @param password the password.
  * @param salt the salt.
  * @param keySize the size (length) of the key in bytes.
- * @return the generated key vector.
+ * @return the generated key.
  */
 std::vector<unsigned char>
 deriveKey(const std::string &password, const std::vector<unsigned char> &salt, const int &keySize = AES256_KEY_SIZE) {
@@ -105,6 +105,11 @@ bool encryptFile(const std::string &inputFile, const std::string &outputFile, co
     if (cipher == nullptr)
         throw std::runtime_error("Failed to fetch AES-256-CBC cipher.");
 
+    // Memory management
+    std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
+    std::unique_ptr<EVP_CIPHER, decltype(&EVP_CIPHER_free)> cipherPtr(cipher, EVP_CIPHER_free);
+
+    // Fetch the sizes of the IV and the key for the cipher
     const int ivSize = EVP_CIPHER_get_iv_length(cipher);
     const int keySize = EVP_CIPHER_get_key_length(cipher);
 
@@ -114,10 +119,6 @@ bool encryptFile(const std::string &inputFile, const std::string &outputFile, co
 
     // Derive the encryption key
     std::vector<unsigned char> key = deriveKey(password, salt, keySize);
-
-    // Memory management
-    std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
-    std::unique_ptr<EVP_CIPHER, decltype(&EVP_CIPHER_free)> cipherPtr(cipher, EVP_CIPHER_free);
 
     // Initialize the encryption operation
     if (EVP_EncryptInit_ex2(ctx, cipher, key.data(), iv.data(), nullptr) != 1)
@@ -187,6 +188,11 @@ bool decryptFile(const std::string &inputFile, const std::string &outputFile, co
     if (cipher == nullptr)
         throw std::runtime_error("Failed to fetch AES-256-CBC cipher.");
 
+    // Memory management
+    std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
+    std::unique_ptr<EVP_CIPHER, decltype(&EVP_CIPHER_free)> cipherPtr(cipher, EVP_CIPHER_free);
+
+    // Fetch the sizes of the IV and the key for the cipher
     const int ivSize = EVP_CIPHER_get_iv_length(cipher);
     const int keySize = EVP_CIPHER_get_key_length(cipher);
 
@@ -199,10 +205,6 @@ bool decryptFile(const std::string &inputFile, const std::string &outputFile, co
 
     // Derive the decryption key
     std::vector<unsigned char> key = deriveKey(password, salt, keySize);
-
-    // Memory management
-    std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
-    std::unique_ptr<EVP_CIPHER, decltype(&EVP_CIPHER_free)> cipherPtr(cipher, EVP_CIPHER_free);
 
     // Initialize the decryption operation
     if (EVP_DecryptInit_ex2(ctx, cipher, key.data(), iv.data(), nullptr) != 1)
@@ -261,6 +263,11 @@ std::string encryptString(const std::string &plaintext, const std::string &passw
     if (cipher == nullptr)
         throw std::runtime_error("Failed to fetch AES-256-CBC cipher.");
 
+    // Memory management
+    std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
+    std::unique_ptr<EVP_CIPHER, decltype(&EVP_CIPHER_free)> cipherPtr(cipher, EVP_CIPHER_free);
+
+    // Fetch the sizes of the IV and the key for the cipher
     const int ivSize = EVP_CIPHER_get_iv_length(cipher);
     const int keySize = EVP_CIPHER_get_key_length(cipher);
 
@@ -270,10 +277,6 @@ std::string encryptString(const std::string &plaintext, const std::string &passw
 
     // Derive the encryption key using the generated salt
     std::vector<unsigned char> key = deriveKey(password, salt, keySize);
-
-    // Memory management
-    std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
-    std::unique_ptr<EVP_CIPHER, decltype(&EVP_CIPHER_free)> cipherPtr(cipher, EVP_CIPHER_free);
 
     int block_size = EVP_CIPHER_get_block_size(cipher);
     std::vector<unsigned char> ciphertext(plaintext.length() + block_size);
@@ -328,6 +331,11 @@ std::string decryptString(const std::string &encodedCiphertext, const std::strin
     if (cipher == nullptr)
         throw std::runtime_error("Failed to fetch AES-256-CBC cipher.");
 
+    // Memory management
+    std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
+    std::unique_ptr<EVP_CIPHER, decltype(&EVP_CIPHER_free)> cipherPtr(cipher, EVP_CIPHER_free);
+
+    // Fetch the sizes of IV and the key from the cipher
     const int ivSize = EVP_CIPHER_get_iv_length(cipher);
     const int keySize = EVP_CIPHER_get_key_length(cipher);
 
@@ -338,22 +346,17 @@ std::string decryptString(const std::string &encodedCiphertext, const std::strin
     // Base64 decode the encrypted data
     std::string ciphertext = base64Decode(encodedCiphertext);
 
-    if (ciphertext.size() > salt.size() + iv.size()) {
+    if (ciphertext.size() > SALT_SIZE + ivSize) {
         // Read the salt and IV from the ciphertext
-        salt.assign(ciphertext.begin(), ciphertext.begin() + salt.size());
-        iv.assign(ciphertext.begin() + salt.size(), ciphertext.begin() + salt.size() + iv.size());
+        salt.assign(ciphertext.begin(), ciphertext.begin() + SALT_SIZE);
+        iv.assign(ciphertext.begin() + SALT_SIZE, ciphertext.begin() + SALT_SIZE + ivSize);
 
-        encryptedText.assign(ciphertext.begin() + salt.size() + iv.size(), ciphertext.end());
-    } else {
+        encryptedText.assign(ciphertext.begin() + static_cast<long>(salt.size() + iv.size()), ciphertext.end());
+    } else
         throw std::runtime_error("invalid ciphertext.");
-    }
 
     // Derive the decryption key from the password and the salt
     std::vector<unsigned char> key = deriveKey(password, salt, keySize);
-
-    // Memory management
-    std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
-    std::unique_ptr<EVP_CIPHER, decltype(&EVP_CIPHER_free)> cipherPtr(cipher, EVP_CIPHER_free);
 
     int block_size = EVP_CIPHER_get_block_size(cipher);
     std::vector<unsigned char> plaintext(encryptedText.length() + block_size);
@@ -371,9 +374,9 @@ std::string decryptString(const std::string &encodedCiphertext, const std::strin
 
     // Finalize the decryption operation
     int finalLength = 0;
-    if (EVP_DecryptFinal_ex(ctx, plaintext.data() + plaintextLength, &finalLength) != 1) {
+    if (EVP_DecryptFinal_ex(ctx, plaintext.data() + plaintextLength, &finalLength) != 1)
         throw std::runtime_error("Failed to finalize decryption.");
-    }
+
     plaintextLength += finalLength;
 
     std::string decryptedText(reinterpret_cast<char *>(plaintext.data()), plaintextLength);
