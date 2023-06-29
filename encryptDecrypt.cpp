@@ -7,9 +7,8 @@
 #include <openssl/rand.h>
 #include "main.hpp"
 
-constexpr int SALT_SIZE = 8;
+constexpr int SALT_SIZE = 32;
 constexpr int MAX_KEY_SIZE = EVP_MAX_KEY_LENGTH;
-constexpr int IV_SIZE = EVP_MAX_IV_LENGTH;
 constexpr int CHUNK_SIZE = 4096;
 constexpr int AES256_KEY_SIZE = 32;
 constexpr int PBKDF2_ITERATIONS = 1'000'000;
@@ -66,13 +65,6 @@ deriveKey(const std::string &password, const std::vector<unsigned char> &salt, c
  * @return True if encryption succeeds, else False.
  */
 bool encryptFile(const std::string &inputFile, const std::string &outputFile, const std::string &password) {
-    // Generate the salt and the initialization vector (IV)
-    std::vector<unsigned char> salt = generateSalt(SALT_SIZE);
-    std::vector<unsigned char> iv = generateSalt(IV_SIZE);
-
-    // Derive the encryption key (and hence, the decryption key. Symmetric-key cryptography)
-    std::vector<unsigned char> key = deriveKey(password, salt);
-
     // Fetch the cipher context and the cipher
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
     if (ctx == nullptr)
@@ -81,6 +73,16 @@ bool encryptFile(const std::string &inputFile, const std::string &outputFile, co
     EVP_CIPHER *cipher = EVP_CIPHER_fetch(libContext, "AES-256-CBC", propertyQuery);
     if (cipher == nullptr)
         throw std::runtime_error("Failed to fetch AES-256-CBC cipher.");
+
+    const int ivSize = EVP_CIPHER_get_iv_length(cipher);
+    const int keySize = EVP_CIPHER_get_key_length(cipher);
+
+    // Generate the salt and the initialization vector (IV)
+    std::vector<unsigned char> salt = generateSalt(SALT_SIZE);
+    std::vector<unsigned char> iv = generateSalt(ivSize);
+
+    // Derive the encryption key
+    std::vector<unsigned char> key = deriveKey(password, salt, keySize);
 
     // Memory management
     std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
@@ -145,16 +147,6 @@ bool decryptFile(const std::string &inputFile, const std::string &outputFile, co
     std::ifstream inFile(inputFile, std::ios::binary);
     std::ofstream outFile(outputFile, std::ios::binary);
 
-    std::vector<unsigned char> salt(SALT_SIZE);
-    std::vector<unsigned char> iv(IV_SIZE);
-
-    // Read the salt and IV from the input file
-    inFile.read(reinterpret_cast<char *>(salt.data()), static_cast<std::streamsize>(salt.size()));
-    inFile.read(reinterpret_cast<char *>(iv.data()), static_cast<std::streamsize>(iv.size()));
-
-    // Derive the decryption key
-    std::vector<unsigned char> key = deriveKey(password, salt);
-
     // Fetch the cipher context and the cipher
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
     if (ctx == nullptr)
@@ -163,6 +155,19 @@ bool decryptFile(const std::string &inputFile, const std::string &outputFile, co
     EVP_CIPHER *cipher = EVP_CIPHER_fetch(libContext, "AES-256-CBC", propertyQuery);
     if (cipher == nullptr)
         throw std::runtime_error("Failed to fetch AES-256-CBC cipher.");
+
+    const int ivSize = EVP_CIPHER_get_iv_length(cipher);
+    const int keySize = EVP_CIPHER_get_key_length(cipher);
+
+    std::vector<unsigned char> salt(SALT_SIZE);
+    std::vector<unsigned char> iv(ivSize);
+
+    // Read the salt and IV from the input file
+    inFile.read(reinterpret_cast<char *>(salt.data()), static_cast<std::streamsize>(salt.size()));
+    inFile.read(reinterpret_cast<char *>(iv.data()), static_cast<std::streamsize>(iv.size()));
+
+    // Derive the decryption key
+    std::vector<unsigned char> key = deriveKey(password, salt, keySize);
 
     // Memory management
     std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
@@ -216,13 +221,6 @@ bool decryptFile(const std::string &inputFile, const std::string &outputFile, co
  * @return Base64-encoded ciphertext (the encrypted data)
  */
 std::string encryptString(const std::string &plaintext, const std::string &password) {
-    // Generate the salt and the initialization vector (IV)
-    std::vector<unsigned char> salt = generateSalt(SALT_SIZE);
-    std::vector<unsigned char> iv = generateSalt(IV_SIZE);
-
-    // Derive the encryption key using the generated salt
-    std::vector<unsigned char> key = deriveKey(password, salt);
-
     // Fetch the cipher context and the cipher
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
     if (ctx == nullptr)
@@ -231,6 +229,16 @@ std::string encryptString(const std::string &plaintext, const std::string &passw
     EVP_CIPHER *cipher = EVP_CIPHER_fetch(libContext, "AES-256-CBC", propertyQuery);
     if (cipher == nullptr)
         throw std::runtime_error("Failed to fetch AES-256-CBC cipher.");
+
+    const int ivSize = EVP_CIPHER_get_iv_length(cipher);
+    const int keySize = EVP_CIPHER_get_key_length(cipher);
+
+    // Generate the salt and the initialization vector (IV)
+    std::vector<unsigned char> salt = generateSalt(SALT_SIZE);
+    std::vector<unsigned char> iv = generateSalt(ivSize);
+
+    // Derive the encryption key using the generated salt
+    std::vector<unsigned char> key = deriveKey(password, salt, keySize);
 
     // Memory management
     std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
@@ -280,8 +288,20 @@ std::string encryptString(const std::string &plaintext, const std::string &passw
  * @return the decrypted string (the plaintext)
  */
 std::string decryptString(const std::string &encodedCiphertext, const std::string &password) {
+    // Fetch the cipher context and the cipher
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    if (ctx == nullptr)
+        throw std::runtime_error("Failed to create the cipher context.");
+
+    EVP_CIPHER *cipher = EVP_CIPHER_fetch(libContext, "AES-256-CBC", propertyQuery);
+    if (cipher == nullptr)
+        throw std::runtime_error("Failed to fetch AES-256-CBC cipher.");
+
+    const int ivSize = EVP_CIPHER_get_iv_length(cipher);
+    const int keySize = EVP_CIPHER_get_key_length(cipher);
+
     std::vector<unsigned char> salt(SALT_SIZE);
-    std::vector<unsigned char> iv(IV_SIZE);
+    std::vector<unsigned char> iv(ivSize);
     std::string encryptedText;
 
     // Base64 decode the encrypted data
@@ -298,16 +318,7 @@ std::string decryptString(const std::string &encodedCiphertext, const std::strin
     }
 
     // Derive the decryption key from the password and the salt
-    std::vector<unsigned char> key = deriveKey(password, salt);
-
-    // Fetch the cipher context and the cipher
-    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
-    if (ctx == nullptr)
-        throw std::runtime_error("Failed to create the cipher context.");
-
-    EVP_CIPHER *cipher = EVP_CIPHER_fetch(libContext, "AES-256-CBC", propertyQuery);
-    if (cipher == nullptr)
-        throw std::runtime_error("Failed to fetch AES-256-CBC cipher.");
+    std::vector<unsigned char> key = deriveKey(password, salt, keySize);
 
     // Memory management
     std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
