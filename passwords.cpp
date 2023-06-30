@@ -9,14 +9,15 @@
 #include "main.hpp"
 
 namespace fs = std::filesystem;
+typedef std::string string;
 
 /**
- * @brief reads sensitive input from a terminal without echoing them.
+ * @brief Reads sensitive input from a terminal without echoing them.
  * @param prompt the prompt to display.
  * @return a string of the information read.
  */
-std::string getSensitiveInfo(const std::string &prompt = "") {
-    std::string password;
+string getSensitiveInfo(const string &prompt = "") {
+    string password;
     char *tmp;
     termios oldSettings{}, newSettings{};
 
@@ -28,8 +29,8 @@ std::string getSensitiveInfo(const std::string &prompt = "") {
 
     // Read password from input
     tmp = readline(prompt.c_str());
-    password = std::string(tmp);
-    OPENSSL_secure_free(tmp);
+    password = string(tmp);
+    OPENSSL_clear_free(tmp, password.size());
 
     // Restore terminal settings
     tcsetattr(STDIN_FILENO, TCSANOW, &oldSettings);
@@ -43,7 +44,7 @@ std::string getSensitiveInfo(const std::string &prompt = "") {
  * @param password the password to process.
  * @return True if the password is strong, False otherwise.
  */
-bool isPasswordStrong(const std::string &password) noexcept {
+bool isPasswordStrong(const string &password) noexcept {
     // Check the length
     if (password.length() < 8) {
         return false;
@@ -78,7 +79,7 @@ bool isPasswordStrong(const std::string &password) noexcept {
  * @param length the length of the password.
  * @return a random password.
  */
-std::string generatePassword(int length) {
+string generatePassword(int length) {
     // a password should not be too short, nor too long
     if (length < 8)
         throw std::length_error("Password too short.");
@@ -86,16 +87,16 @@ std::string generatePassword(int length) {
         throw std::length_error("Password too long.");
 
     // generate from a set of printable ascii characters
-    const std::string characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()-=_~+[]{}<>";
+    const string characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()-=_~+[]{}<>";
 
     // Seed the Mersenne Twister engine with a random source (ideally non-deterministic)
     std::random_device rd;
     std::mt19937_64 generator(rd());
 
-    // Uniform probability minimizes predictability
+    // Constant probability minimizes predictability
     std::uniform_int_distribution<int> distribution(0, static_cast<int>(characters.size()) - 1);
 
-    std::string password;
+    string password;
     password.reserve(length);
 
     // Generate a strong password by default
@@ -114,7 +115,7 @@ std::string generatePassword(int length) {
  * @param password the password being hashed.
  * @return a string of the password hash and it's associated data.
  */
-std::string hashPassword(const std::string &password) {
+string hashPassword(const string &password) {
     char hashedPassword[crypto_pwhash_STRBYTES];
 
     if (crypto_pwhash_str
@@ -123,16 +124,16 @@ std::string hashPassword(const std::string &password) {
         throw std::runtime_error("Out of memory for password hashing.");
     }
 
-    return std::string{hashedPassword};
+    return string{hashedPassword};
 }
 
 /**
- * @brief verifies a password.
+ * @brief Verifies a password.
  * @param password the password being verified.
  * @param storedHash the hash to verify the password against.
  * @return true if the verification succeeds, else false.
  */
-bool verifyPassword(const std::string &password, const std::string &storedHash) {
+bool verifyPassword(const string &password, const string &storedHash) {
     return crypto_pwhash_str_verify(storedHash.c_str(),
                                     password.c_str(),
                                     password.size()) == 0;
@@ -146,17 +147,21 @@ bool verifyPassword(const std::string &password, const std::string &storedHash) 
  * @param encryptionKey the key/password to encrypt the passwords in the process.
  * @return True, if successful.
  */
-bool savePasswords(const std::vector<std::pair<std::string, std::string>> &passwords,
-                   const std::string &filePath, const std::string &encryptionKey) {
+bool savePasswords(const std::vector<std::pair<string, string>> &passwords,
+                   const string &filePath, const string &encryptionKey) {
     std::ofstream file(filePath);
-    if (!file)
-        throw std::runtime_error("Failed to open the password file for writing.");
+    if (!file) {
+        std::cerr << "Failed to open the password file for writing." << std::endl;
+        return false;
+    }
 
     for (const auto &password: passwords) {
-        std::string encryptedPassword = encryptString(password.second, encryptionKey);
+        string encryptedPassword = encryptString(password.second, encryptionKey);
 
-        if (encryptedPassword.empty())
-            throw std::runtime_error("Failed to encrypt password for " + password.first);
+        if (encryptedPassword.empty()) {
+            std::cerr << "Failed to encrypt password for " << password.first << std::endl;
+            return false;
+        }
 
         file << password.first << ":" << std::endl;
         file << encryptedPassword << std::endl;
@@ -172,17 +177,17 @@ bool savePasswords(const std::vector<std::pair<std::string, std::string>> &passw
  * @param decryptionKey the key/password to decrypt the passwords.
  * @return decrypted passwords records.
  */
-std::vector<std::pair<std::string, std::string>>
-loadPasswords(const std::string &filePath, const std::string &decryptionKey) {
-    std::vector<std::pair<std::string, std::string>> passwords;
+std::vector<std::pair<string, string>>
+loadPasswords(const string &filePath, const string &decryptionKey) {
+    std::vector<std::pair<string, string>> passwords;
 
     std::ifstream file(filePath);
     if (!file)
         throw std::runtime_error("Failed to open the password file for reading.");
 
-    std::string line;
-    std::string site;
-    std::string encryptedPassword;
+    string line;
+    string site;
+    string encryptedPassword;
     bool readingPassword = false;
 
     while (std::getline(file, line)) {
@@ -198,7 +203,7 @@ loadPasswords(const std::string &filePath, const std::string &decryptionKey) {
             readingPassword = true;
         } else {
             encryptedPassword = line;
-            std::string decryptedPassword = decryptString(encryptedPassword, decryptionKey);
+            string decryptedPassword = decryptString(encryptedPassword, decryptionKey);
 
             if (decryptedPassword.empty()) {
                 std::cerr << "Failed to decrypt password for " << site << std::endl;
@@ -214,13 +219,16 @@ loadPasswords(const std::string &filePath, const std::string &decryptionKey) {
 }
 
 /**
- * @brief a minimalistic password manager.
+ * @brief A minimalistic password manager.
  */
 void passwordManager() {
-    std::vector<std::pair<std::string, std::string>> passwords;
-    std::string passwordFile = "/to/be/determined/later";
+    std::vector<std::pair<string, string>> passwords;
+    string passwordFile = "/to/be/determined/later";
 
-    const std::string encryptionKey = getSensitiveInfo("Enter the master password: ");
+    const string encryptionKey = getSensitiveInfo("Enter the master password: ");
+
+    // Lock the memory area holding the password
+    sodium_mlock((void *) encryptionKey.data(), encryptionKey.size());
 
     if (!encryptionKey.empty() && fs::exists(passwordFile))
         passwords = loadPasswords(passwordFile, encryptionKey);
@@ -238,21 +246,21 @@ void passwordManager() {
         int choice = getResponseInt("Enter your choice: ");
 
         if (choice == 1) {
-            std::string site = getResponseStr("Enter the site/platform: ");
+            string site = getResponseStr("Enter the site/platform: ");
 
-            std::string password = getSensitiveInfo("Enter the password: ");
+            string password = getSensitiveInfo("Enter the password: ");
 
             if (!isPasswordStrong(password)) {
                 std::cout
-                        << "Weak password! Password should have at least 8 characters and include uppercase letters, "
-                           "lowercase letters, special characters and digits. Please consider updating it."
+                        << "Weak password! Password should have at least 8 characters and include uppercase letters,\n"
+                           "lowercase letters, special characters and digits.\nPlease consider updating it."
                         << std::endl;
             }
 
-            std::string encryptedPassword = encryptString(password, encryptionKey);
+            string encryptedPassword = encryptString(password, encryptionKey);
             passwords.emplace_back(site, encryptedPassword);
 
-            std::cout << "Password added!" << std::endl;
+            std::cout << "Password added successfully." << std::endl;
         } else if (choice == 2) {
             int length = getResponseInt("Enter the length of the password to generate: ");
 
@@ -267,7 +275,7 @@ void passwordManager() {
             if (tries == 3)
                 continue;
 
-            std::string generatedPassword = generatePassword(length);
+            string generatedPassword = generatePassword(length);
 
             std::cout << "Generated password: " << generatedPassword << std::endl;
         } else if (choice == 3) {
@@ -278,31 +286,31 @@ void passwordManager() {
                 std::cout << "--------------------------------" << std::endl;
             }
         } else if (choice == 4) {
-            std::string site = getResponseStr("Enter the site to update: ");
+            string site = getResponseStr("Enter the site to update: ");
 
-            auto it = std::find_if(passwords.begin(), passwords.end(), [&site](const auto &password) {
+            auto it = std::find_if(passwords.begin(), passwords.end(), [&site](const auto &password) -> bool {
                 return password.first == site;
             });
 
             if (it != passwords.end()) {
-                std::string newPassword = getSensitiveInfo("Enter the new password: ");
+                string newPassword = getSensitiveInfo("Enter the new password: ");
 
                 if (!isPasswordStrong(newPassword)) {
                     std::cout
-                            << "Weak password! Password should have at least 8 characters and include uppercase letters, "
-                               "lowercase letters, special characters, and digits. Please consider using a stronger one."
+                            << "Weak password! Password should have at least 8 characters and include uppercase letters,\n"
+                               "lowercase letters, special characters, and digits.\nPlease consider using a stronger one."
                             << std::endl;
                 }
 
                 it->second = encryptString(newPassword, encryptionKey);
-                std::cout << "Password updated!" << std::endl;
+                std::cout << "Password updated successfully." << std::endl;
             } else {
                 std::cout << "Site not found!" << std::endl;
             }
         } else if (choice == 5) {
-            std::string site = getResponseStr("Enter the site to delete: ");
+            string site = getResponseStr("Enter the site to delete: ");
 
-            auto it = std::find_if(passwords.begin(), passwords.end(), [&site](const auto &password) {
+            auto it = std::find_if(passwords.begin(), passwords.end(), [&site](const auto &password) -> bool {
                 return password.first == site;
             });
 
@@ -313,14 +321,15 @@ void passwordManager() {
                 std::cout << "Site not found!" << std::endl;
             }
         } else if (choice == 6) {
-            savePasswords(passwords, passwordFile, encryptionKey);
-
-            std::cout << "Passwords and encryption key saved!" << std::endl;
             break;
         } else {
             std::cout << "Invalid choice!" << std::endl;
-            exit(1);
         }
     }
+    (savePasswords(passwords, passwordFile, encryptionKey) ? std::cout << "Passwords saved!" : std::cerr
+            << "Passwords not saved!") << std::endl;
+
+    // Zero the password data and unlock the memory area
+    sodium_munlock((void *) encryptionKey.data(), encryptionKey.size());
 
 }
