@@ -52,14 +52,16 @@ deriveKey(const std::string &password, const std::vector<unsigned char> &salt, c
     if (kdf == nullptr)
         throw std::runtime_error("Failed to fetch PBKDF2 implementation.");
 
+    // Dynamic memory management for kdf
+    std::unique_ptr<EVP_KDF, decltype(&EVP_KDF_free)> kdfPtr(kdf, EVP_KDF_free);
+
     // Create a context for the key derivation operation
     EVP_KDF_CTX *kdfCtx = EVP_KDF_CTX_new(kdf);
     if (kdfCtx == nullptr)
         throw std::runtime_error("Failed to create key derivation context.");
 
-    // Memory management
+    // Dynamic memory management for kdfCtx
     std::unique_ptr<EVP_KDF_CTX, decltype(&EVP_KDF_CTX_free)> ctxPtr(kdfCtx, EVP_KDF_CTX_free);
-    std::unique_ptr<EVP_KDF, decltype(&EVP_KDF_free)> kdfPtr(kdf, EVP_KDF_free);
 
     // Set password
     *p++ = OSSL_PARAM_construct_octet_string(OSSL_KDF_PARAM_PASSWORD, (void *) password.data(), password.size());
@@ -101,12 +103,14 @@ bool encryptFile(const std::string &inputFile, const std::string &outputFile, co
     if (ctx == nullptr)
         throw std::runtime_error("Failed to create the cipher context.");
 
+    // Dynamic memory management for ctx
+    std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
+
     EVP_CIPHER *cipher = EVP_CIPHER_fetch(libContext, "AES-256-CBC", propertyQuery);
     if (cipher == nullptr)
         throw std::runtime_error("Failed to fetch AES-256-CBC cipher.");
 
-    // Memory management
-    std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
+    // Dynamic memory management for cipher
     std::unique_ptr<EVP_CIPHER, decltype(&EVP_CIPHER_free)> cipherPtr(cipher, EVP_CIPHER_free);
 
     // Fetch the sizes of the IV and the key for the cipher
@@ -184,12 +188,14 @@ bool decryptFile(const std::string &inputFile, const std::string &outputFile, co
     if (ctx == nullptr)
         throw std::runtime_error("Failed to create the cipher context.");
 
+    // Dynamic memory management for ctx
+    std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
+
     EVP_CIPHER *cipher = EVP_CIPHER_fetch(libContext, "AES-256-CBC", propertyQuery);
     if (cipher == nullptr)
         throw std::runtime_error("Failed to fetch AES-256-CBC cipher.");
 
-    // Memory management
-    std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
+    // Dynamic memory management for cipher
     std::unique_ptr<EVP_CIPHER, decltype(&EVP_CIPHER_free)> cipherPtr(cipher, EVP_CIPHER_free);
 
     // Fetch the sizes of the IV and the key for the cipher
@@ -259,12 +265,14 @@ std::string encryptString(const std::string &plaintext, const std::string &passw
     if (ctx == nullptr)
         throw std::runtime_error("Failed to create the cipher context.");
 
+    // Dynamic memory management for ctx
+    std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
+
     EVP_CIPHER *cipher = EVP_CIPHER_fetch(libContext, "AES-256-CBC", propertyQuery);
     if (cipher == nullptr)
         throw std::runtime_error("Failed to fetch AES-256-CBC cipher.");
 
-    // Memory management
-    std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
+    // Dynamic memory management for cipher
     std::unique_ptr<EVP_CIPHER, decltype(&EVP_CIPHER_free)> cipherPtr(cipher, EVP_CIPHER_free);
 
     // Fetch the sizes of the IV and the key for the cipher
@@ -327,12 +335,14 @@ std::string decryptString(const std::string &encodedCiphertext, const std::strin
     if (ctx == nullptr)
         throw std::runtime_error("Failed to create the cipher context.");
 
+    // Dynamic memory management for ctx
+    std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
+
     EVP_CIPHER *cipher = EVP_CIPHER_fetch(libContext, "AES-256-CBC", propertyQuery);
     if (cipher == nullptr)
         throw std::runtime_error("Failed to fetch AES-256-CBC cipher.");
 
-    // Memory management
-    std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
+    // Dynamic memory management for cipher
     std::unique_ptr<EVP_CIPHER, decltype(&EVP_CIPHER_free)> cipherPtr(cipher, EVP_CIPHER_free);
 
     // Fetch the sizes of IV and the key from the cipher
