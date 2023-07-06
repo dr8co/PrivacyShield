@@ -98,7 +98,7 @@ deriveKey(const std::string &password, const std::vector<unsigned char> &salt, c
  * @return True if encryption succeeds, else False.
  */
 bool encryptFile(const std::string &inputFile, const std::string &outputFile, const std::string &password) {
-    // Fetch the cipher context and the cipher
+    // Initialize the cipher context
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
     if (ctx == nullptr)
         throw std::runtime_error("Failed to create the cipher context.");
@@ -106,6 +106,7 @@ bool encryptFile(const std::string &inputFile, const std::string &outputFile, co
     // Dynamic memory management for ctx
     std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
 
+    // Fetch the cipher implementation
     EVP_CIPHER *cipher = EVP_CIPHER_fetch(libContext, "AES-256-CBC", propertyQuery);
     if (cipher == nullptr)
         throw std::runtime_error("Failed to fetch AES-256-CBC cipher.");
@@ -183,7 +184,7 @@ bool decryptFile(const std::string &inputFile, const std::string &outputFile, co
     std::ifstream inFile(inputFile, std::ios::binary);
     std::ofstream outFile(outputFile, std::ios::binary);
 
-    // Fetch the cipher context and the cipher
+    // Initialize the cipher context
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
     if (ctx == nullptr)
         throw std::runtime_error("Failed to create the cipher context.");
@@ -191,6 +192,7 @@ bool decryptFile(const std::string &inputFile, const std::string &outputFile, co
     // Dynamic memory management for ctx
     std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
 
+    // Fetch the cipher implementation
     EVP_CIPHER *cipher = EVP_CIPHER_fetch(libContext, "AES-256-CBC", propertyQuery);
     if (cipher == nullptr)
         throw std::runtime_error("Failed to fetch AES-256-CBC cipher.");
@@ -260,7 +262,7 @@ bool decryptFile(const std::string &inputFile, const std::string &outputFile, co
  * @return Base64-encoded ciphertext (the encrypted data)
  */
 std::string encryptString(const std::string &plaintext, const std::string &password) {
-    // Fetch the cipher context and the cipher
+    // Initialize the cipher context
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
     if (ctx == nullptr)
         throw std::runtime_error("Failed to create the cipher context.");
@@ -268,6 +270,7 @@ std::string encryptString(const std::string &plaintext, const std::string &passw
     // Dynamic memory management for ctx
     std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
 
+    // Fetch the cipher implementation
     EVP_CIPHER *cipher = EVP_CIPHER_fetch(libContext, "AES-256-CBC", propertyQuery);
     if (cipher == nullptr)
         throw std::runtime_error("Failed to fetch AES-256-CBC cipher.");
@@ -330,7 +333,7 @@ std::string encryptString(const std::string &plaintext, const std::string &passw
  * @return the decrypted string (the plaintext)
  */
 std::string decryptString(const std::string &encodedCiphertext, const std::string &password) {
-    // Fetch the cipher context and the cipher
+    // Initialize the cipher context
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
     if (ctx == nullptr)
         throw std::runtime_error("Failed to create the cipher context.");
@@ -338,6 +341,7 @@ std::string decryptString(const std::string &encodedCiphertext, const std::strin
     // Dynamic memory management for ctx
     std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
 
+    // Fetch the cipher implementation
     EVP_CIPHER *cipher = EVP_CIPHER_fetch(libContext, "AES-256-CBC", propertyQuery);
     if (cipher == nullptr)
         throw std::runtime_error("Failed to fetch AES-256-CBC cipher.");
