@@ -1,20 +1,19 @@
 #include <iostream>
 #include <fstream>
-#include <string>
-#include <vector>
 #include <memory>
-#include <openssl/evp.h>
 #include <openssl/kdf.h>
 #include <openssl/core_names.h>
 #include <openssl/rand.h>
 #include "main.hpp"
 
-constexpr int SALT_SIZE = 32;
-constexpr int MAX_KEY_SIZE = EVP_MAX_KEY_LENGTH;
-constexpr int CHUNK_SIZE = 4096;
-constexpr int AES256_KEY_SIZE = 32;
-constexpr unsigned int PBKDF2_ITERATIONS = 10'000;
+constexpr int SALT_SIZE = 32; // Default salt length (256 bits)
+constexpr int KEY_SIZE_256 = 32; // Default key size (256 bits)
+constexpr int MAX_KEY_SIZE = EVP_MAX_KEY_LENGTH; // For bounds checking
 
+constexpr int CHUNK_SIZE = 4096; // Read files in chunks of 4kB
+constexpr unsigned int PBKDF2_ITERATIONS = 100'000; // Iterations for PBKDF2 key derivation
+
+// OpenSSL's library context and property query string
 OSSL_LIB_CTX *libContext = nullptr;
 const char *propertyQuery = nullptr;
 
@@ -40,7 +39,7 @@ std::vector<unsigned char> generateSalt(int saltSize) {
  * @return the generated key.
  */
 std::vector<unsigned char>
-deriveKey(const std::string &password, const std::vector<unsigned char> &salt, const int &keySize = AES256_KEY_SIZE) {
+deriveKey(const std::string &password, const std::vector<unsigned char> &salt, const int &keySize = KEY_SIZE_256) {
     // A sanity check
     if (keySize > MAX_KEY_SIZE || keySize < 1)
         throw std::length_error("Invalid Key size.");
@@ -52,7 +51,7 @@ deriveKey(const std::string &password, const std::vector<unsigned char> &salt, c
     if (kdf == nullptr)
         throw std::runtime_error("Failed to fetch PBKDF2 implementation.");
 
-    // Dynamic memory management for kdf
+    // Dynamic memory management of kdf
     std::unique_ptr<EVP_KDF, decltype(&EVP_KDF_free)> kdfPtr(kdf, EVP_KDF_free);
 
     // Create a context for the key derivation operation
@@ -60,29 +59,31 @@ deriveKey(const std::string &password, const std::vector<unsigned char> &salt, c
     if (kdfCtx == nullptr)
         throw std::runtime_error("Failed to create key derivation context.");
 
-    // Dynamic memory management for kdfCtx
+    // Dynamic memory management of kdfCtx
     std::unique_ptr<EVP_KDF_CTX, decltype(&EVP_KDF_CTX_free)> ctxPtr(kdfCtx, EVP_KDF_CTX_free);
 
-    // Set password
+    /*************** Set the required parameters **************/
+    // Set the password to derive the key from
     *p++ = OSSL_PARAM_construct_octet_string(OSSL_KDF_PARAM_PASSWORD, (void *) password.data(), password.size());
 
-    // Set salt
+    // Set the salt
     *p++ = OSSL_PARAM_construct_octet_string(OSSL_KDF_PARAM_SALT, (void *) salt.data(), salt.size());
 
-    // Set iterations
+    // Set the number of iterations
     unsigned int iterations{PBKDF2_ITERATIONS};
     *p++ = OSSL_PARAM_construct_uint(OSSL_KDF_PARAM_ITER, &iterations);
 
-    // Set BLAKE2b512 hash function
+    // Use BLAKE2b512 as the hash function for the digest
     *p++ = OSSL_PARAM_construct_utf8_string(OSSL_KDF_PARAM_DIGEST, (char *) "BLAKE2B512", 0);
 
     // Enable SP800-132 compliance checks (iterations >= 1000, salt >= 128 bits, key >= 112 bits)
     int pkcs5 = 0;
     *p++ = OSSL_PARAM_construct_int(OSSL_KDF_PARAM_PKCS5, &pkcs5);
 
-    *p = OSSL_PARAM_construct_end();
+    *p = OSSL_PARAM_construct_end(); // Finalize parameter construction
+    /************** end of parameters construction *************/
 
-    // Derive the key
+    // Derive the key using the parameters
     std::vector<unsigned char> key(keySize);
     if (EVP_KDF_derive(kdfCtx, key.data(), key.size(), params) != 1)
         throw std::runtime_error("Failed to derive key.");
@@ -103,7 +104,7 @@ bool encryptFile(const std::string &inputFile, const std::string &outputFile, co
     if (ctx == nullptr)
         throw std::runtime_error("Failed to create the cipher context.");
 
-    // Dynamic memory management for ctx
+    // Dynamic memory management of ctx
     std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
 
     // Fetch the cipher implementation
@@ -111,7 +112,7 @@ bool encryptFile(const std::string &inputFile, const std::string &outputFile, co
     if (cipher == nullptr)
         throw std::runtime_error("Failed to fetch AES-256-CBC cipher.");
 
-    // Dynamic memory management for cipher
+    // Dynamic memory management of cipher
     std::unique_ptr<EVP_CIPHER, decltype(&EVP_CIPHER_free)> cipherPtr(cipher, EVP_CIPHER_free);
 
     // Fetch the sizes of the IV and the key for the cipher
@@ -145,14 +146,17 @@ bool encryptFile(const std::string &inputFile, const std::string &outputFile, co
     int bytesRead, bytesWritten;
 
     while (true) {
+        // Read data from the file in chunks
         inFile.read(reinterpret_cast<char *>(inBuf.data()), static_cast<std::streamsize>(inBuf.size()));
         bytesRead = static_cast<int>(inFile.gcount());
         if (bytesRead <= 0)
             break;
 
+        // Encrypt the data
         if (EVP_EncryptUpdate(ctx, outBuf.data(), &bytesWritten, inBuf.data(), bytesRead) != 1)
             throw std::runtime_error("Failed to encrypt the data.");
 
+        // Write the ciphertext (the encrypted data) to the output file
         outFile.write(reinterpret_cast<const char *>(outBuf.data()), bytesWritten);
         outFile.flush();
     }
@@ -189,7 +193,7 @@ bool decryptFile(const std::string &inputFile, const std::string &outputFile, co
     if (ctx == nullptr)
         throw std::runtime_error("Failed to create the cipher context.");
 
-    // Dynamic memory management for ctx
+    // Dynamic memory management of ctx
     std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
 
     // Fetch the cipher implementation
@@ -227,14 +231,17 @@ bool decryptFile(const std::string &inputFile, const std::string &outputFile, co
     int bytesRead, bytesWritten;
 
     while (true) {
+        // Read the data in chunks
         inFile.read(reinterpret_cast<char *>(inBuf.data()), static_cast<std::streamsize>(inBuf.size()));
         bytesRead = static_cast<int>(inFile.gcount());
         if (bytesRead <= 0)
             break;
 
+        // Decrypt the data
         if (EVP_DecryptUpdate(ctx, outBuf.data(), &bytesWritten, inBuf.data(), bytesRead) != 1)
             throw std::runtime_error("Failed to decrypt the data.");
 
+        // Write the decrypted data to the output file
         outFile.write(reinterpret_cast<const char *>(outBuf.data()), bytesWritten);
         outFile.flush();
     }
@@ -267,7 +274,7 @@ std::string encryptString(const std::string &plaintext, const std::string &passw
     if (ctx == nullptr)
         throw std::runtime_error("Failed to create the cipher context.");
 
-    // Dynamic memory management for ctx
+    // Dynamic memory management of ctx
     std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
 
     // Fetch the cipher implementation
@@ -275,7 +282,7 @@ std::string encryptString(const std::string &plaintext, const std::string &passw
     if (cipher == nullptr)
         throw std::runtime_error("Failed to fetch AES-256-CBC cipher.");
 
-    // Dynamic memory management for cipher
+    // Dynamic memory management of cipher
     std::unique_ptr<EVP_CIPHER, decltype(&EVP_CIPHER_free)> cipherPtr(cipher, EVP_CIPHER_free);
 
     // Fetch the sizes of the IV and the key for the cipher
@@ -338,7 +345,7 @@ std::string decryptString(const std::string &encodedCiphertext, const std::strin
     if (ctx == nullptr)
         throw std::runtime_error("Failed to create the cipher context.");
 
-    // Dynamic memory management for ctx
+    // Dynamic memory management of ctx
     std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> ctxPtr(ctx, EVP_CIPHER_CTX_free);
 
     // Fetch the cipher implementation
@@ -346,7 +353,7 @@ std::string decryptString(const std::string &encodedCiphertext, const std::strin
     if (cipher == nullptr)
         throw std::runtime_error("Failed to fetch AES-256-CBC cipher.");
 
-    // Dynamic memory management for cipher
+    // Dynamic memory management of cipher
     std::unique_ptr<EVP_CIPHER, decltype(&EVP_CIPHER_free)> cipherPtr(cipher, EVP_CIPHER_free);
 
     // Fetch the sizes of IV and the key from the cipher
@@ -360,7 +367,7 @@ std::string decryptString(const std::string &encodedCiphertext, const std::strin
     // Base64 decode the encoded ciphertext
     std::vector<unsigned char> ciphertext = base64Decode(encodedCiphertext);
 
-    if (ciphertext.size() > SALT_SIZE + ivSize) {
+    if (ciphertext.size() > SALT_SIZE + ivSize) [[likely]] {
         // Read the salt and IV from the ciphertext
         salt.assign(ciphertext.begin(), ciphertext.begin() + SALT_SIZE);
         iv.assign(ciphertext.begin() + SALT_SIZE, ciphertext.begin() + SALT_SIZE + ivSize);
