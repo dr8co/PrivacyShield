@@ -1,51 +1,52 @@
-#include <string>
-#include <vector>
 #include <iomanip>
-#include <openssl/evp.h>
 #include <openssl/buffer.h>
 #include <readline/readline.h>
+#include "main.hpp"
 
 /**
- * @brief Performs base64 encoding.
- * @param input the binary string to be encoded.
+ * @brief Performs Base64 encoding of binary data into a string
+ * @param input a vector of the binary data to be encoded.
  * @return the encoded string.
  */
-std::string base64Encode(const std::string &input) {
+std::string base64Encode(const std::vector<unsigned char> &input) {
     BIO *bio, *b64;
     BUF_MEM *bufferPtr;
 
     b64 = BIO_new(BIO_f_base64());
+    BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
+
     bio = BIO_new(BIO_s_mem());
 
     if (b64 == nullptr || bio == nullptr)
         throw std::bad_alloc();  // Memory allocation failed
 
-    bio = BIO_push(b64, bio);
+    b64 = BIO_push(b64, bio);
 
-    BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
-    if (BIO_write(bio, input.data(), static_cast<int>(input.size())) < 0)
+    if (BIO_write(b64, input.data(), static_cast<int>(input.size())) < 0)
         throw std::runtime_error("BIO_write() failed.");
 
-    BIO_flush(bio);
-    BIO_get_mem_ptr(bio, &bufferPtr);
+    BIO_flush(b64);
+    BIO_get_mem_ptr(b64, &bufferPtr);
 
     std::string encodedData(bufferPtr->data, bufferPtr->length);
-    BIO_free_all(bio);
+    BIO_free_all(b64);
 
     return encodedData;
 }
 
 /**
- * @brief Performs Base64 decoding.
+ * @brief Performs Base64 decoding of a string into binary data.
  * @param encodedData Base64 encoded string.
- * @return binary string.
+ * @return a vector of the decoded binary data.
  */
-std::string base64Decode(const std::string &encodedData) {
+std::vector<unsigned char> base64Decode(const std::string &encodedData) {
     BIO *bio, *b64;
+    int len;
 
     std::vector<unsigned char> decodedData(encodedData.size());
 
     b64 = BIO_new(BIO_f_base64());
+    BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
     bio = BIO_new_mem_buf(encodedData.data(), static_cast<int>(encodedData.size()));
 
     if (b64 == nullptr || bio == nullptr)
@@ -53,14 +54,16 @@ std::string base64Decode(const std::string &encodedData) {
 
     bio = BIO_push(b64, bio);
 
-    BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
+    len = BIO_read(bio, decodedData.data(), static_cast<int>(decodedData.size()));
 
-    if (BIO_read(bio, decodedData.data(), static_cast<int>(decodedData.size())) < 0)
+    if (len < 0)
         throw std::runtime_error("BIO_read() failed.");
 
     BIO_free_all(bio);
 
-    return reinterpret_cast<const char *>(decodedData.data());
+    decodedData.resize(len);
+
+    return decodedData;
 }
 
 /**
@@ -102,7 +105,7 @@ std::vector<unsigned char> hexDecode(const std::string &encodedData) {
  * @param prompt the prompt displayed to the user for the input.
  * @return the user's input (string) if successful, else nullptr.
  */
-std::string getResponseStr(const std::string &prompt = "") {
+std::string getResponseStr(const std::string &prompt) {
     char *tmp;
     std::string str;
 
@@ -121,7 +124,7 @@ std::string getResponseStr(const std::string &prompt = "") {
  * @param prompt the prompt displayed to the user for the input.
  * @return the user's input (an integer) on success, else 0.
  */
-int getResponseInt(const std::string &prompt = "") {
+int getResponseInt(const std::string &prompt) {
     int num{0};
     const std::string str = getResponseStr(prompt);
 
