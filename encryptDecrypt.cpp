@@ -298,9 +298,10 @@ std::string encryptString(const std::string &plaintext, const std::string &passw
         throw std::runtime_error("Failed to initialize encryption.");
 
 
+    // Encrypt the plaintext into the ciphertext
     if (EVP_EncryptUpdate(ctx, ciphertext.data(), &ciphertextLength,
-                          reinterpret_cast<const unsigned char *>(plaintext.c_str()),
-                          static_cast<int>(plaintext.length())) != 1) {
+                          reinterpret_cast<const unsigned char *>(plaintext.data()),
+                          static_cast<int>(plaintext.size())) != 1) {
         throw std::runtime_error("Failed to encrypt the data.");
     }
 
@@ -310,17 +311,16 @@ std::string encryptString(const std::string &plaintext, const std::string &passw
         throw std::runtime_error("Failed to finalize encryption.");
 
     ciphertextLength += finalLength;
+    ciphertext.resize(ciphertextLength); // Important!
 
-    std::string encryptedText(reinterpret_cast<char *>(ciphertext.data()), ciphertextLength);
+    // Export the salt, iv, and the ciphertext
+    std::vector<unsigned char> result;
+    result.reserve(salt.size() + iv.size() + ciphertext.size()); // pre-allocate memory to improve performance
 
-    // Combine salt, iv and ciphertext into a single string
-    std::string result;
-    result.reserve(salt.size() + iv.size() + encryptedText.size());
-
-    result.append(reinterpret_cast<char *>(salt.data()), salt.size());
-    result.append(reinterpret_cast<char *>(iv.data()), iv.size());
-
-    result.append(encryptedText);
+    // Construct result = salt + iv + ciphertext in that order
+    result = salt;
+    result.insert(result.end(), iv.begin(), iv.end());
+    result.insert(result.end(), ciphertext.begin(), ciphertext.end());
 
     // Return Base64-encoded ciphertext
     return base64Encode(result);
@@ -355,10 +355,10 @@ std::string decryptString(const std::string &encodedCiphertext, const std::strin
 
     std::vector<unsigned char> salt(SALT_SIZE);
     std::vector<unsigned char> iv(ivSize);
-    std::string encryptedText;
+    std::vector<unsigned char> encryptedText;
 
-    // Base64 decode the encrypted data
-    std::string ciphertext = base64Decode(encodedCiphertext);
+    // Base64 decode the encoded ciphertext
+    std::vector<unsigned char> ciphertext = base64Decode(encodedCiphertext);
 
     if (ciphertext.size() > SALT_SIZE + ivSize) {
         // Read the salt and IV from the ciphertext
@@ -373,16 +373,17 @@ std::string decryptString(const std::string &encodedCiphertext, const std::strin
     std::vector<unsigned char> key = deriveKey(password, salt, keySize);
 
     int block_size = EVP_CIPHER_get_block_size(cipher);
-    std::vector<unsigned char> plaintext(encryptedText.length() + block_size);
+    std::vector<unsigned char> plaintext(encryptedText.size() + block_size);
     int plaintextLength = 0;
 
     // Initialize the decryption operation
     if (EVP_DecryptInit_ex2(ctx, cipher, key.data(), iv.data(), nullptr) != 1)
         throw std::runtime_error("Failed to initialize decryption.");
 
+    // Decrypt the ciphertext into the plaintext
     if (EVP_DecryptUpdate(ctx, plaintext.data(), &plaintextLength,
-                          reinterpret_cast<const unsigned char *>(encryptedText.c_str()),
-                          static_cast<int>(encryptedText.length())) != 1) {
+                          encryptedText.data(),
+                          static_cast<int>(encryptedText.size())) != 1) {
         throw std::runtime_error("Failed to decrypt the data.");
     }
 
