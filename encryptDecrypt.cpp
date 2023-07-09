@@ -4,6 +4,7 @@
 #include <openssl/kdf.h>
 #include <openssl/core_names.h>
 #include <openssl/rand.h>
+#include <sodium/utils.h>
 #include "cryptoCipher.hpp"
 #include "main.hpp"
 
@@ -132,9 +133,15 @@ void encryptFile(const std::string &inputFile, const std::string &outputFile, co
     // Derive the encryption key
     std::vector<unsigned char> key = deriveKey(password, salt, keySize);
 
+    // Lock the memory holding the key to avoid swapping it to the disk
+    sodium_mlock(key.data(), key.size());
+
     // Initialize the encryption operation
     if (EVP_EncryptInit_ex2(cipher.getCtx(), cipher.getCipher(), key.data(), iv.data(), nullptr) != 1)
         throw std::runtime_error("Failed to initialize encryption.");
+
+    // The key is no longer needed: unlock the memory and zeroize the key contents
+    sodium_munlock(key.data(), key.size());
 
     // Set automatic padding handling
     EVP_CIPHER_CTX_set_padding(cipher.getCtx(), EVP_PADDING_PKCS7);
@@ -225,9 +232,15 @@ void decryptFile(const std::string &inputFile, const std::string &outputFile, co
     // Derive the decryption key
     std::vector<unsigned char> key = deriveKey(password, salt, keySize);
 
+    // Lock the memory holding the key to avoid swapping it to the disk
+    sodium_mlock(key.data(), key.size());
+
     // Initialize the decryption operation
     if (EVP_DecryptInit_ex2(cipher.getCtx(), cipher.getCipher(), key.data(), iv.data(), nullptr) != 1)
         throw std::runtime_error("Failed to initialize decryption.");
+
+    // The key is no longer needed: unlock the memory and zeroize the key contents
+    sodium_munlock(key.data(), key.size());
 
     // Set automatic padding handling
     EVP_CIPHER_CTX_set_padding(cipher.getCtx(), EVP_PADDING_PKCS7);
@@ -291,6 +304,9 @@ std::string encryptString(const std::string &plaintext, const std::string &passw
     // Derive the encryption key using the generated salt
     std::vector<unsigned char> key = deriveKey(password, salt, keySize);
 
+    // Secure the key from being swapped to the disk
+    sodium_mlock(key.data(), key.size());
+
     int block_size = EVP_CIPHER_get_block_size(cipher.getCipher());
     std::vector<unsigned char> ciphertext(plaintext.size() + block_size);
     int ciphertextLength = 0;
@@ -299,6 +315,8 @@ std::string encryptString(const std::string &plaintext, const std::string &passw
     if (EVP_EncryptInit_ex2(cipher.getCtx(), cipher.getCipher(), key.data(), iv.data(), nullptr) != 1)
         throw std::runtime_error("Failed to initialize encryption.");
 
+    // The key is no longer needed: unlock its memory and zeroize the contents
+    sodium_munlock(key.data(), key.size());
 
     // Encrypt the plaintext into the ciphertext
     if (EVP_EncryptUpdate(cipher.getCtx(), ciphertext.data(), &ciphertextLength,
@@ -370,9 +388,15 @@ std::string decryptString(const std::string &encodedCiphertext, const std::strin
     // Derive the decryption key from the password and the salt
     std::vector<unsigned char> key = deriveKey(password, salt, keySize);
 
+    // Secure the key from being swapped to the disk
+    sodium_mlock(key.data(), key.size());
+
     int block_size = EVP_CIPHER_get_block_size(cipher.getCipher());
     std::vector<unsigned char> plaintext(encryptedText.size() + block_size);
     int plaintextLength = 0;
+
+    // The key is no longer needed: unlock its memory and zeroize the contents
+    sodium_munlock(key.data(), key.size());
 
     // Initialize the decryption operation
     if (EVP_DecryptInit_ex2(cipher.getCtx(), cipher.getCipher(), key.data(), iv.data(), nullptr) != 1)
