@@ -97,12 +97,21 @@ deriveKey(const std::string &password, const std::vector<unsigned char> &salt, c
  * @param inputFile the file to be encrypted.
  * @param outputFile the file to store the encrypted content.
  * @param password the password used to encrypt the file.
- * @return True if encryption succeeds, else False.
  */
-bool encryptFile(const std::string &inputFile, const std::string &outputFile, const std::string &password) {
+void encryptFile(const std::string &inputFile, const std::string &outputFile, const std::string &password) {
+    // Open both input and output files & throw errors
+    std::ifstream inFile(inputFile, std::ios::binary);
+    if (!inFile)
+        throw std::runtime_error("Failed to open " + inputFile + " for reading.");
+
+    std::ofstream outFile(outputFile, std::ios::binary);
+    if (!outFile)
+        throw std::runtime_error("Failed to open " + outputFile + " for writing.");
+
+    // Initialize the cipher
     CryptoCipher cipher;
 
-    // Initialize the cipher context
+    // Create the cipher context
     cipher.setCtx();
     if (cipher.getCtx() == nullptr)
         throw std::runtime_error("Failed to create the cipher context.");
@@ -130,9 +139,6 @@ bool encryptFile(const std::string &inputFile, const std::string &outputFile, co
     // Set automatic padding handling
     EVP_CIPHER_CTX_set_padding(cipher.getCtx(), EVP_PADDING_PKCS7);
 
-    std::ifstream inFile(inputFile, std::ios::binary);
-    std::ofstream outFile(outputFile, std::ios::binary);
-
     // Write the salt and IV to the output file
     outFile.write(reinterpret_cast<const char *>(salt.data()), static_cast<std::streamsize>(salt.size()));
     outFile.write(reinterpret_cast<const char *>(iv.data()), static_cast<std::streamsize>(iv.size()));
@@ -155,23 +161,16 @@ bool encryptFile(const std::string &inputFile, const std::string &outputFile, co
 
         // Write the ciphertext (the encrypted data) to the output file
         outFile.write(reinterpret_cast<const char *>(outBuf.data()), bytesWritten);
-        outFile.flush();
+        outFile.flush(); // Ensure data is written immediately
     }
 
     // Finalize the encryption operation
     if (EVP_EncryptFinal_ex(cipher.getCtx(), outBuf.data(), &bytesWritten) != 1)
         throw std::runtime_error("Failed to finalize encryption.");
 
+    // Write the last chunk
     outFile.write(reinterpret_cast<const char *>(outBuf.data()), bytesWritten);
     outFile.flush();
-
-    // Close the streams
-    inFile.close();
-    outFile.close();
-
-    std::cout << "Encryption complete. Encrypted file: " << outputFile << std::endl;
-
-    return true;
 }
 
 /**
@@ -179,12 +178,18 @@ bool encryptFile(const std::string &inputFile, const std::string &outputFile, co
  * @param inputFile the file to be decrypted.
  * @param outputFile the file to store the decrypted content.
  * @param password the password used to decrypt the file.
- * @return True if decryption succeeds, else False.
  */
-bool decryptFile(const std::string &inputFile, const std::string &outputFile, const std::string &password) {
+void decryptFile(const std::string &inputFile, const std::string &outputFile, const std::string &password) {
+    // Open both input and output files
     std::ifstream inFile(inputFile, std::ios::binary);
-    std::ofstream outFile(outputFile, std::ios::binary);
+    if (!inFile)
+        throw std::runtime_error("Failed to open " + inputFile + " for reading.");
 
+    std::ofstream outFile(outputFile, std::ios::binary);
+    if (!outFile)
+        throw std::runtime_error("Failed to open " + outputFile + " for writing.");
+
+    // Initialize the cipher
     CryptoCipher cipher;
 
     // Initialize the cipher context
@@ -204,9 +209,18 @@ bool decryptFile(const std::string &inputFile, const std::string &outputFile, co
     std::vector<unsigned char> salt(SALT_SIZE);
     std::vector<unsigned char> iv(ivSize);
 
+    size_t saltBytesRead, ivBytesRead;
+
     // Read the salt and IV from the input file
     inFile.read(reinterpret_cast<char *>(salt.data()), static_cast<std::streamsize>(salt.size()));
+    saltBytesRead = inFile.gcount();
+
     inFile.read(reinterpret_cast<char *>(iv.data()), static_cast<std::streamsize>(iv.size()));
+    ivBytesRead = inFile.gcount();
+
+    // Without valid salt and IV, decryption would fail
+    if (saltBytesRead < SALT_SIZE || ivBytesRead < ivSize)
+        throw std::length_error("Invalid ciphertext.");
 
     // Derive the decryption key
     std::vector<unsigned char> key = deriveKey(password, salt, keySize);
@@ -245,14 +259,6 @@ bool decryptFile(const std::string &inputFile, const std::string &outputFile, co
 
     outFile.write(reinterpret_cast<const char *>(outBuf.data()), bytesWritten);
     outFile.flush();
-
-    // Close the streams
-    inFile.close();
-    outFile.close();
-
-    std::cout << "Decryption complete. Decrypted file: " << outputFile << std::endl;
-
-    return true;
 }
 
 /**
@@ -264,7 +270,7 @@ bool decryptFile(const std::string &inputFile, const std::string &outputFile, co
 std::string encryptString(const std::string &plaintext, const std::string &password) {
     CryptoCipher cipher;
 
-    // Initialize the cipher context
+    // Create the cipher context
     cipher.setCtx();
     if (cipher.getCtx() == nullptr)
         throw std::runtime_error("Failed to create the cipher context.");
@@ -286,7 +292,7 @@ std::string encryptString(const std::string &plaintext, const std::string &passw
     std::vector<unsigned char> key = deriveKey(password, salt, keySize);
 
     int block_size = EVP_CIPHER_get_block_size(cipher.getCipher());
-    std::vector<unsigned char> ciphertext(plaintext.length() + block_size);
+    std::vector<unsigned char> ciphertext(plaintext.size() + block_size);
     int ciphertextLength = 0;
 
     // Initialize the encryption operation
@@ -331,7 +337,7 @@ std::string encryptString(const std::string &plaintext, const std::string &passw
 std::string decryptString(const std::string &encodedCiphertext, const std::string &password) {
     CryptoCipher cipher;
 
-    // Initialize the cipher context
+    // Create the cipher context
     cipher.setCtx();
     if (cipher.getCtx() == nullptr)
         throw std::runtime_error("Failed to create the cipher context.");
