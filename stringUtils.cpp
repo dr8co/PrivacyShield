@@ -1,12 +1,13 @@
 #include <iomanip>
 #include <openssl/buffer.h>
 #include <readline/readline.h>
+#include <charconv>
 #include "main.hpp"
 
 /**
- * @brief Performs Base64 encoding of binary data into a string
+ * @brief Performs Base64 encoding of binary data into a string.
  * @param input a vector of the binary data to be encoded.
- * @return the encoded string.
+ * @return Base64-encoded string.
  */
 std::string base64Encode(const std::vector<unsigned char> &input) {
     BIO *bio, *b64;
@@ -106,11 +107,8 @@ std::vector<unsigned char> hexDecode(const std::string &encodedData) {
  * @return the user's input (string) if successful, else nullptr.
  */
 std::string getResponseStr(const std::string &prompt) {
-    char *tmp;
-    std::string str;
-
-    tmp = readline(prompt.c_str());
-    str = std::string(tmp);
+    char *tmp = readline(prompt.c_str());
+    auto str = std::string(tmp);
 
     // tmp must be freed
     free(tmp);
@@ -119,23 +117,16 @@ std::string getResponseStr(const std::string &prompt) {
 }
 
 /**
- * @brief Captures the user's response while offering editing capabilities
+ * @brief Captures the user's response while offering editing capabilities.
  * while the user is entering the data.
  * @param prompt the prompt displayed to the user for the input.
- * @return the user's input (an integer) on success, else 0.
+ * @return the user's input (an integer) on if it's convertible to integer, else 0.
  */
 int getResponseInt(const std::string &prompt) {
-    int num{0};
-    const std::string str = getResponseStr(prompt);
+    constexpr auto to_int = [](std::string_view s) noexcept -> int {
+        int value;
+        return std::from_chars(s.begin(), s.end(), value).ec == std::errc{} ? value : 0;
+    };
 
-    // Convert string to int
-    errno = 0;
-    num = static_cast<int>(std::strtol(str.c_str(), nullptr, 10));
-
-    // Return 0 on any conversion error, and suppress the error message
-    if (errno != 0)
-        return 0;
-
-    return num;
-
+    return to_int(getResponseStr(prompt));
 }

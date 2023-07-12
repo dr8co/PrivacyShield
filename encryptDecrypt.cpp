@@ -42,7 +42,7 @@ std::vector<unsigned char> generateSalt(int saltSize) {
  */
 std::vector<unsigned char>
 deriveKey(const std::string &password, const std::vector<unsigned char> &salt, const int &keySize = KEY_SIZE_256) {
-    // A sanity check
+    // A validation check
     if (keySize > MAX_KEY_SIZE || keySize < 1)
         throw std::length_error("Invalid Key size.");
 
@@ -395,12 +395,12 @@ std::string decryptString(const std::string &encodedCiphertext, const std::strin
     std::vector<unsigned char> plaintext(encryptedText.size() + block_size);
     int plaintextLength = 0;
 
-    // The key is no longer needed: unlock its memory and zeroize the contents
-    sodium_munlock(key.data(), key.size());
-
     // Initialize the decryption operation
     if (EVP_DecryptInit_ex2(cipher.getCtx(), cipher.getCipher(), key.data(), iv.data(), nullptr) != 1)
         throw std::runtime_error("Failed to initialize decryption.");
+
+    // The key is no longer needed: unlock its memory and zeroize the contents
+    sodium_munlock(key.data(), key.size());
 
     // Decrypt the ciphertext into the plaintext
     if (EVP_DecryptUpdate(cipher.getCtx(), plaintext.data(), &plaintextLength,

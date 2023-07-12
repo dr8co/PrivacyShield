@@ -14,7 +14,7 @@ typedef std::string string;
 /**
  * @brief Reads sensitive input from a terminal without echoing them.
  * @param prompt the prompt to display.
- * @return a string of the information read.
+ * @return the user's input.
  */
 string getSensitiveInfo(const string &prompt = "") {
     string password;
@@ -225,10 +225,10 @@ void passwordManager() {
     std::vector<std::pair<string, string>> passwords;
     string passwordFile = "/to/be/determined/later";
 
-    const string encryptionKey = getSensitiveInfo("Enter the master password: ");
+    string encryptionKey = getSensitiveInfo("Enter the master password: ");
 
     // Lock the memory area holding the password
-    sodium_mlock((void *) encryptionKey.data(), encryptionKey.size());
+    sodium_mlock(encryptionKey.data(), encryptionKey.size());
 
     if (!encryptionKey.empty() && fs::exists(passwordFile))
         passwords = loadPasswords(passwordFile, encryptionKey);

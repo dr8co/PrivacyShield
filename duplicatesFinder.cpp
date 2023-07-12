@@ -63,7 +63,7 @@ std::string calculateBlake2b(const std::string &filePath) {
     return blake2bHash;
 }
 
-// TODO: For 32-bit systems, use 32-bit BLAKE2s instead of BLAKE2b
+// TODO: For 32-bit systems, use 256-bit BLAKE2s instead of the 512-bit BLAKE2b
 
 /**
  * @brief recursively traverses a directory and collects file information.
@@ -129,7 +129,7 @@ size_t findDuplicates(const std::string &directoryPath) {
         start += filesPerThread;
     }
 
-    // The last thread may handle slightly more files to account for division remainder
+    // The last thread may handle slightly more files to account for the division remainder
     threads.emplace_back(calculateHashes, std::ref(files), start, files.size());
 
     // Wait for all threads to finish
