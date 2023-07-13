@@ -4,13 +4,13 @@
 #include <filesystem>
 #include <sodium.h>
 #include <thread>
+#include <gcrypt.h>
 #include "main.hpp"
 
 namespace fs = std::filesystem;
 
 /**
  * @brief Represents a file by its canonical path and hash.
- * @
  */
 struct FileInfo {
     std::string path; // path to the file.
@@ -63,6 +63,56 @@ std::string calculateBlake2b(const std::string &filePath) {
     return blake2bHash;
 }
 
+/**
+ * @brief Calculates the BLAKE2s hash of a file.
+ * @param filePath path to the file.
+ * @return a string of the hash of the file.
+ */
+std::string calculateBlake2s(const std::string &filePath) {
+    std::ifstream file(filePath, std::ios::binary);
+    if (!file)
+        throw std::runtime_error("Failed to open: " + filePath + " for hashing.");
+
+    const size_t bufferSize = 4096;
+    std::vector<char> buffer(bufferSize);
+
+    gcry_error_t err;
+    gcry_md_algos algo = GCRY_MD_BLAKE2S_256; // 256-bit Blake 2s hash algorithm
+
+    // Create the hash context handle
+    gcry_md_hd_t handle;
+
+    size_t mdLength = gcry_md_get_algo_dlen(algo);
+
+    // Create a message digest object for the algorithm
+    err = gcry_md_open(&handle, algo, 0);
+    if (err)
+        throw std::runtime_error("Failed to create digest handle: " + std::string(gcry_strerror(err)));
+
+    // Calculate the hash in chunks
+    while (file.read(buffer.data(), bufferSize)) {
+        gcry_md_write(handle, buffer.data(), bufferSize);
+    }
+    // update the hash with the last chunk of data
+    size_t remainingBytes = file.gcount();
+    gcry_md_write(handle, buffer.data(), remainingBytes);
+
+    file.close(); // We're done with the file
+
+    // Finalize the message digest calculation and read the digest
+    std::vector<unsigned char> digest(mdLength);
+    unsigned char *tmp = gcry_md_read(handle, algo);
+
+    // Base64-encode the hash, so it can be easily handled as a string
+    digest.assign(tmp, tmp + mdLength);
+    std::string hash(base64Encode(digest));
+
+    // Release all the resources of the hash context
+    gcry_md_close(handle);
+
+    return hash;
+}
+
 // TODO: For 32-bit systems, use 256-bit BLAKE2s instead of the 512-bit BLAKE2b
 
 /**
@@ -73,7 +123,7 @@ std::string calculateBlake2b(const std::string &filePath) {
 void traverseDirectory(const std::string &directoryPath, std::vector<FileInfo> &files) {
     for (const auto &entry: fs::recursive_directory_iterator(directoryPath)) {
         // process only regular files
-        if (entry.is_regular_file()) [[likely]]{
+        if (entry.is_regular_file()) [[likely]] {
             FileInfo fileInfo;
 
             // Update file details
