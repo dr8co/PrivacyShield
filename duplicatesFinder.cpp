@@ -9,8 +9,10 @@
 
 namespace fs = std::filesystem;
 
+constexpr size_t CHUNK_SIZE = 4096;  // Read and process files in chunks of 4kB
+
 /**
- * @brief Represents a file by its canonical path and hash.
+ * @brief Represents a file by its path (canonical) and hash.
  */
 struct FileInfo {
     std::string path; // path to the file.
@@ -27,8 +29,7 @@ std::string calculateBlake2b(const std::string &filePath) {
     if (!file)
         throw std::runtime_error("Failed to open: " + filePath + " for hashing.");
 
-    const size_t bufferSize = 4096;
-    std::vector<char> buffer(bufferSize);
+    std::vector<char> buffer(CHUNK_SIZE);
 
     crypto_generichash_blake2b_state state;
 
@@ -37,10 +38,10 @@ std::string calculateBlake2b(const std::string &filePath) {
         throw std::runtime_error("Failed to initialize Blake2b hashing.");
 
     // Hash the file in chunks of 4kB
-    while (file.read(buffer.data(), bufferSize)) {
+    while (file.read(buffer.data(), CHUNK_SIZE)) {
         if (crypto_generichash_blake2b_update(&state,
                                               reinterpret_cast<const unsigned char *>(buffer.data()),
-                                              bufferSize) != 0)
+                                              CHUNK_SIZE) != 0)
             throw std::runtime_error("Failed to calculate Blake2b hash.");
     }
 
@@ -73,8 +74,7 @@ std::string calculateBlake2s(const std::string &filePath) {
     if (!file)
         throw std::runtime_error("Failed to open: " + filePath + " for hashing.");
 
-    const size_t bufferSize = 4096;
-    std::vector<char> buffer(bufferSize);
+    std::vector<char> buffer(CHUNK_SIZE);
 
     gcry_error_t err;
     gcry_md_algos algo = GCRY_MD_BLAKE2S_256; // 256-bit Blake 2s hash algorithm
@@ -90,8 +90,8 @@ std::string calculateBlake2s(const std::string &filePath) {
         throw std::runtime_error("Failed to create digest handle: " + std::string(gcry_strerror(err)));
 
     // Calculate the hash in chunks
-    while (file.read(buffer.data(), bufferSize)) {
-        gcry_md_write(handle, buffer.data(), bufferSize);
+    while (file.read(buffer.data(), CHUNK_SIZE)) {
+        gcry_md_write(handle, buffer.data(), CHUNK_SIZE);
     }
     // update the hash with the last chunk of data
     size_t remainingBytes = file.gcount();
@@ -107,7 +107,7 @@ std::string calculateBlake2s(const std::string &filePath) {
     digest.assign(tmp, tmp + mdLength);
     std::string hash(base64Encode(digest));
 
-    // Release all the resources of the hash context
+    // Release all the resources associated with the hash context
     gcry_md_close(handle);
 
     return hash;
@@ -126,11 +126,12 @@ void traverseDirectory(const std::string &directoryPath, std::vector<FileInfo> &
         if (entry.is_regular_file()) [[likely]] {
             FileInfo fileInfo;
 
-            // Update file details
+            // Update the file details
             fileInfo.path = entry.path().string();
-            fileInfo.hash = "";  // Hash will be calculated later
+            fileInfo.hash = "";  // the hash will be calculated later
             files.push_back(fileInfo);
-        } else if (!entry.is_directory()) // skip directories
+
+        } else if (!entry.is_directory()) // Neither regular nor a directory
             std::cout << "Not processing: " << entry << ". Not a regular file." << std::endl;
     }
 }
@@ -165,15 +166,16 @@ size_t findDuplicates(const std::string &directoryPath) {
     std::vector<FileInfo> files;
     traverseDirectory(directoryPath, files);
 
-    // Number of threads to use (Simple C++11 threads for now)
+    // Number of threads to use
     const unsigned int numThreads = std::thread::hardware_concurrency();
 
-    // Divide files among threads and calculate hashes in parallel
+    // Divide files among threads
     std::vector<std::thread> threads;
     size_t filesProcessed = files.size();
     size_t filesPerThread = filesProcessed / numThreads;
     size_t start = 0;
 
+    // Calculate the hashes in parallel
     for (int i = 0; i < numThreads - 1; ++i) {
         threads.emplace_back(calculateHashes, std::ref(files), start, start + filesPerThread);
         start += filesPerThread;
@@ -182,12 +184,12 @@ size_t findDuplicates(const std::string &directoryPath) {
     // The last thread may handle slightly more files to account for the division remainder
     threads.emplace_back(calculateHashes, std::ref(files), start, files.size());
 
-    // Wait for all threads to finish
+    // Wait for all threads to finish execution
     for (auto &thread: threads) {
         thread.join();
     }
 
-    // Map to store hashes and corresponding file paths
+    // A hash map to map the files to their corresponding hashes
     std::unordered_map<std::string, std::vector<std::string>> hashMap;
 
     // Iterate over files and identify duplicates
@@ -198,7 +200,7 @@ size_t findDuplicates(const std::string &directoryPath) {
         hashMap[hash].push_back(filePath);
     }
 
-    size_t duplicatesSet = 0, duplicateFiles = 0;
+    size_t duplicatesSet = 0, numDuplicates = 0;
 
     // Display duplicate files
     std::cout << "Duplicates found:" << std::endl;
@@ -208,14 +210,15 @@ size_t findDuplicates(const std::string &directoryPath) {
         if (duplicates.size() > 1) {
             ++duplicatesSet;
 
+            // Show the duplicates in their sets
             std::cout << "Duplicate files set " << duplicatesSet << ":" << std::endl;
             for (const std::string &filePath: duplicates) {
                 std::cout << "  " << filePath << std::endl;
-                ++duplicateFiles;
+                ++numDuplicates;
             }
         }
     }
     std::cout << "\nFiles processed: " << filesProcessed << std::endl;
 
-    return duplicateFiles;
+    return numDuplicates;
 }

@@ -12,7 +12,7 @@ constexpr int SALT_SIZE = 32;                       // Default salt length (256 
 constexpr int KEY_SIZE_256 = 32;                    // Default key size (256 bits)
 constexpr int MAX_KEY_SIZE = EVP_MAX_KEY_LENGTH;    // For bounds checking
 
-constexpr int CHUNK_SIZE = 4096;                    // Read files in chunks of 4kB
+constexpr size_t CHUNK_SIZE = 4096;                 // Read files in chunks of 4kB
 constexpr unsigned int PBKDF2_ITERATIONS = 100'000; // Iterations for PBKDF2 key derivation
 
 // OpenSSL's library context and property query string
@@ -177,7 +177,6 @@ void encryptFile(const std::string &inputFile, const std::string &outputFile, co
 
     // Write the last chunk
     outFile.write(reinterpret_cast<const char *>(outBuf.data()), bytesWritten);
-    outFile.flush();
 }
 
 /**
@@ -338,7 +337,7 @@ std::string encryptString(const std::string &plaintext, const std::string &passw
     result.reserve(salt.size() + iv.size() + ciphertext.size()); // pre-allocate memory to improve performance
 
     // Construct result = salt + iv + ciphertext in that order
-    result = salt;
+    result.assign(salt.begin(), salt.end());
     result.insert(result.end(), iv.begin(), iv.end());
     result.insert(result.end(), ciphertext.begin(), ciphertext.end());
 
