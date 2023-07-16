@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <memory>
+#include <gcrypt.h>
 #include <openssl/kdf.h>
 #include <openssl/core_names.h>
 #include <openssl/rand.h>
@@ -264,4 +265,75 @@ void decryptFile(const std::string &inputFile, const std::string &outputFile, co
 
     outFile.write(reinterpret_cast<const char *>(outBuf.data()), bytesWritten);
     outFile.flush();
+}
+
+void
+encryptFileHeavy(const std::string &inputFilePath, const std::string &outputFilePath, const std::string &password) {
+    // Ensure the files are readable/writable
+    std::ifstream inputFile(inputFilePath, std::ios::binary);
+    if (!inputFile)
+        throw std::runtime_error("Failed to open " + inputFilePath + " for reading.");
+
+    std::ofstream outputFile(outputFilePath, std::ios::binary);
+    if (!outputFile)
+        throw std::runtime_error("Failed to open " + outputFilePath + " for writing.");
+
+    gcry_error_t err;   // error tracker
+
+    // Set up the encryption context
+    gcry_cipher_hd_t cipherHandle;
+    err = gcry_cipher_open(&cipherHandle, GCRY_CIPHER_SERPENT256, GCRY_CIPHER_MODE_CTR, GCRY_CIPHER_SECURE);
+    if (err)
+        throw std::runtime_error(std::string(gcry_strsource(err)) + ": " + gcry_strerror(err));
+
+    // Check the key size and the IV size required by the cipher
+    size_t ivSize = gcry_cipher_get_algo_blklen(GCRY_CIPHER_SERPENT256);
+    size_t keySize = gcry_cipher_get_algo_keylen(GCRY_CIPHER_SERPENT256);
+
+    // Set key size to default (256 bits) if the previous call failed
+    if (keySize == 0)
+        keySize = KEY_SIZE_256;
+
+    // Generate a random salt and a random IV
+    std::vector<unsigned char> salt = generateSalt(SALT_SIZE);
+    std::vector<unsigned char> iv = generateSalt(static_cast<int>(ivSize));
+
+    // Derive the key
+    std::vector<unsigned char> key = deriveKey(password, salt, static_cast<int>(keySize));
+
+    // Lock the memory holding the key to avoid swapping it to the disk
+    sodium_mlock(key.data(), key.size());
+
+    // Set the key
+    err = gcry_cipher_setkey(cipherHandle, key.data(), key.size());
+    if (err)
+        throw std::runtime_error("Failed to set the encryption key: " + std::string(gcry_strerror(err)));
+    // TODO: Unlock the key at an appropriate time
+
+    // Set the IV in the encryption context
+    err = gcry_cipher_setiv(cipherHandle, iv.data(), iv.size());
+    if (err)
+        throw std::runtime_error("encryption set iv: " + std::string(gcry_strsource(err)) + ": " + gcry_strerror(err));
+
+    // Write the salt and the IV to the output file
+    outputFile.write(reinterpret_cast<const char *>(salt.data()), static_cast<std::streamsize>(salt.size()));
+    outputFile.write(reinterpret_cast<const char *>(iv.data()), static_cast<std::streamsize>(iv.size()));
+
+    // Encrypt the file in chunks
+    std::vector<unsigned char> buffer(CHUNK_SIZE);
+    while (!inputFile.eof()) {
+        inputFile.read(reinterpret_cast<char *>(buffer.data()), CHUNK_SIZE);
+        const auto bytesRead = inputFile.gcount();
+
+        // Encrypt the chunk
+        err = gcry_cipher_encrypt(cipherHandle, buffer.data(), buffer.size(), nullptr, 0);
+        if (err)
+            throw std::runtime_error("Failed to encrypt file: " + std::string(gcry_strerror(err)));
+
+        // Write the encrypted chunk to the output file
+        outputFile.write(reinterpret_cast<const char *>(buffer.data()), bytesRead);
+    }
+
+    // Clean up
+    gcry_cipher_close(cipherHandle);
 }
