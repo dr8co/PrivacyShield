@@ -337,3 +337,76 @@ encryptFileHeavy(const std::string &inputFilePath, const std::string &outputFile
     // Clean up
     gcry_cipher_close(cipherHandle);
 }
+
+void
+decryptFileHeavy(const std::string &inputFilePath, const std::string &outputFilePath, const std::string &password) {
+    // Ensure the files are readable/writable
+    std::ifstream inputFile(inputFilePath, std::ios::binary);
+    if (!inputFile)
+        throw std::runtime_error("Failed to open " + inputFilePath + " for reading.");
+
+    std::ofstream outputFile(outputFilePath, std::ios::binary);
+    if (!outputFile)
+        throw std::runtime_error("Failed to open " + outputFilePath + " for writing.");
+
+    // Fetch the cipher's IV size and key size
+    size_t ivSize = gcry_cipher_get_algo_blklen(GCRY_CIPHER_SERPENT256);
+    size_t keySize = gcry_cipher_get_algo_keylen(GCRY_CIPHER_SERPENT256);
+    if (keySize == 0)
+        keySize = 32;
+
+    std::vector<unsigned char> salt(SALT_SIZE);
+    std::vector<unsigned char> iv(ivSize);
+    size_t saltBytesRead, ivBytesRead;
+
+    // Read the salt and the IV from the input file
+    inputFile.read(reinterpret_cast<char *>(salt.data()), static_cast<std::streamsize>(salt.size()));
+    saltBytesRead = inputFile.gcount();
+
+    inputFile.read(reinterpret_cast<char *>(iv.data()), static_cast<std::streamsize>(iv.size()));
+    ivBytesRead = inputFile.gcount();
+
+    // Without valid salt and IV, decryption would fail, or the plaintext would be garbage
+    if (saltBytesRead < SALT_SIZE or ivBytesRead < ivSize)
+        throw std::length_error("Invalid ciphertext.");
+
+    // Derive the key and lock the memory
+    std::vector<unsigned char> key = deriveKey(password, salt, static_cast<int>(keySize));
+    sodium_mlock(key.data(), key.size());
+
+    // Set up the decryption context
+    gcry_error_t err;
+    gcry_cipher_hd_t cipherHandle;
+    err = gcry_cipher_open(&cipherHandle, GCRY_CIPHER_SERPENT256, GCRY_CIPHER_MODE_CTR, GCRY_CIPHER_SECURE);
+    if (err)
+        throw std::runtime_error("Failed to set up the decryption context: " + std::string(gcry_strerror(err)));
+
+    // Set the decryption key
+    err = gcry_cipher_setkey(cipherHandle, key.data(), key.size());
+    if (err)
+        throw std::runtime_error("Failed to set the decryption key: " + std::string(gcry_strerror(err)));
+
+    // Set the IV in the decryption context
+    err = gcry_cipher_setiv(cipherHandle, iv.data(), iv.size());
+    if (err)
+        throw std::runtime_error("Failed to set the decryption iv: " + std::string(gcry_strerror(err)));
+
+    // Decrypt the file in chunks
+    std::vector<unsigned char> buffer(CHUNK_SIZE);
+    while (!inputFile.eof()) {
+        inputFile.read(reinterpret_cast<char *>(buffer.data()), CHUNK_SIZE);
+        const auto bytesRead = inputFile.gcount();
+
+        // Decrypt the chunk in place
+        err = gcry_cipher_decrypt(cipherHandle, buffer.data(), buffer.size(), nullptr, 0);
+        if (err)
+            throw std::runtime_error("Failed to decrypt the ciphertext: " + std::string(gcry_strerror(err)));
+
+        // Write the decrypted chunk to the output file
+        outputFile.write(reinterpret_cast<const char *>(buffer.data()), bytesRead);
+    }
+
+    // Clean up
+    gcry_cipher_close(cipherHandle);
+
+}
