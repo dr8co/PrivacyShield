@@ -308,7 +308,9 @@ encryptFileHeavy(const std::string &inputFilePath, const std::string &outputFile
     err = gcry_cipher_setkey(cipherHandle, key.data(), key.size());
     if (err)
         throw std::runtime_error("Failed to set the encryption key: " + std::string(gcry_strerror(err)));
-    // TODO: Unlock the key at an appropriate time
+
+    // Zeroize the key, we don't need it anymore
+    sodium_munlock(key.data(), key.size());
 
     // Set the IV in the encryption context
     err = gcry_cipher_setiv(cipherHandle, iv.data(), iv.size());
@@ -385,6 +387,9 @@ decryptFileHeavy(const std::string &inputFilePath, const std::string &outputFile
     err = gcry_cipher_setkey(cipherHandle, key.data(), key.size());
     if (err)
         throw std::runtime_error("Failed to set the decryption key: " + std::string(gcry_strerror(err)));
+
+    // Key is not needed anymore, zeroize it and unlock it
+    sodium_munlock(key.data(), key.size());
 
     // Set the IV in the decryption context
     err = gcry_cipher_setiv(cipherHandle, iv.data(), iv.size());
