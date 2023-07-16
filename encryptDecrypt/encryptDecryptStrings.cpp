@@ -1,5 +1,6 @@
 #include <iostream>
 #include <openssl/evp.h>
+#include <gcrypt.h>
 #include <sodium.h>
 #include "encryptDecrypt.hpp"
 #include "cryptoCipher.hpp"
@@ -150,4 +151,67 @@ std::string decryptString(const std::string &encodedCiphertext, const std::strin
     std::string decryptedText(reinterpret_cast<char *>(plaintext.data()), plaintextLength);
 
     return decryptedText;
+}
+
+std::string
+encryptFileHeavy(const std::string &plaintext, const std::string &password) {
+    gcry_error_t err;   // error tracker
+
+    // Set up the encryption context
+    gcry_cipher_hd_t cipherHandle;
+    err = gcry_cipher_open(&cipherHandle, GCRY_CIPHER_SERPENT256, GCRY_CIPHER_MODE_CTR, GCRY_CIPHER_SECURE);
+    if (err)
+        throw std::runtime_error(std::string(gcry_strsource(err)) + ": " + gcry_strerror(err));
+
+    // Check the key size and the IV size required by the cipher
+    size_t ivSize = gcry_cipher_get_algo_blklen(GCRY_CIPHER_SERPENT256);
+    size_t keySize = gcry_cipher_get_algo_keylen(GCRY_CIPHER_SERPENT256);
+
+    // Set key size to default (256 bits) if the previous call failed
+    if (keySize == 0)
+        keySize = KEY_SIZE_256;
+
+    // Generate a random salt and a random IV
+    std::vector<unsigned char> salt = generateSalt(SALT_SIZE);
+    std::vector<unsigned char> iv = generateSalt(static_cast<int>(ivSize));
+
+    // Derive the key
+    std::vector<unsigned char> key = deriveKey(password, salt, static_cast<int>(keySize));
+
+    // Lock the memory holding the key to avoid swapping it to the disk
+    sodium_mlock(key.data(), key.size());
+
+    // Set the key
+    err = gcry_cipher_setkey(cipherHandle, key.data(), key.size());
+    if (err)
+        throw std::runtime_error("Failed to set the encryption key: " + std::string(gcry_strerror(err)));
+
+    // Zeroize the key, we don't need it anymore
+    sodium_munlock(key.data(), key.size());
+
+    // Set the IV in the encryption context
+    err = gcry_cipher_setiv(cipherHandle, iv.data(), iv.size());
+    if (err)
+        throw std::runtime_error("Failed to set encryption iv: " + std::string(gcry_strsource(err)) + ": " + gcry_strerror(err));
+
+    // Encrypt the plaintext
+    std::vector<unsigned char> ciphertext(plaintext.size());
+    err = gcry_cipher_encrypt(cipherHandle, ciphertext.data(), ciphertext.size(), plaintext.data(), plaintext.size());
+    if (err)
+        throw std::runtime_error("Failed to encrypt data: " + std::string(gcry_strerror(err)));
+
+    // Clean up the resources associated with the encryption handle
+    gcry_cipher_close(cipherHandle);
+
+    // Export the salt, iv, and the ciphertext
+    std::vector<unsigned char> result;
+    result.reserve(salt.size() + iv.size() + ciphertext.size());
+
+    // Construct result = salt + iv + ciphertext in that order
+    result.assign(salt.begin(), salt.end());
+    result.insert(result.end(), iv.begin(), iv.end());
+    result.insert(result.end(), ciphertext.begin(), ciphertext.end());
+
+    // Return Base64-encoded ciphertext
+    return base64Encode(result);
 }
