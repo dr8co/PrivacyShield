@@ -1,9 +1,9 @@
 #include <iostream>
 #include <openssl/evp.h>
 #include <sodium.h>
-#include "cryptoCipher.hpp"
-#include "main.hpp"
 #include "encryptDecrypt.hpp"
+#include "cryptoCipher.hpp"
+#include "../main.hpp"
 
 /**
  * @brief encrypts a string using AES256 cipher in CBC mode.
