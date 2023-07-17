@@ -5,7 +5,7 @@
 #include <string>
 #include "encryptDecrypt.hpp"
 #include "cryptoCipher.hpp"
-#include "../strings.h"
+#include "../utils/strings.h"
 
 /**
  * @brief encrypts a string using AES256 cipher in CBC mode.

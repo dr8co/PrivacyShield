@@ -5,7 +5,7 @@
 #include <sodium.h>
 #include <thread>
 #include <gcrypt.h>
-#include "main.hpp"
+#include "../main.hpp"
 
 namespace fs = std::filesystem;
 

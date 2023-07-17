@@ -2,7 +2,7 @@
 #include <openssl/buffer.h>
 #include <readline/readline.h>
 #include <charconv>
-#include "main.hpp"
+#include "../main.hpp"
 
 /**
  * @brief Performs Base64 encoding of binary data into a string.
