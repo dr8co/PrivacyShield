@@ -2,9 +2,10 @@
 #include <openssl/evp.h>
 #include <gcrypt.h>
 #include <sodium.h>
+#include <string>
 #include "encryptDecrypt.hpp"
 #include "cryptoCipher.hpp"
-#include "../main.hpp"
+#include "../strings.h"
 
 /**
  * @brief encrypts a string using AES256 cipher in CBC mode.
@@ -154,7 +155,7 @@ std::string decryptString(const std::string &encodedCiphertext, const std::strin
 }
 
 std::string
-encryptFileHeavy(const std::string &plaintext, const std::string &password) {
+encryptStringHeavy(const std::string &plaintext, const std::string &password) {
     gcry_error_t err;   // error tracker
 
     // Set up the encryption context
@@ -192,7 +193,8 @@ encryptFileHeavy(const std::string &plaintext, const std::string &password) {
     // Set the IV in the encryption context
     err = gcry_cipher_setiv(cipherHandle, iv.data(), iv.size());
     if (err)
-        throw std::runtime_error("Failed to set encryption iv: " + std::string(gcry_strsource(err)) + ": " + gcry_strerror(err));
+        throw std::runtime_error(
+                "Failed to set the encryption IV: " + std::string(gcry_strsource(err)) + ": " + gcry_strerror(err));
 
     // Encrypt the plaintext
     std::vector<unsigned char> ciphertext(plaintext.size());
@@ -214,4 +216,67 @@ encryptFileHeavy(const std::string &plaintext, const std::string &password) {
 
     // Return Base64-encoded ciphertext
     return base64Encode(result);
+}
+
+std::string
+decryptStringHeavy(const std::string &encodedCiphertext, const std::string &password) {
+    // Fetch the cipher's IV size and key size
+    size_t ivSize = gcry_cipher_get_algo_blklen(GCRY_CIPHER_SERPENT256);
+    size_t keySize = gcry_cipher_get_algo_keylen(GCRY_CIPHER_SERPENT256);
+    if (keySize == 0)
+        keySize = 32;
+
+    std::vector<unsigned char> salt(SALT_SIZE);
+    std::vector<unsigned char> iv(ivSize);
+    std::vector<unsigned char> encryptedText;
+
+    // Base64 decode the encoded ciphertext
+    std::vector<unsigned char> ciphertext = base64Decode(encodedCiphertext);
+
+    if (ciphertext.size() > SALT_SIZE + ivSize) [[likely]] {
+        // Read the salt and IV from the ciphertext
+        salt.assign(ciphertext.begin(), ciphertext.begin() + SALT_SIZE);
+        iv.assign(ciphertext.begin() + SALT_SIZE, ciphertext.begin() + SALT_SIZE + static_cast<long>(ivSize));
+
+        encryptedText.assign(ciphertext.begin() + static_cast<long>(salt.size() + iv.size()), ciphertext.end());
+    } else
+        throw std::runtime_error("invalid ciphertext.");
+
+    // Derive the key and lock the memory
+    std::vector<unsigned char> key = deriveKey(password, salt, static_cast<int>(keySize));
+    sodium_mlock(key.data(), key.size());
+
+    // Set up the decryption context
+    gcry_error_t err;
+    gcry_cipher_hd_t cipherHandle;
+    err = gcry_cipher_open(&cipherHandle, GCRY_CIPHER_SERPENT256, GCRY_CIPHER_MODE_CTR, GCRY_CIPHER_SECURE);
+    if (err)
+        throw std::runtime_error("Failed to set up the decryption context: " + std::string(gcry_strerror(err)));
+
+    // Set the decryption key
+    err = gcry_cipher_setkey(cipherHandle, key.data(), key.size());
+    if (err)
+        throw std::runtime_error("Failed to set the decryption key: " + std::string(gcry_strerror(err)));
+
+    // Key is not needed anymore, zeroize it and unlock it
+    sodium_munlock(key.data(), key.size());
+
+    // Set the IV in the decryption context
+    err = gcry_cipher_setiv(cipherHandle, iv.data(), iv.size());
+    if (err)
+        throw std::runtime_error("Failed to set the decryption IV: " + std::string(gcry_strerror(err)));
+
+    // Decrypt the ciphertext
+    std::vector<unsigned char> plaintext(encryptedText.size());
+    err = gcry_cipher_decrypt(cipherHandle, plaintext.data(), plaintext.size(), encryptedText.data(),
+                              encryptedText.size());
+    if (err)
+        throw std::runtime_error("Failed to decrypt the ciphertext: " + std::string(gcry_strerror(err)));
+
+    // Clean up the decryption handle's resources
+    gcry_cipher_close(cipherHandle);
+
+    std::string decryptedText(reinterpret_cast<char *>(plaintext.data()));
+
+    return decryptedText;
 }
