@@ -9,6 +9,10 @@
 #include "cryptoCipher.hpp"
 #include "encryptDecrypt.hpp"
 
+// OpenSSL's library context and property query string
+OSSL_LIB_CTX *libContext = nullptr;
+const char *propertyQuery = nullptr;
+
 constexpr int MAX_KEY_SIZE = EVP_MAX_KEY_LENGTH;    // For bounds checking
 constexpr size_t CHUNK_SIZE = 4096;                 // Read files in chunks of 4kB
 constexpr unsigned int PBKDF2_ITERATIONS = 100'000; // Iterations for PBKDF2 key derivation
@@ -315,7 +319,7 @@ encryptFileHeavy(const std::string &inputFilePath, const std::string &outputFile
     // Set the IV in the encryption context
     err = gcry_cipher_setiv(cipherHandle, iv.data(), iv.size());
     if (err)
-        throw std::runtime_error("encryption set iv: " + std::string(gcry_strsource(err)) + ": " + gcry_strerror(err));
+        throw std::runtime_error("Failed to set the encryption IV: " + std::string(gcry_strerror(err)));
 
     // Write the salt and the IV to the output file
     outputFile.write(reinterpret_cast<const char *>(salt.data()), static_cast<std::streamsize>(salt.size()));
@@ -394,7 +398,7 @@ decryptFileHeavy(const std::string &inputFilePath, const std::string &outputFile
     // Set the IV in the decryption context
     err = gcry_cipher_setiv(cipherHandle, iv.data(), iv.size());
     if (err)
-        throw std::runtime_error("Failed to set the decryption iv: " + std::string(gcry_strerror(err)));
+        throw std::runtime_error("Failed to set the decryption IV: " + std::string(gcry_strerror(err)));
 
     // Decrypt the file in chunks
     std::vector<unsigned char> buffer(CHUNK_SIZE);
@@ -413,5 +417,4 @@ decryptFileHeavy(const std::string &inputFilePath, const std::string &outputFile
 
     // Clean up
     gcry_cipher_close(cipherHandle);
-
 }

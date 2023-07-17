@@ -16,19 +16,41 @@ public:
     CryptoCipher() = default;
 
     // Setters
+    /** setter for the cipher implementation */
+    void setCipher() {
+        CryptoCipher::cipher = EVP_CIPHER_fetch(CryptoCipher::libCtx, CryptoCipher::algo, CryptoCipher::propQuery);
+    }
 
-    void setCipher();  // setter for the cipher implementation
+    /** Overloaded setter for cipher implementation */
+    void setCipher(OSSL_LIB_CTX *libraryContext, const char *algorithm, const char *propertyQuery) {
+        setLibCtx(libraryContext);
+        setAlgo(algorithm);
+        setPropQuery(propertyQuery);
 
-    // Overloaded setter for cipher implementation
-    void setCipher(OSSL_LIB_CTX *libraryContext, const char *algorithm, const char *propertyQuery);
+        setCipher();
+    }
 
-    void setCtx();                                  // setter for the cipher context
-    void setLibCtx(OSSL_LIB_CTX *libContext);       // setter for the library context
-    void setAlgo(const char *algorithm);            // setter for the cipher algorithm
-    void setPropQuery(const char *propertyQuery);   // setter for the implementation property query
+    /** setter for the cipher context */
+    void setCtx() {
+        CryptoCipher::ctx = EVP_CIPHER_CTX_new();
+    }
+
+    /** setter for the library context */
+    void setLibCtx(OSSL_LIB_CTX *libContext) {
+        CryptoCipher::libCtx = libContext;
+    }
+
+    /** setter for the cipher algorithm */
+    void setAlgo(const char *algorithm) {
+        CryptoCipher::algo = algorithm;
+    }
+
+    /** setter for the implementation property query */
+    void setPropQuery(const char *propertyQuery) {
+        CryptoCipher::propQuery = propertyQuery;
+    }
 
     // Getters
-
     /** Getter for property query */
     [[maybe_unused]] [[nodiscard]] const char *getPropQuery() const {
         return propQuery;
@@ -68,33 +90,5 @@ private:
     const char *propQuery{nullptr}; // a string to filter cipher implementations
 
 };
-
-void CryptoCipher::setCtx() {
-    CryptoCipher::ctx = EVP_CIPHER_CTX_new();
-}
-
-void CryptoCipher::setCipher() {
-    CryptoCipher::cipher = EVP_CIPHER_fetch(CryptoCipher::libCtx, CryptoCipher::algo, CryptoCipher::propQuery);
-}
-
-void CryptoCipher::setCipher(OSSL_LIB_CTX *libraryContext, const char *algorithm, const char *propertyQuery) {
-    setLibCtx(libraryContext);
-    setAlgo(algorithm);
-    setPropQuery(propertyQuery);
-
-    setCipher();
-}
-
-void CryptoCipher::setLibCtx(OSSL_LIB_CTX *libContext) {
-    CryptoCipher::libCtx = libContext;
-}
-
-void CryptoCipher::setAlgo(const char *algorithm) {
-    CryptoCipher::algo = algorithm;
-}
-
-void CryptoCipher::setPropQuery(const char *propertyQuery) {
-    CryptoCipher::propQuery = propertyQuery;
-}
 
 #endif //CRYPTO_CIPHER_CLASS
