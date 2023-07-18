@@ -1,5 +1,9 @@
 #include <iostream>
 #include <fstream>
+#include <sys/stat.h>
+#include <system_error>
+#include <unistd.h>
+#include <cerrno>
 #include <thread>
 #include <vector>
 #include <unordered_map>
@@ -123,18 +127,63 @@ std::string calculateBlake2s(const std::string &filePath) {
  * @param files a vector to store the information from the files found in the directory.
  */
 void traverseDirectory(const std::string &directoryPath, std::vector<FileInfo> &files) {
-    for (const auto &entry: fs::recursive_directory_iterator(directoryPath)) {
-        // process only regular files
-        if (entry.is_regular_file()) [[likely]] {
-            FileInfo fileInfo;
+//    std::error_code ec;
+    for (const auto &entry: fs::recursive_directory_iterator(directoryPath,
+                                                             fs::directory_options::skip_permission_denied)) {
 
-            // Update the file details
-            fileInfo.path = entry.path().string();
-            fileInfo.hash = "";  // the hash will be calculated later
-            files.push_back(fileInfo);
+        auto hasAccess = [](const std::string &filename) {
+            struct stat fileInfo{};
+            if (stat(filename.c_str(), &fileInfo) != 0) {
+                // Failed to get file information
+                return false;
+            }
 
-        } else if (!entry.is_directory()) // Neither regular nor a directory
-            std::cout << "Not processing: " << entry << ". Not a regular file." << std::endl;
+            uid_t userId = geteuid();
+            if (userId == fileInfo.st_uid) {
+                // The current user is the file owner
+                return (fileInfo.st_mode & S_IRUSR) != 0;
+            } else if (getegid() == fileInfo.st_gid) {
+                // The current user belongs to the same group as the file
+                return (fileInfo.st_mode & S_IRGRP) != 0;
+            } else {
+                // The current user is not the owner or part of the group, check others' permissions
+                return (fileInfo.st_mode & S_IROTH) != 0;
+            }
+        };
+        // Make sure we can read the entry
+//        if (access(entry.path().c_str(), F_OK | R_OK) == 0) {     // For unix systems only. Uses real user ID
+
+//        if (static_cast<bool>((entry.status(ec).permissions() &   // platform-independent but does not directly provide
+//                                                                  // a built-in way to check file permissions based on the
+//                                                                  // current user's ownership
+//                               (fs::perms::owner_read | fs::perms::group_read | fs::perms::others_read)))) {
+        if (hasAccess(entry.path())) [[likely]] {
+
+            // process only regular files
+            if (entry.is_regular_file()) [[likely]] {
+                FileInfo fileInfo;
+
+                // Update the file details
+                fileInfo.path = entry.path().string();
+                fileInfo.hash = "";  // the hash will be calculated later
+                files.push_back(fileInfo);
+
+            } else if (!entry.is_directory()) // Neither regular nor a directory
+                std::cerr << "Skipping " << entry.path() << ": Not a regular file." << std::endl;
+
+        } else {
+            if (errno == EACCES) {
+                std::cerr << "Skipping " << entry.path() << ": Insufficient read permissions." << std::endl;
+            } else if (errno) {
+                std::perror(("Skipping \"" + entry.path().string() + "\"").c_str());
+            }
+        }
+        // Log the error encountered in fs::status() call, if any
+//        if (ec) {
+//            std::cerr << ec.message() << std::endl;
+//            ec.clear();
+//        }
+
     }
 }
 
