@@ -1,8 +1,10 @@
 #include <iomanip>
-#include <openssl/buffer.h>
-#include <readline/readline.h>
 #include <charconv>
-#include "../main.hpp"
+#include <vector>
+#include <readline/readline.h>
+#include <openssl/buffer.h>
+#include <openssl/evp.h>
+
 
 /**
  * @brief Performs Base64 encoding of binary data into a string.

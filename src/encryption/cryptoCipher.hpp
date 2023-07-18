@@ -18,7 +18,7 @@ public:
     // Setters
     /** setter for the cipher implementation */
     void setCipher() {
-        CryptoCipher::cipher = EVP_CIPHER_fetch(CryptoCipher::libCtx, CryptoCipher::algo, CryptoCipher::propQuery);
+        cipher = EVP_CIPHER_fetch(libCtx, algo, propQuery);
     }
 
     /** Overloaded setter for cipher implementation */
@@ -32,22 +32,22 @@ public:
 
     /** setter for the cipher context */
     void setCtx() {
-        CryptoCipher::ctx = EVP_CIPHER_CTX_new();
+        ctx = EVP_CIPHER_CTX_new();
     }
 
     /** setter for the library context */
     void setLibCtx(OSSL_LIB_CTX *libContext) {
-        CryptoCipher::libCtx = libContext;
+        libCtx = libContext;
     }
 
     /** setter for the cipher algorithm */
     void setAlgo(const char *algorithm) {
-        CryptoCipher::algo = algorithm;
+        algo = algorithm;
     }
 
     /** setter for the implementation property query */
     void setPropQuery(const char *propertyQuery) {
-        CryptoCipher::propQuery = propertyQuery;
+        propQuery = propertyQuery;
     }
 
     // Getters

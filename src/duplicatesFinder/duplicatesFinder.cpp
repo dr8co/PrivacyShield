@@ -1,11 +1,13 @@
 #include <iostream>
 #include <fstream>
+#include <thread>
+#include <vector>
 #include <unordered_map>
 #include <filesystem>
 #include <sodium.h>
-#include <thread>
 #include <gcrypt.h>
-#include "../main.hpp"
+#include "duplicatesFinder.hpp"
+#include "../utils/utils.hpp"
 
 namespace fs = std::filesystem;
 

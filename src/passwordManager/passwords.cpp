@@ -6,7 +6,8 @@
 #include <unistd.h>
 #include <sodium.h>
 #include <readline/readline.h>
-#include "../main.hpp"
+#include "../encryption/encryptDecrypt.hpp"
+#include "../utils/utils.hpp"
 
 namespace fs = std::filesystem;
 typedef std::string string;
