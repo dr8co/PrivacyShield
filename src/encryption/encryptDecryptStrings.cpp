@@ -109,7 +109,7 @@ std::string decryptString(const std::string &encodedCiphertext, const std::strin
     // Base64 decode the encoded ciphertext
     std::vector<unsigned char> ciphertext = base64Decode(encodedCiphertext);
 
-    if (ciphertext.size() > SALT_SIZE + ivSize) [[likely]] {
+    if (ciphertext.size() > (static_cast<size_t>(SALT_SIZE) + ivSize)) [[likely]] {
         // Read the salt and IV from the ciphertext
         salt.assign(ciphertext.begin(), ciphertext.begin() + SALT_SIZE);
         iv.assign(ciphertext.begin() + SALT_SIZE, ciphertext.begin() + SALT_SIZE + ivSize);

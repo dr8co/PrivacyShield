@@ -225,7 +225,7 @@ void decryptFile(const std::string &inputFile, const std::string &outputFile, co
     ivBytesRead = inFile.gcount();
 
     // Without valid salt and IV, decryption would fail
-    if (saltBytesRead < SALT_SIZE || ivBytesRead < ivSize)
+    if (saltBytesRead < SALT_SIZE || ivBytesRead < static_cast<size_t>(ivSize))
         throw std::length_error("Invalid ciphertext.");
 
     // Derive the decryption key

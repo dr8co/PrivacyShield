@@ -206,7 +206,7 @@ size_t findDuplicates(const std::string &directoryPath) {
     size_t start = 0;
 
     // Calculate the hashes in parallel
-    for (int i = 0; i < numThreads - 1; ++i) {
+    for (int i = 0; i < static_cast<int>(numThreads - 1); ++i) {
         threads.emplace_back(calculateHashes, std::ref(files), start, start + filesPerThread);
         start += filesPerThread;
     }
