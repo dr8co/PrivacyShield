@@ -1,6 +1,5 @@
 #include <iostream>
 #include <fstream>
-#include <sys/stat.h>
 #include <system_error>
 #include <unistd.h>
 #include <cerrno>
@@ -26,16 +25,25 @@ struct FileInfo {
 };
 
 /**
- * @brief Calculates the BLAKE2b hash of a file.
+ * @brief Calculates the BLAKE2 hash of a file.
+ * On 64-bit architectures, the 512-bit BLAKE2b hash is calculated,
+ * while the 256-bit BLAKE2s is calculated on 32-bit and other architectures.
+ * The reason is that BLAKE2s hash algorithm is optimized
+ * for 32-bit (and smaller) architectures.
+ *
  * @param filePath path to the file.
  * @return a string of the hash of the file.
  */
-std::string calculateBlake2b(const std::string &filePath) {
+std::string calculateBlake2Hash(const std::string &filePath) {
+    // TODO: Consider using BLAKE3, which is much faster than BLAKE2 and is highly parallelizable, and is (almost) as secure.
+
     std::ifstream file(filePath, std::ios::binary);
     if (!file)
         throw std::runtime_error("Failed to open: " + filePath + " for hashing.");
 
     std::vector<char> buffer(CHUNK_SIZE);
+
+#if __x86_64 or __x86_64__ or __amd64 or __amd64__ or _M_X64 or _M_AMD64 or __LP64__ // 64-bit system: use BLAKE2b
 
     crypto_generichash_blake2b_state state;
 
@@ -59,28 +67,13 @@ std::string calculateBlake2b(const std::string &filePath) {
         throw std::runtime_error("Failed to calculate Blake2b hash.");
 
     // Finalize the hash calculation
-    std::vector<unsigned char> hash(crypto_generichash_BYTES_MAX);
-    if (crypto_generichash_blake2b_final(&state, hash.data(), crypto_generichash_BYTES_MAX) != 0)
+    std::vector<unsigned char> digest(crypto_generichash_BYTES_MAX);
+    if (crypto_generichash_blake2b_final(&state, digest.data(), crypto_generichash_BYTES_MAX) != 0)
         throw std::runtime_error("Failed to finalize Blake2b hash calculation.");
 
-    // Since the hash is raw bytes, Base64-encode it for string handling
-    std::string blake2bHash(base64Encode(hash));
-
     file.close();
-    return blake2bHash;
-}
 
-/**
- * @brief Calculates the BLAKE2s hash of a file.
- * @param filePath path to the file.
- * @return a string of the hash of the file.
- */
-std::string calculateBlake2s(const std::string &filePath) {
-    std::ifstream file(filePath, std::ios::binary);
-    if (!file)
-        throw std::runtime_error("Failed to open: " + filePath + " for hashing.");
-
-    std::vector<char> buffer(CHUNK_SIZE);
+#else   // 32-bit (or snaller) system: use BLAKE2s
 
     gcry_error_t err;
     gcry_md_algos algo = GCRY_MD_BLAKE2S_256; // 256-bit Blake 2s hash algorithm
@@ -111,15 +104,17 @@ std::string calculateBlake2s(const std::string &filePath) {
 
     // Base64-encode the hash, so it can be easily handled as a string
     digest.assign(tmp, tmp + mdLength);
-    std::string hash(base64Encode(digest));
 
     // Release all the resources associated with the hash context
     gcry_md_close(handle);
 
-    return hash;
-}
+#endif
 
-// TODO: For 32-bit systems, use 256-bit BLAKE2s instead of the 512-bit BLAKE2b
+    // Since the hash is raw bytes, Base64-encode it for string handling
+    std::string blake2Hash(base64Encode(digest));
+
+    return blake2Hash;
+}
 
 /**
  * @brief recursively traverses a directory and collects file information.
@@ -131,33 +126,13 @@ void traverseDirectory(const std::string &directoryPath, std::vector<FileInfo> &
     for (const auto &entry: fs::recursive_directory_iterator(directoryPath,
                                                              fs::directory_options::skip_permission_denied)) {
 
-        auto hasAccess = [](const std::string &filename) {
-            struct stat fileInfo{};
-            if (stat(filename.c_str(), &fileInfo) != 0) {
-                // Failed to get file information
-                return false;
-            }
-
-            uid_t userId = geteuid();
-            if (userId == fileInfo.st_uid) {
-                // The current user is the file owner
-                return (fileInfo.st_mode & S_IRUSR) != 0;
-            } else if (getegid() == fileInfo.st_gid) {
-                // The current user belongs to the same group as the file
-                return (fileInfo.st_mode & S_IRGRP) != 0;
-            } else {
-                // The current user is not the owner or part of the group, check others' permissions
-                return (fileInfo.st_mode & S_IROTH) != 0;
-            }
-        };
         // Make sure we can read the entry
-//        if (access(entry.path().c_str(), F_OK | R_OK) == 0) {     // For unix systems only. Uses real user ID
+        if (access(entry.path().c_str(), F_OK | R_OK) == 0) [[likely]] {
 
 //        if (static_cast<bool>((entry.status(ec).permissions() &   // platform-independent but does not directly provide
 //                                                                  // a built-in way to check file permissions based on the
 //                                                                  // current user's ownership
 //                               (fs::perms::owner_read | fs::perms::group_read | fs::perms::others_read)))) {
-        if (hasAccess(entry.path())) [[likely]] {
 
             // process only regular files
             if (entry.is_regular_file()) [[likely]] {
@@ -199,7 +174,7 @@ void calculateHashes(std::vector<FileInfo> &files, size_t start, size_t end) {
         throw std::runtime_error("Invalid range.");
 
     for (size_t i = start; i < end; ++i) {
-        files[i].hash = calculateBlake2b(files[i].path);
+        files[i].hash = calculateBlake2Hash(files[i].path);
     }
 }
 
