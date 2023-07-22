@@ -73,7 +73,7 @@ std::string calculateBlake2Hash(const std::string &filePath) {
 
     file.close();
 
-#else   // 32-bit (or snaller) system: use BLAKE2s
+#else   // 32-bit (or smaller) system: use BLAKE2s
 
     gcry_error_t err;
     gcry_md_algos algo = GCRY_MD_BLAKE2S_256; // 256-bit Blake 2s hash algorithm
@@ -147,10 +147,15 @@ void traverseDirectory(const std::string &directoryPath, std::vector<FileInfo> &
                 std::cerr << "Skipping " << entry.path() << ": Not a regular file." << std::endl;
 
         } else {
-            if (errno == EACCES) {
-                std::cerr << "Skipping " << entry.path() << ": Insufficient read permissions." << std::endl;
-            } else if (errno) {
-                std::perror(("Skipping \"" + entry.path().string() + "\"").c_str());
+            switch (errno) {
+                case EACCES:
+                    std::cerr << "Skipping " << entry.path() << ": Insufficient read permissions." << std::endl;
+                    break;
+                case ENOENT:
+                    std::cerr << "Skipping " << entry.path() << ": Broken symbolic link." << std::endl;
+                    break;
+                default:
+                    std::perror(("Skipping \"" + entry.path().string() + "\"").c_str());
             }
         }
         // Log the error encountered in fs::status() call, if any
@@ -161,7 +166,6 @@ void traverseDirectory(const std::string &directoryPath, std::vector<FileInfo> &
 
     }
 }
-
 
 /**
  * @brief calculates hashes for a range of files.
@@ -193,7 +197,7 @@ size_t findDuplicates(const std::string &directoryPath) {
     traverseDirectory(directoryPath, files);
 
     // Number of threads to use
-    const unsigned int numThreads = std::thread::hardware_concurrency();
+    const unsigned int numThreads{std::thread::hardware_concurrency() ? std::thread::hardware_concurrency() : 8};
 
     // Divide files among threads
     std::vector<std::thread> threads;
