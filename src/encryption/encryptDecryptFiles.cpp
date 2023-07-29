@@ -34,7 +34,7 @@ std::vector<unsigned char> generateSalt(int saltSize) {
 }
 
 /**
- * @brief derives a symmetric key from a password and a salt.
+ * @brief Derives a key from a password and a salt.
  * @param password the password.
  * @param salt the salt.
  * @param keySize the size (length) of the key in bytes.
@@ -94,7 +94,7 @@ deriveKey(const std::string &password, const std::vector<unsigned char> &salt, c
 }
 
 /**
- * @brief encrypts a file using AES256 in CBC mode.
+ * @brief Encrypts a file using AES256 in CBC mode.
  * @param inputFile the file to be encrypted.
  * @param outputFile the file to store the encrypted content.
  * @param password the password used to encrypt the file.
@@ -180,7 +180,7 @@ void encryptFile(const std::string &inputFile, const std::string &outputFile, co
 }
 
 /**
- * @brief decrypts a file encrypted using AES256 in CBC mode.
+ * @brief Decrypts a file encrypted using AES256 in CBC mode.
  * @param inputFile the file to be decrypted.
  * @param outputFile the file to store the decrypted content.
  * @param password the password used to decrypt the file.
@@ -273,6 +273,12 @@ void decryptFile(const std::string &inputFile, const std::string &outputFile, co
     outFile.flush();
 }
 
+/**
+ * @brief Encrypts a file using 256-bit Serpent block cipher in CTR mode.
+ * @param inputFilePath the file to be encrypted.
+ * @param outputFilePath the file to save the ciphertext to.
+ * @param password the password used to encrypt the file.
+ */
 void
 encryptFileHeavy(const std::string &inputFilePath, const std::string &outputFilePath, const std::string &password) {
     // Ensure the files are readable/writable
@@ -346,6 +352,12 @@ encryptFileHeavy(const std::string &inputFilePath, const std::string &outputFile
     gcry_cipher_close(cipherHandle);
 }
 
+/**
+ * @brief Decrypts a file encrypted with 256-bit Serpent block cipher in CTR mode.
+ * @param inputFilePath the file to be decrypted.
+ * @param outputFilePath the file to store the decrypted content.
+ * @param password the password used to decrypt the file.
+ */
 void
 decryptFileHeavy(const std::string &inputFilePath, const std::string &outputFilePath, const std::string &password) {
     // Ensure the files are readable/writable

@@ -1,5 +1,6 @@
 #ifndef CRYPTO_CIPHER_CLASS
 #define CRYPTO_CIPHER_CLASS
+#pragma once
 
 #include <openssl/evp.h>
 
@@ -9,9 +10,6 @@
  */
 class CryptoCipher {
 public:
-
-    // TODO: proper copy and move constructors
-
     // Only one constructor without parameters to avoid potential mix-ups.
     CryptoCipher() = default;
 

@@ -8,7 +8,7 @@
 #include "../utils/utils.hpp"
 
 /**
- * @brief encrypts a string using AES256 cipher in CBC mode.
+ * @brief Encrypts a string using AES256 cipher in CBC mode.
  * @param plaintext the string to be encrypted.
  * @param password the string to be used to derive the encryption key.
  * @return Base64-encoded ciphertext (the encrypted data)
@@ -80,7 +80,7 @@ std::string encryptString(const std::string &plaintext, const std::string &passw
 }
 
 /**
- * @brief decrypts a string using AES256 cipher in CBC mode.
+ * @brief Decrypts a string using AES256 cipher in CBC mode.
  * @param encodedCiphertext Base64-encoded ciphertext to be decrypted.
  * @param password the string to be used to derive the decryption key.
  * @return the decrypted string (the plaintext)
@@ -154,6 +154,12 @@ std::string decryptString(const std::string &encodedCiphertext, const std::strin
     return decryptedText;
 }
 
+/**
+ * @brief Encrypts a string using 256-bit Serpent block cipher in CTR mode.
+ * @param plaintext the string to be encrypted.
+ * @param password the string to be used to derive the encryption key.
+ * @return Base64-encoded ciphertext (the encrypted data)
+ */
 std::string
 encryptStringHeavy(const std::string &plaintext, const std::string &password) {
     gcry_error_t err;   // error tracker
@@ -218,6 +224,12 @@ encryptStringHeavy(const std::string &plaintext, const std::string &password) {
     return base64Encode(result);
 }
 
+/**
+ * @brief Decrypts a string using the 256-bit Serpent block cipher in CBC mode.
+ * @param encodedCiphertext Base64-encoded ciphertext to be decrypted.
+ * @param password the string to be used to derive the decryption key.
+ * @return the decrypted string (the plaintext)
+ */
 std::string
 decryptStringHeavy(const std::string &encodedCiphertext, const std::string &password) {
     // Fetch the cipher's IV size and key size
