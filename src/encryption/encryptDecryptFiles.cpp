@@ -16,7 +16,7 @@ const char *propertyQuery = nullptr;
 constexpr int SALT_SIZE = 32;                       // Default salt length (256 bits)
 constexpr int KEY_SIZE_256 = 32;                    // Default key size (256 bits)
 constexpr int MAX_KEY_SIZE = EVP_MAX_KEY_LENGTH;    // For bounds checking
-constexpr size_t CHUNK_SIZE = 4096;                 // Read files in chunks of 4kB
+constexpr size_t CHUNK_SIZE = 4096;                 // Read files in chunks of 4 kB
 constexpr unsigned int PBKDF2_ITERATIONS = 100'000; // Iterations for PBKDF2 key derivation
 
 
@@ -126,7 +126,7 @@ void encryptFile(const std::string &inputFile, const std::string &outputFile, co
     const int ivSize = EVP_CIPHER_get_iv_length(cipher.getCipher());
     const int keySize = EVP_CIPHER_get_key_length(cipher.getCipher());
 
-    // Generate the salt and the initialization vector (IV)
+    // Generate the salt, and the initialization vector (IV)
     std::vector<unsigned char> salt = generateSalt(SALT_SIZE);
     std::vector<unsigned char> iv = generateSalt(ivSize);
 
@@ -298,7 +298,7 @@ encryptFileHeavy(const std::string &inputFilePath, const std::string &outputFile
     if (err)
         throw std::runtime_error(std::string(gcry_strsource(err)) + ": " + gcry_strerror(err));
 
-    // Check the key size and the IV size required by the cipher
+    // Check the key size, and the IV size required by the cipher
     size_t ivSize = gcry_cipher_get_algo_blklen(GCRY_CIPHER_SERPENT256);
     size_t keySize = gcry_cipher_get_algo_keylen(GCRY_CIPHER_SERPENT256);
 
@@ -329,7 +329,7 @@ encryptFileHeavy(const std::string &inputFilePath, const std::string &outputFile
     if (err)
         throw std::runtime_error("Failed to set the encryption IV: " + std::string(gcry_strerror(err)));
 
-    // Write the salt and the IV to the output file
+    // Write the salt, and the IV to the output file
     outputFile.write(reinterpret_cast<const char *>(salt.data()), static_cast<std::streamsize>(salt.size()));
     outputFile.write(reinterpret_cast<const char *>(iv.data()), static_cast<std::streamsize>(iv.size()));
 
@@ -379,7 +379,7 @@ decryptFileHeavy(const std::string &inputFilePath, const std::string &outputFile
     std::vector<unsigned char> iv(ivSize);
     size_t saltBytesRead, ivBytesRead;
 
-    // Read the salt and the IV from the input file
+    // Read the salt, and the IV from the input file
     inputFile.read(reinterpret_cast<char *>(salt.data()), static_cast<std::streamsize>(salt.size()));
     saltBytesRead = inputFile.gcount();
 

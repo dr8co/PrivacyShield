@@ -14,7 +14,7 @@
 
 namespace fs = std::filesystem;
 
-constexpr size_t CHUNK_SIZE = 4096;  // Read and process files in chunks of 4kB
+constexpr size_t CHUNK_SIZE = 4096;  // Read and process files in chunks of 4 kB
 
 /**
  * @brief Represents a file by its path (canonical) and hash.
@@ -51,7 +51,7 @@ std::string calculateBlake2Hash(const std::string &filePath) {
     if (crypto_generichash_blake2b_init(&state, nullptr, 0, crypto_generichash_BYTES_MAX) != 0)
         throw std::runtime_error("Failed to initialize Blake2b hashing.");
 
-    // Hash the file in chunks of 4kB
+    // Hash the file in chunks of 4 kB
     while (file.read(buffer.data(), CHUNK_SIZE)) {
         if (crypto_generichash_blake2b_update(&state,
                                               reinterpret_cast<const unsigned char *>(buffer.data()),
@@ -129,7 +129,7 @@ void traverseDirectory(const std::string &directoryPath, std::vector<FileInfo> &
         // Make sure we can read the entry
         if (access(entry.path().c_str(), F_OK | R_OK) == 0) [[likely]] {
 
-//        if (static_cast<bool>((entry.status(ec).permissions() &   // platform-independent but does not directly provide
+//        if (static_cast<bool>((entry.status(ec).permissions() &   // platform-independent but doesn't directly provide
 //                                                                  // a built-in way to check file permissions based on the
 //                                                                  // current user's ownership
 //                               (fs::perms::owner_read | fs::perms::group_read | fs::perms::others_read)))) {

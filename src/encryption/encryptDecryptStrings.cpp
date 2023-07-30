@@ -30,7 +30,7 @@ std::string encryptString(const std::string &plaintext, const std::string &passw
     const int ivSize = EVP_CIPHER_get_iv_length(cipher.getCipher());
     const int keySize = EVP_CIPHER_get_key_length(cipher.getCipher());
 
-    // Generate the salt and the initialization vector (IV)
+    // Generate the salt, and the initialization vector (IV)
     std::vector<unsigned char> salt = generateSalt(SALT_SIZE);
     std::vector<unsigned char> iv = generateSalt(ivSize);
 
@@ -118,7 +118,7 @@ std::string decryptString(const std::string &encodedCiphertext, const std::strin
     } else
         throw std::runtime_error("invalid ciphertext.");
 
-    // Derive the decryption key from the password and the salt
+    // Derive the decryption key from the password, and the salt
     std::vector<unsigned char> key = deriveKey(password, salt, keySize);
 
     // Secure the key from being swapped to the disk
@@ -170,7 +170,7 @@ encryptStringHeavy(const std::string &plaintext, const std::string &password) {
     if (err)
         throw std::runtime_error(std::string(gcry_strsource(err)) + ": " + gcry_strerror(err));
 
-    // Check the key size and the IV size required by the cipher
+    // Check the key size, and the IV size required by the cipher
     size_t ivSize = gcry_cipher_get_algo_blklen(GCRY_CIPHER_SERPENT256);
     size_t keySize = gcry_cipher_get_algo_keylen(GCRY_CIPHER_SERPENT256);
 
