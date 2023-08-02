@@ -6,6 +6,7 @@
 #include <openssl/core_names.h>
 #include <openssl/rand.h>
 #include <sodium/utils.h>
+#include <format>
 #include "cryptoCipher.hpp"
 #include "encryptDecrypt.hpp"
 
@@ -103,11 +104,11 @@ void encryptFile(const std::string &inputFile, const std::string &outputFile, co
     // Open both input and output files & throw errors
     std::ifstream inFile(inputFile, std::ios::binary);
     if (!inFile)
-        throw std::runtime_error("Failed to open " + inputFile + " for reading.");
+        throw std::runtime_error(std::format("Failed to open {} for reading.", inputFile));
 
     std::ofstream outFile(outputFile, std::ios::binary);
     if (!outFile)
-        throw std::runtime_error("Failed to open " + outputFile + " for writing.");
+        throw std::runtime_error(std::format("Failed to open {} for writing.", outputFile));
 
     // Initialize the cipher
     CryptoCipher cipher;
@@ -189,11 +190,11 @@ void decryptFile(const std::string &inputFile, const std::string &outputFile, co
     // Open both input and output files
     std::ifstream inFile(inputFile, std::ios::binary);
     if (!inFile)
-        throw std::runtime_error("Failed to open " + inputFile + " for reading.");
+        throw std::runtime_error(std::format("Failed to open {} for reading.", inputFile));
 
     std::ofstream outFile(outputFile, std::ios::binary);
     if (!outFile)
-        throw std::runtime_error("Failed to open " + outputFile + " for writing.");
+        throw std::runtime_error(std::format("Failed to open {} for writing.", outputFile));
 
     // Initialize the cipher
     CryptoCipher cipher;
@@ -284,11 +285,11 @@ encryptFileHeavy(const std::string &inputFilePath, const std::string &outputFile
     // Ensure the files are readable/writable
     std::ifstream inputFile(inputFilePath, std::ios::binary);
     if (!inputFile)
-        throw std::runtime_error("Failed to open " + inputFilePath + " for reading.");
+        throw std::runtime_error(std::format("Failed to open {} for reading.", inputFilePath));
 
     std::ofstream outputFile(outputFilePath, std::ios::binary);
     if (!outputFile)
-        throw std::runtime_error("Failed to open " + outputFilePath + " for writing.");
+        throw std::runtime_error(std::format("Failed to open {} for writing.", outputFilePath));
 
     gcry_error_t err;   // error tracker
 
@@ -296,7 +297,7 @@ encryptFileHeavy(const std::string &inputFilePath, const std::string &outputFile
     gcry_cipher_hd_t cipherHandle;
     err = gcry_cipher_open(&cipherHandle, GCRY_CIPHER_SERPENT256, GCRY_CIPHER_MODE_CTR, GCRY_CIPHER_SECURE);
     if (err)
-        throw std::runtime_error(std::string(gcry_strsource(err)) + ": " + gcry_strerror(err));
+        throw std::runtime_error(std::format("Failed to create the encryption cipher context: {}", gcry_strerror(err)));
 
     // Check the key size, and the IV size required by the cipher
     size_t ivSize = gcry_cipher_get_algo_blklen(GCRY_CIPHER_SERPENT256);
@@ -319,7 +320,7 @@ encryptFileHeavy(const std::string &inputFilePath, const std::string &outputFile
     // Set the key
     err = gcry_cipher_setkey(cipherHandle, key.data(), key.size());
     if (err)
-        throw std::runtime_error("Failed to set the encryption key: " + std::string(gcry_strerror(err)));
+        throw std::runtime_error(std::format("Failed to set the encryption key: {}", gcry_strerror(err)));
 
     // Zeroize the key, we don't need it anymore
     sodium_munlock(key.data(), key.size());
@@ -327,7 +328,7 @@ encryptFileHeavy(const std::string &inputFilePath, const std::string &outputFile
     // Set the IV in the encryption context
     err = gcry_cipher_setiv(cipherHandle, iv.data(), iv.size());
     if (err)
-        throw std::runtime_error("Failed to set the encryption IV: " + std::string(gcry_strerror(err)));
+        throw std::runtime_error(std::format("Failed to set the encryption IV: {}", gcry_strerror(err)));
 
     // Write the salt, and the IV to the output file
     outputFile.write(reinterpret_cast<const char *>(salt.data()), static_cast<std::streamsize>(salt.size()));
@@ -342,7 +343,7 @@ encryptFileHeavy(const std::string &inputFilePath, const std::string &outputFile
         // Encrypt the chunk
         err = gcry_cipher_encrypt(cipherHandle, buffer.data(), buffer.size(), nullptr, 0);
         if (err)
-            throw std::runtime_error("Failed to encrypt file: " + std::string(gcry_strerror(err)));
+            throw std::runtime_error(std::format("Failed to encrypt file: {}", gcry_strerror(err)));
 
         // Write the encrypted chunk to the output file
         outputFile.write(reinterpret_cast<const char *>(buffer.data()), bytesRead);
@@ -363,11 +364,11 @@ decryptFileHeavy(const std::string &inputFilePath, const std::string &outputFile
     // Ensure the files are readable/writable
     std::ifstream inputFile(inputFilePath, std::ios::binary);
     if (!inputFile)
-        throw std::runtime_error("Failed to open " + inputFilePath + " for reading.");
+        throw std::runtime_error(std::format("Failed to open {} for reading.", inputFilePath));
 
     std::ofstream outputFile(outputFilePath, std::ios::binary);
     if (!outputFile)
-        throw std::runtime_error("Failed to open " + outputFilePath + " for writing.");
+        throw std::runtime_error(std::format("Failed to open {} for writing.", outputFilePath));
 
     // Fetch the cipher's IV size and key size
     size_t ivSize = gcry_cipher_get_algo_blklen(GCRY_CIPHER_SERPENT256);
@@ -399,12 +400,12 @@ decryptFileHeavy(const std::string &inputFilePath, const std::string &outputFile
     gcry_cipher_hd_t cipherHandle;
     err = gcry_cipher_open(&cipherHandle, GCRY_CIPHER_SERPENT256, GCRY_CIPHER_MODE_CTR, GCRY_CIPHER_SECURE);
     if (err)
-        throw std::runtime_error("Failed to set up the decryption context: " + std::string(gcry_strerror(err)));
+        throw std::runtime_error(std::format("Failed to create the decryption cipher context: {}", gcry_strerror(err)));
 
     // Set the decryption key
     err = gcry_cipher_setkey(cipherHandle, key.data(), key.size());
     if (err)
-        throw std::runtime_error("Failed to set the decryption key: " + std::string(gcry_strerror(err)));
+        throw std::runtime_error(std::format("Failed to set the decryption key: {}", gcry_strerror(err)));
 
     // Key is not needed anymore, zeroize it and unlock it
     sodium_munlock(key.data(), key.size());
@@ -412,7 +413,7 @@ decryptFileHeavy(const std::string &inputFilePath, const std::string &outputFile
     // Set the IV in the decryption context
     err = gcry_cipher_setiv(cipherHandle, iv.data(), iv.size());
     if (err)
-        throw std::runtime_error("Failed to set the decryption IV: " + std::string(gcry_strerror(err)));
+        throw std::runtime_error(std::format("Failed to set the encryption IV: {}", gcry_strerror(err)));
 
     // Decrypt the file in chunks
     std::vector<unsigned char> buffer(CHUNK_SIZE);
@@ -423,7 +424,7 @@ decryptFileHeavy(const std::string &inputFilePath, const std::string &outputFile
         // Decrypt the chunk in place
         err = gcry_cipher_decrypt(cipherHandle, buffer.data(), buffer.size(), nullptr, 0);
         if (err)
-            throw std::runtime_error("Failed to decrypt the ciphertext: " + std::string(gcry_strerror(err)));
+            throw std::runtime_error(std::format("Failed to decrypt the ciphertext: {}", gcry_strerror(err)));
 
         // Write the decrypted chunk to the output file
         outputFile.write(reinterpret_cast<const char *>(buffer.data()), bytesRead);

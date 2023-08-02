@@ -3,6 +3,7 @@
 #include <gcrypt.h>
 #include <sodium.h>
 #include <string>
+#include <format>
 #include "encryptDecrypt.hpp"
 #include "cryptoCipher.hpp"
 #include "../utils/utils.hpp"
@@ -168,7 +169,7 @@ encryptStringHeavy(const std::string &plaintext, const std::string &password) {
     gcry_cipher_hd_t cipherHandle;
     err = gcry_cipher_open(&cipherHandle, GCRY_CIPHER_SERPENT256, GCRY_CIPHER_MODE_CTR, GCRY_CIPHER_SECURE);
     if (err)
-        throw std::runtime_error(std::string(gcry_strsource(err)) + ": " + gcry_strerror(err));
+        throw std::runtime_error(std::format("{}: {}", gcry_strsource(err), gcry_strerror(err)));
 
     // Check the key size, and the IV size required by the cipher
     size_t ivSize = gcry_cipher_get_algo_blklen(GCRY_CIPHER_SERPENT256);
@@ -191,7 +192,7 @@ encryptStringHeavy(const std::string &plaintext, const std::string &password) {
     // Set the key
     err = gcry_cipher_setkey(cipherHandle, key.data(), key.size());
     if (err)
-        throw std::runtime_error("Failed to set the encryption key: " + std::string(gcry_strerror(err)));
+        throw std::runtime_error(std::format("Failed to set the encryption key: {}", gcry_strerror(err)));
 
     // Zeroize the key, we don't need it anymore
     sodium_munlock(key.data(), key.size());
@@ -200,13 +201,13 @@ encryptStringHeavy(const std::string &plaintext, const std::string &password) {
     err = gcry_cipher_setiv(cipherHandle, iv.data(), iv.size());
     if (err)
         throw std::runtime_error(
-                "Failed to set the encryption IV: " + std::string(gcry_strsource(err)) + ": " + gcry_strerror(err));
+                std::format("Failed to set the encryption IV: {}: {}", gcry_strsource(err), gcry_strerror(err)));
 
     // Encrypt the plaintext
     std::vector<unsigned char> ciphertext(plaintext.size());
     err = gcry_cipher_encrypt(cipherHandle, ciphertext.data(), ciphertext.size(), plaintext.data(), plaintext.size());
     if (err)
-        throw std::runtime_error("Failed to encrypt data: " + std::string(gcry_strerror(err)));
+        throw std::runtime_error(std::format("Failed to encrypt data: {}", gcry_strerror(err)));
 
     // Clean up the resources associated with the encryption handle
     gcry_cipher_close(cipherHandle);
@@ -263,12 +264,12 @@ decryptStringHeavy(const std::string &encodedCiphertext, const std::string &pass
     gcry_cipher_hd_t cipherHandle;
     err = gcry_cipher_open(&cipherHandle, GCRY_CIPHER_SERPENT256, GCRY_CIPHER_MODE_CTR, GCRY_CIPHER_SECURE);
     if (err)
-        throw std::runtime_error("Failed to set up the decryption context: " + std::string(gcry_strerror(err)));
+        throw std::runtime_error(std::format("Failed to set up the decryption context: {}", gcry_strerror(err)));
 
     // Set the decryption key
     err = gcry_cipher_setkey(cipherHandle, key.data(), key.size());
     if (err)
-        throw std::runtime_error("Failed to set the decryption key: " + std::string(gcry_strerror(err)));
+        throw std::runtime_error(std::format("Failed to set the decryption key: {}", gcry_strerror(err)));
 
     // Key is not needed anymore, zeroize it and unlock it
     sodium_munlock(key.data(), key.size());
@@ -276,14 +277,15 @@ decryptStringHeavy(const std::string &encodedCiphertext, const std::string &pass
     // Set the IV in the decryption context
     err = gcry_cipher_setiv(cipherHandle, iv.data(), iv.size());
     if (err)
-        throw std::runtime_error("Failed to set the decryption IV: " + std::string(gcry_strerror(err)));
+        throw std::runtime_error(
+                std::format("Failed to set the decryption IV: {}: {}", gcry_strsource(err), gcry_strerror(err)));
 
     // Decrypt the ciphertext
     std::vector<unsigned char> plaintext(encryptedText.size());
     err = gcry_cipher_decrypt(cipherHandle, plaintext.data(), plaintext.size(), encryptedText.data(),
                               encryptedText.size());
     if (err)
-        throw std::runtime_error("Failed to decrypt the ciphertext: " + std::string(gcry_strerror(err)));
+        throw std::runtime_error(std::format("Failed to decrypt the ciphertext: {}", gcry_strerror(err)));
 
     // Clean up the decryption handle's resources
     gcry_cipher_close(cipherHandle);
