@@ -81,10 +81,10 @@ bool isPasswordStrong(const string &password) noexcept {
  * @return a random password.
  */
 string generatePassword(int length) {
-    // a password should not be too short, nor too long
+    // a password shouldn't be too short, nor too long
     if (length < 8)
         throw std::length_error("Password too short.");
-    if (length > 30)
+    if (length > 256)
         throw std::length_error("Password too long.");
 
     // generate from a set of printable ascii characters
@@ -289,9 +289,10 @@ void passwordManager() {
         } else if (choice == 4) {
             string site = getResponseStr("Enter the site to update: ");
 
-            auto it = std::find_if(passwords.begin(), passwords.end(), [&site](const auto &password) -> bool {
-                return password.first == site;
-            });
+            std::input_iterator auto it = std::ranges::find_if(passwords.begin(), passwords.end(),
+                                                               [&site](const auto &password) -> bool {
+                                                                   return password.first == site;
+                                                               });
 
             if (it != passwords.end()) {
                 string newPassword = getSensitiveInfo("Enter the new password: ");
@@ -311,9 +312,10 @@ void passwordManager() {
         } else if (choice == 5) {
             string site = getResponseStr("Enter the site to delete: ");
 
-            auto it = std::find_if(passwords.begin(), passwords.end(), [&site](const auto &password) -> bool {
-                return password.first == site;
-            });
+            std::input_iterator auto it = std::ranges::find_if(passwords.begin(), passwords.end(),
+                                                               [&site](const auto &password) -> bool {
+                                                                   return password.first == site;
+                                                               });
 
             if (it != passwords.end()) {
                 passwords.erase(it);
