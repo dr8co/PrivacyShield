@@ -101,13 +101,13 @@ deriveKey(const std::string &password, const std::vector<unsigned char> &salt, c
  */
 inline void checkFile(const std::string &file) {
     if (!std::filesystem::exists(file))
-        throw std::runtime_error(std::format("File {} does not exist.", file));
+        throw std::runtime_error(std::format("File '{}' does not exist.", file));
 
     if (std::filesystem::is_directory(file))
-        throw std::runtime_error(std::format("{} is a directory.", file));
+        throw std::runtime_error(std::format("'{}' is a directory.", file));
 
     if (!std::filesystem::is_regular_file(file))
-        throw std::runtime_error(std::format("{} is not a regular file.", file));
+        throw std::runtime_error(std::format("'{}' is not a regular file.", file));
 }
 
 /**
@@ -118,16 +118,16 @@ inline void checkFile(const std::string &file) {
 inline void checkFileOverwrite(const std::string &file) {
     if (std::filesystem::exists(file)) {
         if (std::filesystem::is_regular_file(file)) {
-            std::cout << "File " << file << " already exists. Overwrite? (y/n): ";
+            std::cout << "File '" << file << "' already exists. Overwrite? (y/n): ";
             char choice;
             std::cin >> choice;
             std::cin.ignore();
             if (choice != 'y' && choice != 'Y')
                 throw std::runtime_error("Operation aborted.");
         } else if (std::filesystem::is_directory(file))
-            throw std::runtime_error(std::format("{} is a directory.", file));
-        else throw std::runtime_error(std::format("{} is not a regular file.", file));
-    } else std::cout << "File " << file << " does not exist. Creating it..." << std::endl;
+            throw std::runtime_error(std::format("'{}' is a directory.", file));
+        else throw std::runtime_error(std::format("'{}' is not a regular file.", file));
+    } else std::cout << "File '" << file << "' does not exist. Creating it.." << std::endl;
 }
 
 /**
@@ -141,13 +141,13 @@ void encryptFile(const std::string &inputFile, const std::string &outputFile, co
     checkFile(inputFile);
     std::ifstream inFile(inputFile, std::ios::binary);
     if (!inFile)
-        throw std::runtime_error(std::format("Failed to open {} for reading.", inputFile));
+        throw std::runtime_error(std::format("Failed to open '{}' for reading.", inputFile));
 
     // Check if the output file exists and is a regular file, then open it for writing
     checkFileOverwrite(outputFile);
     std::ofstream outFile(outputFile, std::ios::binary);
     if (!outFile)
-        throw std::runtime_error(std::format("Failed to open {} for writing.", outputFile));
+        throw std::runtime_error(std::format("Failed to open '{}' for writing.", outputFile));
 
     // Initialize the cipher
     CryptoCipher cipher;
@@ -230,13 +230,13 @@ void decryptFile(const std::string &inputFile, const std::string &outputFile, co
     checkFile(inputFile);
     std::ifstream inFile(inputFile, std::ios::binary);
     if (!inFile)
-        throw std::runtime_error(std::format("Failed to open {} for reading.", inputFile));
+        throw std::runtime_error(std::format("Failed to open '{}' for reading.", inputFile));
 
     // Check if the output file exists and is a regular file, then open it for writing
     checkFileOverwrite(outputFile);
     std::ofstream outFile(outputFile, std::ios::binary);
     if (!outFile)
-        throw std::runtime_error(std::format("Failed to open {} for writing.", outputFile));
+        throw std::runtime_error(std::format("Failed to open '{}' for writing.", outputFile));
 
     // Initialize the cipher
     CryptoCipher cipher;
@@ -328,13 +328,13 @@ encryptFileHeavy(const std::string &inputFilePath, const std::string &outputFile
     checkFile(inputFilePath);
     std::ifstream inputFile(inputFilePath, std::ios::binary);
     if (!inputFile)
-        throw std::runtime_error(std::format("Failed to open {} for reading.", inputFilePath));
+        throw std::runtime_error(std::format("Failed to open '{}' for reading.", inputFilePath));
 
     // Check if the output file exists and is a regular file, then open it for writing
     checkFileOverwrite(outputFilePath);
     std::ofstream outputFile(outputFilePath, std::ios::binary);
     if (!outputFile)
-        throw std::runtime_error(std::format("Failed to open {} for writing.", outputFilePath));
+        throw std::runtime_error(std::format("Failed to open '{}' for writing.", outputFilePath));
 
     gcry_error_t err;   // error tracker
 
@@ -410,13 +410,13 @@ decryptFileHeavy(const std::string &inputFilePath, const std::string &outputFile
     checkFile(inputFilePath);
     std::ifstream inputFile(inputFilePath, std::ios::binary);
     if (!inputFile)
-        throw std::runtime_error(std::format("Failed to open {} for reading.", inputFilePath));
+        throw std::runtime_error(std::format("Failed to open '{}' for reading.", inputFilePath));
 
     // Check if the output file exists and is a regular file, then open it for writing
     checkFileOverwrite(outputFilePath);
     std::ofstream outputFile(outputFilePath, std::ios::binary);
     if (!outputFile)
-        throw std::runtime_error(std::format("Failed to open {} for writing.", outputFilePath));
+        throw std::runtime_error(std::format("Failed to open '{}' for writing.", outputFilePath));
 
     // Fetch the cipher's IV size and key size
     size_t ivSize = gcry_cipher_get_algo_blklen(GCRY_CIPHER_SERPENT256);

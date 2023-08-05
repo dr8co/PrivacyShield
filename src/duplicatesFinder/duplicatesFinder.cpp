@@ -9,6 +9,7 @@
 #include <filesystem>
 #include <sodium.h>
 #include <gcrypt.h>
+#include <format>
 #include "duplicatesFinder.hpp"
 #include "../utils/utils.hpp"
 
@@ -122,6 +123,16 @@ std::string calculateBlake2Hash(const std::string &filePath) {
  * @param files a vector to store the information from the files found in the directory.
  */
 void traverseDirectory(const std::string &directoryPath, std::vector<FileInfo> &files) {
+    // Check if the directory exists
+    if (!fs::exists(directoryPath))
+        throw std::runtime_error(std::format("Directory: '{}' does not exist.", directoryPath));
+    else if (!fs::is_directory(directoryPath))
+        throw std::runtime_error(std::format("'{}' is not a directory.", directoryPath));
+    else if (fs::is_empty(directoryPath)) {
+        std::cout << std::format("Directory: '{}' is empty.", directoryPath) << std::endl;
+        return;
+    }
+
 //    std::error_code ec;
     for (const auto &entry: fs::recursive_directory_iterator(directoryPath,
                                                              fs::directory_options::skip_permission_denied)) {
@@ -144,18 +155,19 @@ void traverseDirectory(const std::string &directoryPath, std::vector<FileInfo> &
                 files.push_back(fileInfo);
 
             } else if (!entry.is_directory()) // Neither regular nor a directory
-                std::cerr << "Skipping " << entry.path() << ": Not a regular file." << std::endl;
+                std::cerr << std::format("Skipping '{}': Not a regular file.", entry.path().string()) << std::endl;
 
         } else {
             switch (errno) {
                 case EACCES:
-                    std::cerr << "Skipping " << entry.path() << ": Insufficient read permissions." << std::endl;
+                    std::cerr << std::format("Skipping '{}': Insufficient read permissions.", entry.path().string())
+                              << std::endl;
                     break;
                 case ENOENT:
-                    std::cerr << "Skipping " << entry.path() << ": Broken symbolic link." << std::endl;
+                    std::cerr << std::format("Skipping '{}': File not found.", entry.path().string()) << std::endl;
                     break;
                 default:
-                    std::perror(("Skipping \"" + entry.path().string() + "\"").c_str());
+                    std::perror(std::format("Skipping \"{}\"", entry.path().string()).c_str());
             }
         }
         // Log the error encountered in fs::status() call, if any
@@ -195,13 +207,14 @@ size_t findDuplicates(const std::string &directoryPath) {
     // Collect file information
     std::vector<FileInfo> files;
     traverseDirectory(directoryPath, files);
+    size_t filesProcessed = files.size();
+    if (filesProcessed < 1) return 0;
 
     // Number of threads to use
     const unsigned int numThreads{std::thread::hardware_concurrency() ? std::thread::hardware_concurrency() : 8};
 
     // Divide files among threads
     std::vector<std::thread> threads;
-    size_t filesProcessed = files.size();
     size_t filesPerThread = filesProcessed / numThreads;
     size_t start = 0;
 
