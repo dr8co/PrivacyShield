@@ -164,16 +164,17 @@ std::string decryptString(const std::string &encodedCiphertext, const std::strin
 std::string
 encryptStringHeavy(const std::string &plaintext, const std::string &password) {
     gcry_error_t err;   // error tracker
+    auto algorithm = GCRY_CIPHER_SERPENT256;
 
     // Set up the encryption context
     gcry_cipher_hd_t cipherHandle;
-    err = gcry_cipher_open(&cipherHandle, GCRY_CIPHER_SERPENT256, GCRY_CIPHER_MODE_CTR, GCRY_CIPHER_SECURE);
+    err = gcry_cipher_open(&cipherHandle, algorithm, GCRY_CIPHER_MODE_CTR, GCRY_CIPHER_SECURE);
     if (err)
         throw std::runtime_error(std::format("{}: {}", gcry_strsource(err), gcry_strerror(err)));
 
     // Check the key size, and the IV size required by the cipher
-    size_t ivSize = gcry_cipher_get_algo_blklen(GCRY_CIPHER_SERPENT256);
-    size_t keySize = gcry_cipher_get_algo_keylen(GCRY_CIPHER_SERPENT256);
+    size_t ivSize = gcry_cipher_get_algo_blklen(algorithm);
+    size_t keySize = gcry_cipher_get_algo_keylen(algorithm);
 
     // Set key size to default (256 bits) if the previous call failed
     if (keySize == 0)
@@ -234,8 +235,12 @@ encryptStringHeavy(const std::string &plaintext, const std::string &password) {
 std::string
 decryptStringHeavy(const std::string &encodedCiphertext, const std::string &password) {
     // Fetch the cipher's IV size and key size
-    size_t ivSize = gcry_cipher_get_algo_blklen(GCRY_CIPHER_SERPENT256);
-    size_t keySize = gcry_cipher_get_algo_keylen(GCRY_CIPHER_SERPENT256);
+    auto algorithm = GCRY_CIPHER_SERPENT256;
+
+    size_t ivSize = gcry_cipher_get_algo_blklen(algorithm);
+    size_t keySize = gcry_cipher_get_algo_keylen(algorithm);
+
+    // Set key size to default (256 bits) if the previous call failed
     if (keySize == 0)
         keySize = 32;
 
@@ -243,10 +248,10 @@ decryptStringHeavy(const std::string &encodedCiphertext, const std::string &pass
     std::vector<unsigned char> iv(ivSize);
     std::vector<unsigned char> encryptedText;
 
-    // Base64 decode the encoded ciphertext
+    // Base64-decode the encoded ciphertext
     std::vector<unsigned char> ciphertext = base64Decode(encodedCiphertext);
 
-    if (ciphertext.size() > SALT_SIZE + ivSize) [[likely]] {
+    if (ciphertext.size() >= SALT_SIZE + ivSize) [[likely]] {
         // Read the salt and IV from the ciphertext
         salt.assign(ciphertext.begin(), ciphertext.begin() + SALT_SIZE);
         iv.assign(ciphertext.begin() + SALT_SIZE, ciphertext.begin() + SALT_SIZE + static_cast<long>(ivSize));
@@ -255,6 +260,8 @@ decryptStringHeavy(const std::string &encodedCiphertext, const std::string &pass
     } else
         throw std::runtime_error("invalid ciphertext.");
 
+    size_t encryptedTextSize = encryptedText.size();
+
     // Derive the key and lock the memory
     std::vector<unsigned char> key = deriveKey(password, salt, static_cast<int>(keySize));
     sodium_mlock(key.data(), key.size());
@@ -262,7 +269,7 @@ decryptStringHeavy(const std::string &encodedCiphertext, const std::string &pass
     // Set up the decryption context
     gcry_error_t err;
     gcry_cipher_hd_t cipherHandle;
-    err = gcry_cipher_open(&cipherHandle, GCRY_CIPHER_SERPENT256, GCRY_CIPHER_MODE_CTR, GCRY_CIPHER_SECURE);
+    err = gcry_cipher_open(&cipherHandle, algorithm, GCRY_CIPHER_MODE_CTR, GCRY_CIPHER_SECURE);
     if (err)
         throw std::runtime_error(std::format("Failed to set up the decryption context: {}", gcry_strerror(err)));
 
@@ -281,16 +288,15 @@ decryptStringHeavy(const std::string &encodedCiphertext, const std::string &pass
                 std::format("Failed to set the decryption IV: {}: {}", gcry_strsource(err), gcry_strerror(err)));
 
     // Decrypt the ciphertext
-    std::vector<unsigned char> plaintext(encryptedText.size());
+    std::vector<unsigned char> plaintext(encryptedTextSize);
     err = gcry_cipher_decrypt(cipherHandle, plaintext.data(), plaintext.size(), encryptedText.data(),
-                              encryptedText.size());
+                              encryptedTextSize);
     if (err)
         throw std::runtime_error(std::format("Failed to decrypt the ciphertext: {}", gcry_strerror(err)));
 
     // Clean up the decryption handle's resources
     gcry_cipher_close(cipherHandle);
 
-    std::string decryptedText(reinterpret_cast<char *>(plaintext.data()));
-
-    return decryptedText;
+    // Return the plaintext
+    return plaintext.empty() ? "" : std::string(reinterpret_cast<char *>(plaintext.data()), encryptedTextSize);
 }
