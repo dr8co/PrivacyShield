@@ -54,7 +54,10 @@ void overwriteConstantByte(std::ofstream &file, T byte, const auto &fileSize) {
  * @param numTimes the number of times to rename the file.
  */
 inline void renameFile(const std::string &filename, int numTimes = 1) {
-    constexpr int maxTries = 10;
+    constexpr int maxTries = 10;        // max number of trials to rename the file
+    constexpr int minNameLength = 3;    // min length of the random name
+    constexpr int maxNameLength = 16;   // max length of the random name
+
     // Check if the number of times is valid
     if (numTimes < 1) return;
     else if (numTimes > maxTries) numTimes = maxTries;
@@ -62,8 +65,11 @@ inline void renameFile(const std::string &filename, int numTimes = 1) {
     // Create a random device for generating secure random numbers
     std::random_device rd;
 
+    // Mersenne Twister engine seeded with rd
+    std::mt19937 gen(rd());
+
     // Distribution for the number of characters in the new name
-    std::uniform_int_distribution<int> numDist(3, 16);
+    std::uniform_int_distribution<int> numDist(minNameLength, maxNameLength);
 
     // Get the file extension using std::filesystem
     std::string fileExtension = fs::path(filename).extension().string();
@@ -78,9 +84,6 @@ inline void renameFile(const std::string &filename, int numTimes = 1) {
     // (Try to) rename the file numTimes times
     for (int i = 0; i < numTimes; ++i) {
         if (i >= maxTries) return; // Give up after 10 tries
-
-        // (Re)seed the Mersenne Twister engine in every iteration
-        std::mt19937 gen(rd());
 
         // Generate a random number of characters for the new name
         int numChars = numDist(gen);
