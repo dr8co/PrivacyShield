@@ -6,7 +6,7 @@
 #include <openssl/evp.h>
 #include <unistd.h>
 #include <iostream>
-#include <map>
+#include "utils.hpp"
 
 
 /**
@@ -141,7 +141,7 @@ int getResponseInt(const std::string &prompt) {
  * @param filename the path to the file.
  * @return true if the file is writable, else false.
  */
-inline bool isWritable(const std::string &filename) {
+bool isWritable(const std::string &filename) {
     return access(filename.c_str(), F_OK | W_OK) == 0;
 }
 
@@ -150,7 +150,7 @@ inline bool isWritable(const std::string &filename) {
  * @param filename the path to the file.
  * @return true if the file is readable, else false.
  */
-inline bool isReadable(const std::string &filename) {
+bool isReadable(const std::string &filename) {
     return access(filename.c_str(), F_OK | R_OK) == 0;
 }
 
@@ -158,7 +158,7 @@ inline bool isReadable(const std::string &filename) {
  * @brief handles file i/o errors during low-level file operations.
  * @param filename path to the file on which an error occurred.
  */
-inline void handleFileIoErrno(const std::string &filename) {
+void handleAccessError(const std::string &filename) {
     switch (errno) {
         case EACCES:        // Permission denied
             std::cerr << "Error: '" << filename << "': You do not have permission to access this file." << std::endl;
