@@ -5,6 +5,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include "shredFiles.hpp"
+#include "../utils/utils.hpp"
 
 namespace fs = std::filesystem;
 
@@ -23,6 +25,9 @@ void overwriteRandom(std::ofstream &file, const size_t fileSize, int nPasses = 1
     for (int i = 0; i < nPasses; ++i) {
         // (Re)seed the Mersenne Twister engine in every iteration
         std::mt19937_64 gen(rd());
+
+        // seek to the beginning of the file
+        file.seekp(0, std::ios::beg);
 
         // Overwrite the file with random data
         for (size_t pos = 0; pos < fileSize; ++pos) {
@@ -43,17 +48,20 @@ void overwriteRandom(std::ofstream &file, const size_t fileSize, int nPasses = 1
  */
 template<typename T>
 void overwriteConstantByte(std::ofstream &file, T byte, const auto &fileSize) {
+    // seek to the beginning of the file
+    file.seekp(0, std::ios::beg);
+
     for (std::streamoff pos = 0; pos < fileSize; ++pos) {
         file.write(reinterpret_cast<char *>(&byte), sizeof(T));
     }
 }
 
 /**
- * @brief renames a file to a random name.
+ * @brief renames a file to a random name before removing it.
  * @param filename the path to the file to be renamed.
  * @param numTimes the number of times to rename the file.
  */
-inline void renameFile(const std::string &filename, int numTimes = 1) {
+inline void renameAndRemove(const std::string &filename, int numTimes = 1) {
     constexpr int maxTries = 10;        // max number of trials to rename the file
     constexpr int minNameLength = 3;    // min length of the random name
     constexpr int maxNameLength = 16;   // max length of the random name
@@ -83,7 +91,8 @@ inline void renameFile(const std::string &filename, int numTimes = 1) {
 
     // (Try to) rename the file numTimes times
     for (int i = 0; i < numTimes; ++i) {
-        if (i >= maxTries) return; // Give up after 10 tries
+        if (i >= maxTries) break;   // Give up after 10 tries
+        fs::path tmpPath = path;    // Track renaming
 
         // Generate a random number of characters for the new name
         int numChars = numDist(gen);
@@ -97,7 +106,7 @@ inline void renameFile(const std::string &filename, int numTimes = 1) {
 
         // Rename the file if it doesn't exist to avoid overwriting existing files
         if (!fs::exists(path)) {
-            fs::rename(filename, path, ec);
+            fs::rename(tmpPath, path, ec);
             // Try again if there was an error
             if (ec) {
                 ++numTimes;
@@ -106,6 +115,9 @@ inline void renameFile(const std::string &filename, int numTimes = 1) {
 
         } else ++numTimes; // Try again, the file already exists
     }
+
+    fs::remove(path, ec);
+    if (ec) std::cerr << "Failed to delete " << filename << ": " << ec.message() << '\n';
 }
 
 /**
@@ -156,9 +168,7 @@ inline void wipeClusterTips(const std::string &fileName) {
             close(fileDescriptor);
             return;
         }
-
-        std::cout << "Cluster tip wiped successfully." << std::endl;
-    } else std::cout << "No cluster tip to wipe." << std::endl;
+    }
 
     close(fileDescriptor);
 }
@@ -170,7 +180,7 @@ inline void wipeClusterTips(const std::string &fileName) {
 void simpleShred(const std::string &filename, const int &nPasses = 3, bool wipeClusterTip = false) {
     std::ofstream file(filename, std::ios::binary | std::ios::in);
     if (!file)
-        throw std::runtime_error("Failed to open file: " + filename);
+        throw std::runtime_error("\nFailed to open file: " + filename);
 
     // Get the file size
     file.seekp(0, std::ios::end);
@@ -182,12 +192,9 @@ void simpleShred(const std::string &filename, const int &nPasses = 3, bool wipeC
 
     file.close();
     if (wipeClusterTip) wipeClusterTips(filename);
-    // Rename the file
-    renameFile(filename, 3);
-    // Delete the file
-    std::error_code ec;
-    fs::remove(filename, ec);
-    if (ec) std::cerr << "Failed to delete " << filename << ": " << ec.message() << '\n';
+
+    // Rename and remove the file
+    renameAndRemove(filename, 3);
 }
 
 /**
@@ -198,7 +205,7 @@ void simpleShred(const std::string &filename, const int &nPasses = 3, bool wipeC
 void dod5220Shred(const std::string &filename, const int &nPasses = 3, bool wipeClusterTip = false) {
     std::ofstream file(filename, std::ios::binary | std::ios::in);
     if (!file)
-        throw std::runtime_error("Failed to open file: " + filename);
+        throw std::runtime_error("\nFailed to open file: " + filename);
 
     // Get the file size
     file.seekp(0, std::ios::end);
@@ -226,14 +233,90 @@ void dod5220Shred(const std::string &filename, const int &nPasses = 3, bool wipe
         dod3Pass();
         overwriteRandom(file, fileSize);
         dod3Pass();
-    } else throw std::runtime_error("Invalid number of passes");
+    } else throw std::runtime_error("\nInvalid number of passes: " + std::to_string(nPasses));
 
     if (file.is_open()) file.close();
     if (wipeClusterTip) wipeClusterTips(filename);
 
-    renameFile(filename, 3);
-    // Delete the file
-    std::error_code ec;
-    fs::remove(filename, ec);
-    if (ec) std::cerr << "Failed to delete " << filename << ": " << ec.message() << '\n';
+    // Rename and remove the file
+    renameAndRemove(filename, 3);
+}
+
+/**
+ * @brief Represents the different shredding options.
+ */
+enum shredOptions {
+    Simple = 1,         // Simple overwrite
+    Dod5220 = 2,        // DoD 5220.22-M Standard algorithm
+    Dod5220_7 = 4,      // DoD 5220.22-M Standard algorithm with 7 passes
+    WipeClusterTips = 8 // Wipe the cluster tips
+};
+
+/**
+ * @brief shreds a file using the specified options
+ * @param filePath - the path to the file to be shred.
+ * @param options - the options to use when shredding the file.
+ * @return true if the file was shred successfully, false otherwise.
+ */
+bool shredFiles(const std::string &filePath, const unsigned int &options) {
+    // Check if the file exists and is a regular file.
+    if (!fs::exists(filePath)) {
+        std::cerr << "File does not exist: " << filePath << std::endl;
+        return false;
+    }// If the filepath is a directory, ask to shred all files in the directory and all subdirectories
+    else if (fs::is_directory(filePath)) {
+        if (fs::is_empty(filePath)) {
+            std::cout << "The path is an empty directory." << std::endl;
+            return true;
+        }
+
+        std::cout << "Shred all files in '" << filePath << "' and all subdirectories? (y/n): ";
+        char response;
+        std::cin >> response;
+        std::cin.ignore();
+        if (response == 'n' || response == 'N') [[likely]] return false;
+        else if (response != 'y' && response != 'Y') {
+            std::cerr << "Invalid response." << std::endl;
+            return false;
+        }
+        // Shred all files in the directory and all subdirectories
+        for (const auto &entry: fs::recursive_directory_iterator(filePath)) {
+            if (!fs::is_directory(entry)) {
+                std::cout << "Shredding " << entry.path() << "..";
+                try {
+                    std::cout
+                            << (shredFiles(entry.path(), options) ? "\tshredded successfully." : "\tshredding failed.")
+                            << std::endl;
+                } catch (std::runtime_error &err) {
+                    std::cerr << err.what() << std::endl;
+                    std::cout << "shredding failed." << std::endl;
+                }
+            }
+        }
+        return true;
+    } else if (!fs::is_regular_file(filePath)) {
+        std::cerr << "Not a regular file: " << filePath << std::endl;
+        std::cout << "Do you want to shred the file anyway? (y/n): ";
+
+        char response;
+        std::cin >> response;
+        std::cin.ignore();
+        if (response != 'y' && response != 'Y') return false;
+    }
+
+    // Check if the file is writable
+    if (!isWritable(filePath)) {
+        std::cerr << "\nInsufficient permissions to shred file: " << filePath << std::endl;
+        return false;
+    }
+    // shred the file according to the options
+    if (options & shredOptions::Simple)
+        simpleShred(filePath, 3, options & shredOptions::WipeClusterTips);
+    else if (options & shredOptions::Dod5220)
+        dod5220Shred(filePath, 3, options & shredOptions::WipeClusterTips);
+    else if (options & shredOptions::Dod5220_7)
+        dod5220Shred(filePath, 7, options & shredOptions::WipeClusterTips);
+    else throw std::runtime_error("Invalid shred options.");
+
+    return true;
 }
