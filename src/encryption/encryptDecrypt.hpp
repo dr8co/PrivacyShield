@@ -1,5 +1,4 @@
-#ifndef ENCRYPT_DECRYPT_HPP
-#define ENCRYPT_DECRYPT_HPP
+#pragma once
 
 #include <vector>
 #include <string>
@@ -32,6 +31,3 @@ std::string encryptStringHeavy(const std::string &plaintext, const std::string &
 std::string decryptString(const std::string &ciphertext, const std::string &password);
 
 std::string decryptStringHeavy(const std::string &ciphertext, const std::string &password);
-
-
-#endif // ENCRYPT_DECRYPT_HPP

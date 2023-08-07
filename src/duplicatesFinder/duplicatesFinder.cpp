@@ -10,12 +10,14 @@
 #include <sodium.h>
 #include <gcrypt.h>
 #include <format>
-#include "duplicatesFinder.hpp"
+#include <utility>
 #include "../utils/utils.hpp"
+#include "duplicatesFinder.hpp"
 
 namespace fs = std::filesystem;
 
 constexpr size_t CHUNK_SIZE = 4096;  // Read and process files in chunks of 4 kB
+
 
 /**
  * @brief Represents a file by its path (canonical) and hash.
@@ -37,6 +39,10 @@ struct FileInfo {
  */
 std::string calculateBlake2Hash(const std::string &filePath) {
     // TODO: Consider using BLAKE3, which is much faster than BLAKE2 and is highly parallelizable, and is (almost) as secure.
+
+    // The file must exist and be readable
+    if (!isReadable(filePath))
+        throw std::runtime_error("Insufficient permissions to read: " + filePath);
 
     std::ifstream file(filePath, std::ios::binary);
     if (!file)
@@ -123,7 +129,7 @@ std::string calculateBlake2Hash(const std::string &filePath) {
  * @param files a vector to store the information from the files found in the directory.
  */
 void traverseDirectory(const std::string &directoryPath, std::vector<FileInfo> &files) {
-    // Check if the directory exists
+    // Basic checks
     if (!fs::exists(directoryPath))
         throw std::runtime_error(std::format("Directory: '{}' does not exist.", directoryPath));
     else if (!fs::is_directory(directoryPath))
@@ -133,17 +139,10 @@ void traverseDirectory(const std::string &directoryPath, std::vector<FileInfo> &
         return;
     }
 
-//    std::error_code ec;
     for (const auto &entry: fs::recursive_directory_iterator(directoryPath,
                                                              fs::directory_options::skip_permission_denied)) {
-
         // Make sure we can read the entry
-        if (access(entry.path().c_str(), F_OK | R_OK) == 0) [[likely]] {
-
-//        if (static_cast<bool>((entry.status(ec).permissions() &   // platform-independent but doesn't directly provide
-//                                                                  // a built-in way to check file permissions based on the
-//                                                                  // current user's ownership
-//                               (fs::perms::owner_read | fs::perms::group_read | fs::perms::others_read)))) {
+        if (isReadable(entry.path())) [[likely]] {
 
             // process only regular files
             if (entry.is_regular_file()) [[likely]] {
@@ -157,25 +156,7 @@ void traverseDirectory(const std::string &directoryPath, std::vector<FileInfo> &
             } else if (!entry.is_directory()) // Neither regular nor a directory
                 std::cerr << std::format("Skipping '{}': Not a regular file.", entry.path().string()) << std::endl;
 
-        } else {
-            switch (errno) {
-                case EACCES:
-                    std::cerr << std::format("Skipping '{}': Insufficient read permissions.", entry.path().string())
-                              << std::endl;
-                    break;
-                case ENOENT:
-                    std::cerr << std::format("Skipping '{}': File not found.", entry.path().string()) << std::endl;
-                    break;
-                default:
-                    std::perror(std::format("Skipping \"{}\"", entry.path().string()).c_str());
-            }
-        }
-        // Log the error encountered in fs::status() call, if any
-//        if (ec) {
-//            std::cerr << ec.message() << std::endl;
-//            ec.clear();
-//        }
-
+        } else handleAccessError(entry.path().string());
     }
 }
 
@@ -186,9 +167,11 @@ void traverseDirectory(const std::string &directoryPath, std::vector<FileInfo> &
  * @param end the index where processing ends.
  */
 void calculateHashes(std::vector<FileInfo> &files, size_t start, size_t end) {
+    // Check if the range is valid
     if (start > end || end > files.size())
         throw std::runtime_error("Invalid range.");
 
+    // Calculate hashes for the files in the range
     for (size_t i = start; i < end; ++i) {
         files[i].hash = calculateBlake2Hash(files[i].path);
     }
@@ -200,9 +183,15 @@ void calculateHashes(std::vector<FileInfo> &files, size_t start, size_t end) {
  * @return True if duplicates are found, else False.
  */
 size_t findDuplicates(const std::string &directoryPath) {
-    if (sodium_init() == -1) {
+    // Check if the path exists and is a directory
+    if (!fs::exists(directoryPath))
+        throw std::runtime_error(std::format("Directory: '{}' does not exist.", directoryPath));
+    else if (!fs::is_directory(directoryPath))
+        throw std::runtime_error(std::format("'{}' is not a directory.", directoryPath));
+
+    // Initialize libsodium if not already initialized
+    if (sodium_init() == -1)
         throw std::runtime_error("Failed to initialize libsodium.");
-    }
 
     // Collect file information
     std::vector<FileInfo> files;
@@ -212,6 +201,8 @@ size_t findDuplicates(const std::string &directoryPath) {
 
     // Number of threads to use
     const unsigned int numThreads{std::thread::hardware_concurrency() ? std::thread::hardware_concurrency() : 8};
+//    if (std::cmp_greater(numThreads, filesProcessed)) numThreads = static_cast<unsigned int>(filesProcessed);
+
 
     // Divide files among threads
     std::vector<std::thread> threads;

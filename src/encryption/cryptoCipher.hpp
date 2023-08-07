@@ -1,5 +1,3 @@
-#ifndef CRYPTO_CIPHER_CLASS
-#define CRYPTO_CIPHER_CLASS
 #pragma once
 
 #include <openssl/evp.h>
@@ -88,5 +86,3 @@ private:
     const char *propQuery{nullptr}; // a string to filter cipher implementations
 
 };
-
-#endif //CRYPTO_CIPHER_CLASS
