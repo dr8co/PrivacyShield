@@ -1,16 +1,13 @@
 #include <iostream>
 #include <fstream>
 #include <system_error>
-#include <unistd.h>
-#include <cerrno>
 #include <thread>
 #include <vector>
 #include <unordered_map>
 #include <filesystem>
 #include <sodium.h>
-#include <gcrypt.h>
 #include <format>
-#include <utility>
+#include <gcrypt.h>
 #include "../utils/utils.hpp"
 #include "duplicatesFinder.hpp"
 
@@ -200,12 +197,11 @@ size_t findDuplicates(const std::string &directoryPath) {
     if (filesProcessed < 1) return 0;
 
     // Number of threads to use
-    const unsigned int numThreads{std::thread::hardware_concurrency() ? std::thread::hardware_concurrency() : 8};
-//    if (std::cmp_greater(numThreads, filesProcessed)) numThreads = static_cast<unsigned int>(filesProcessed);
+    const unsigned int numThreads{std::jthread::hardware_concurrency() ? std::jthread::hardware_concurrency() : 8};
 
 
     // Divide files among threads
-    std::vector<std::thread> threads;
+    std::vector<std::jthread> threads;
     size_t filesPerThread = filesProcessed / numThreads;
     size_t start = 0;
 
