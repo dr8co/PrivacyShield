@@ -8,13 +8,15 @@
 
 namespace fs = std::filesystem;
 
-#if _GNU_SOURCE
+#if _GNU_SOURCE  // Use secure_getenv() on Linux if available
 const char *homeDir = secure_getenv("HOME");
 #elif __APPLE__ or __unix or __unix__
 const char *homeDir = std::getenv("HOME");
 #endif
 
-
+/**
+ * @brief Represents different browsers in a system.
+ */
 enum Browser {
     Firefox = 1 << 0,
     Chrome = 1 << 1,
@@ -25,6 +27,11 @@ enum Browser {
 
 // TODO: Add support for snap-installed browsers on Linux
 
+/**
+ * @brief Detects browsers installed on the system.
+ * @param pathEnv The PATH environment variable.
+ * @return A bit mask of detected browsers.
+ */
 unsigned int detectBrowsers(const std::string &pathEnv) {
     unsigned int detectedBrowsers{0};
 
@@ -66,6 +73,10 @@ unsigned int detectBrowsers(const std::string &pathEnv) {
     return detectedBrowsers;
 }
 
+/**
+ * @brief Detects browsers installed on the system.
+ * @return A bit mask of detected browsers.
+ */
 unsigned int detectBrowsers() {
 #if _GNU_SOURCE
     const char *pathEnv = secure_getenv("PATH");
@@ -87,7 +98,12 @@ unsigned int detectBrowsers() {
 #endif
 }
 
-
+/**
+ * @brief handles errors during file operations.
+ * @param ec the error code associated with the error.
+ * @param context the context in which the error occurred.
+ * @param path the path of the file in which the error occurred.
+ */
 inline void handleFileError(std::error_code &ec, const std::string &context = "", const std::string &path = "") {
     if (ec) {
         std::cerr << std::format("Error {} {}: {}", context, path, ec.message()) << std::endl;
@@ -95,7 +111,10 @@ inline void handleFileError(std::error_code &ec, const std::string &context = ""
     }
 }
 
-// clear firefox tracks
+/**
+ * @brief Clears Firefox cookies and history.
+ * @return true if successful, false otherwise.
+ */
 bool clearFirefoxTracks() {
 #if __linux__ or __linux
     std::string profilePath = std::string(homeDir) + "/.mozilla/firefox";
@@ -186,7 +205,11 @@ bool clearFirefoxTracks() {
     return true;
 }
 
-// clear chromium tracks
+/**
+ * @brief Clears Chromium and Chrome cookies and history.
+ * @param configDir the Chromium or Chrome config directory.
+ * @return true if successful, false otherwise.
+ */
 bool clearChromiumTracks(const std::string &configDir) {
     std::string profilePath = std::string(homeDir) + configDir;
     if (!fs::exists(profilePath)) {
@@ -272,6 +295,11 @@ bool clearChromiumTracks(const std::string &configDir) {
     return true;
 }
 
+/**
+ * @brief Clears Opera cookies and history.
+ * @param profilePath the Opera profile directory.
+ * @return true if successful, false otherwise.
+ */
 bool clearOperaTracks(const std::string &profilePath) {
     bool ret{true};
 
@@ -310,6 +338,10 @@ bool clearOperaTracks(const std::string &profilePath) {
     return ret;
 }
 
+/**
+ * @brief Clears Opera cookies and history.
+ * @return true if successful, false otherwise.
+ */
 bool clearChromiumTracks() {
 #if __linux__ or __linux
     std::string configDir = "/.config/chromium";
@@ -323,6 +355,10 @@ bool clearChromiumTracks() {
 #endif
 }
 
+/**
+ * @brief Clears Google Chrome cookies and history.
+ * @return true if successful, false otherwise.
+ */
 bool clearChromeTracks() {
 #if __linux__ or __linux
     std::string configDir = "/.config/google-chrome";
@@ -336,7 +372,10 @@ bool clearChromeTracks() {
 #endif
 }
 
-// clear opera tracks
+/**
+ * @brief Clears Opera cookies and history.
+ * @return true if successful, false otherwise.
+ */
 bool clearOperaTracks() {
 #if __linux__ or __linux
     std::string profilePath = std::string(homeDir) + "/.config/opera";
@@ -350,7 +389,10 @@ bool clearOperaTracks() {
 #endif
 }
 
-// clear safari tracks
+/**
+ * @brief Clears Safari cookies and history.
+ * @return true if successful, false otherwise.
+ */
 bool clearSafariTracks() {
 #if __APPLE__
     std::string cookiesPath = std::string(homeDir) + "/Library/Cookies";
@@ -394,7 +436,11 @@ bool clearSafariTracks() {
 #endif
 }
 
-// main function for clearing tracks
+/**
+ * @brief Clears all tracks for the specified browsers.
+ * @param browsers the browsers to clear tracks for.
+ * @return true if successful, false otherwise.
+ */
 bool clearTracks(unsigned int browsers) {
     bool ret{true};
 
@@ -429,12 +475,16 @@ bool clearTracks(unsigned int browsers) {
         std::cout << (ret ? "Safari tracks cleared successfully." : "Failed to clear Safari tracks.") << std::endl;
 #else
         std::cerr << "\nSafari is only available on macOS." << std::endl;
+        ret = false;
 #endif
     }
 
     return ret;
 }
 
+/**
+ * @brief Clears all tracks for all supported browsers installed on the system.
+ */
 void clearPrivacyTracks() {
     unsigned int browsers = detectBrowsers();
     if (browsers == 0) {
