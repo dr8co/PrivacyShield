@@ -25,7 +25,20 @@ enum Browser {
     Safari = 1 << 4
 };
 
-// TODO: Add support for snap-installed browsers on Linux
+// TODO: Add support for snap/flatpak-installed browsers on Linux
+
+/**
+ * @brief handles errors during file operations.
+ * @param ec the error code associated with the error.
+ * @param context the context in which the error occurred.
+ * @param path the path of the file in which the error occurred.
+ */
+inline void handleFileError(std::error_code &ec, const std::string &context = "", const std::string &path = "") {
+    if (ec) {
+        std::cerr << std::format("Error {} {}: {}", context, path, ec.message()) << std::endl;
+        ec.clear();
+    }
+}
 
 /**
  * @brief Detects browsers installed on the system.
@@ -52,10 +65,19 @@ unsigned int detectBrowsers(const std::string &pathEnv) {
     paths.emplace_back(pathEnvStr);
 
     // Find the list of programs in each path
+    std::error_code ec;
     for (const std::string &path: paths) {
-
+        if (!fs::exists(path, ec)) {
+            handleFileError(ec, "reading", path);
+            continue;
+        }
         // Iterate over each entry in the directory and detect browsers
-        for (const auto &entry: fs::directory_iterator(path)) {
+        for (const auto &entry: fs::directory_iterator(path, fs::directory_options::skip_permission_denied |
+                                                             fs::directory_options::follow_directory_symlink, ec)) {
+            // Handle errors while reading the directory
+            handleFileError(ec, "reading", entry.path());
+
+            // Check for the existence of the browser executable
             if (!entry.is_directory() && entry.exists()) {
                 if (entry.path().filename() == "firefox")
                     detectedBrowsers |= Browser::Firefox;
@@ -76,6 +98,8 @@ unsigned int detectBrowsers(const std::string &pathEnv) {
 /**
  * @brief Detects browsers installed on the system.
  * @return A bit mask of detected browsers.
+ * @details This function uses the PATH environment variable to detect browsers.
+ * @note Only stable versions of browsers are detected.
  */
 unsigned int detectBrowsers() {
 #if _GNU_SOURCE
@@ -99,32 +123,12 @@ unsigned int detectBrowsers() {
 }
 
 /**
- * @brief handles errors during file operations.
- * @param ec the error code associated with the error.
- * @param context the context in which the error occurred.
- * @param path the path of the file in which the error occurred.
- */
-inline void handleFileError(std::error_code &ec, const std::string &context = "", const std::string &path = "") {
-    if (ec) {
-        std::cerr << std::format("Error {} {}: {}", context, path, ec.message()) << std::endl;
-        ec.clear();
-    }
-}
-
-/**
  * @brief Clears Firefox cookies and history.
+ * @param configDir The path to the Firefox config directory.
  * @return true if successful, false otherwise.
  */
-bool clearFirefoxTracks() {
-#if __linux__ or __linux
-    std::string profilePath = std::string(homeDir) + "/.mozilla/firefox";
-#elif __APPLE__
-    std::string profilePath = std::string(homeDir) + "/Library/Application Support/Firefox/Profiles";
-#else
-    std::cout << "This OS is not supported at the moment." << std::endl;
-    return false;
-#endif
-    if (!fs::exists(profilePath)) {
+bool clearFirefoxTracks(std::string &configDir) {
+    if (!fs::exists(configDir)) {
         std::cerr << "Firefox config directory not found." << std::endl;
         return false;
     }
@@ -133,9 +137,9 @@ bool clearFirefoxTracks() {
 
     // Find all default profiles
     std::vector<fs::path> defaultProfileDirs;
-    for (const auto &entry: fs::directory_iterator(profilePath, fs::directory_options::skip_permission_denied |
-                                                                fs::directory_options::follow_directory_symlink, ec)) {
-        handleFileError(ec, "reading", profilePath);
+    for (const auto &entry: fs::directory_iterator(configDir, fs::directory_options::skip_permission_denied |
+                                                              fs::directory_options::follow_directory_symlink, ec)) {
+        handleFileError(ec, "reading", configDir);
         if (entry.is_directory() && entry.path().filename().string().contains(".default"))
             defaultProfileDirs.emplace_back(entry.path());
     }
@@ -158,9 +162,9 @@ bool clearFirefoxTracks() {
 
     // Treat the other directories as profiles
     std::vector<fs::path> profileDirs;
-    for (const auto &entry: fs::directory_iterator(profilePath, fs::directory_options::skip_permission_denied |
-                                                                fs::directory_options::follow_directory_symlink, ec)) {
-        handleFileError(ec, "reading", profilePath);
+    for (const auto &entry: fs::directory_iterator(configDir, fs::directory_options::skip_permission_denied |
+                                                              fs::directory_options::follow_directory_symlink, ec)) {
+        handleFileError(ec, "reading", configDir);
         if (entry.is_directory() && !entry.path().filename().string().contains(".default") &&
             entry.path().filename().string() != "Crash Reports" && entry.path().filename().string() != "Pending Pings")
             profileDirs.emplace_back(entry.path());
@@ -437,9 +441,27 @@ bool clearSafariTracks() {
 }
 
 /**
+ * @brief Clears Firefox cookies and history.
+ * @return true if successful, false otherwise.
+ */
+bool clearFirefoxTracks(){
+#if __linux__ or __linux
+    std::string profilePath = std::string(homeDir) + "/.mozilla/firefox";
+    return clearFirefoxTracks(profilePath);
+#elif __APPLE__
+    std::string profilePath = std::string(homeDir) + "/Library/Application Support/Firefox";
+    return clearFirefoxTracks(profilePath);
+#else
+    std::cout << "This OS is not supported at the moment." << std::endl;
+    return false;
+#endif
+}
+
+/**
  * @brief Clears all tracks for the specified browsers.
  * @param browsers the browsers to clear tracks for.
  * @return true if successful, false otherwise.
+ * @note Only works for standard installations of the browsers.
  */
 bool clearTracks(unsigned int browsers) {
     bool ret{true};
@@ -484,6 +506,7 @@ bool clearTracks(unsigned int browsers) {
 
 /**
  * @brief Clears all tracks for all supported browsers installed on the system.
+ * @note Only works for standard installations of the browsers.
  */
 void clearPrivacyTracks() {
     unsigned int browsers = detectBrowsers();
