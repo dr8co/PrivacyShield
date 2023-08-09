@@ -18,16 +18,16 @@ deriveKey(const std::string &password, const std::vector<unsigned char> &salt, c
 
 void encryptFile(const std::string &inputFile, const std::string &outputFile, const std::string &password);
 
-void encryptFileHeavy(const std::string &inputFile, const std::string &outputFile, const std::string &password);
+void encryptFileWithMoreRounds(const std::string &inputFile, const std::string &outputFile, const std::string &password);
 
 void decryptFile(const std::string &inputFile, const std::string &outputFile, const std::string &password);
 
-void decryptFileHeavy(const std::string &inputFile, const std::string &outputFile, const std::string &password);
+void decryptFileWithMoreRounds(const std::string &inputFile, const std::string &outputFile, const std::string &password);
 
 std::string encryptString(const std::string &plaintext, const std::string &password);
 
-std::string encryptStringHeavy(const std::string &plaintext, const std::string &password);
+std::string encryptStringWithMoreRounds(const std::string &plaintext, const std::string &password);
 
 std::string decryptString(const std::string &ciphertext, const std::string &password);
 
-std::string decryptStringHeavy(const std::string &ciphertext, const std::string &password);
+std::string decryptStringWithMoreRounds(const std::string &ciphertext, const std::string &password);

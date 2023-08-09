@@ -23,7 +23,7 @@ constexpr unsigned int PBKDF2_ITERATIONS = 100'000; // Iterations for PBKDF2 key
 
 
 /**
- * @brief Generates a random salt/iv.
+ * @brief Generates a random salt/iv using a CSPRNG.
  * @param saltSize number of bytes of salt to generate.
  * @return the generated salt as a vector.
  */
@@ -41,6 +41,10 @@ std::vector<unsigned char> generateSalt(int saltSize) {
  * @param salt the salt.
  * @param keySize the size (length) of the key in bytes.
  * @return the generated key.
+ *
+ * @details Key derivation is done using the PBKDF2 algorithm.
+ * @details BLAKE2b512 is used as the hash function for PBKDF2
+ * and the number of iterations is set to 100,000.
  */
 std::vector<unsigned char>
 deriveKey(const std::string &password, const std::vector<unsigned char> &salt, const int &keySize) {
@@ -131,10 +135,15 @@ inline void checkFileOverwrite(const std::string &file) {
 }
 
 /**
- * @brief Encrypts a file using AES256 in CBC mode.
- * @param inputFile the file to be encrypted.
- * @param outputFile the file to store the encrypted content.
- * @param password the password used to encrypt the file.
+ * @brief Encrypts a file with a strong block cipher.
+ * @param inputFile The file to be encrypted.
+ * @param outputFile The file to store the encrypted content.
+ * @param password The password used to encrypt the file.
+ *
+ * @details Available ciphers: AES-256, Camellia-256, and Aria-256.
+ * @details Encryption mode: CBC.
+ * @details Key derivation function: PBKDF2 with BLAKE2b512 as the digest function (salted).
+ * @details The IV is generated randomly with a CSPRNG and prepended to the encrypted file.
  */
 void encryptFile(const std::string &inputFile, const std::string &outputFile, const std::string &password) {
     // Check if the input file exists and is a regular file, then open it for reading
@@ -220,10 +229,10 @@ void encryptFile(const std::string &inputFile, const std::string &outputFile, co
 }
 
 /**
- * @brief Decrypts a file encrypted using AES256 in CBC mode.
- * @param inputFile the file to be decrypted.
- * @param outputFile the file to store the decrypted content.
- * @param password the password used to decrypt the file.
+ * @brief Decrypts a file encrypted by encryptFile() function.
+ * @param inputFile The file to be decrypted.
+ * @param outputFile The file to store the decrypted content.
+ * @param password The password used to decrypt the file.
  */
 void decryptFile(const std::string &inputFile, const std::string &outputFile, const std::string &password) {
     // Check if the input file exists and is a regular file and open it for reading
@@ -317,13 +326,20 @@ void decryptFile(const std::string &inputFile, const std::string &outputFile, co
 }
 
 /**
- * @brief Encrypts a file using 256-bit Serpent block cipher in CTR mode.
+ * @brief Encrypts a file with ciphers that use more rounds.
  * @param inputFilePath the file to be encrypted.
  * @param outputFilePath the file to save the ciphertext to.
  * @param password the password used to encrypt the file.
+ *
+ * @details Available ciphers: Serpent-256 and Twofish-256.
+ * @details Encryption mode: Counter (CTR).
+ * @details The key is derived from the password and a randomly generated salt
+ * using PBKDF2 with BLAKE2b-512 as the hash function.
+ * @details The IV(nonce) is randomly generated and stored in the output file.
  */
 void
-encryptFileHeavy(const std::string &inputFilePath, const std::string &outputFilePath, const std::string &password) {
+encryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &outputFilePath,
+                          const std::string &password) {
     // Check if the input file exists and is a regular file and open it for reading
     checkFile(inputFilePath);
     std::ifstream inputFile(inputFilePath, std::ios::binary);
@@ -399,13 +415,14 @@ encryptFileHeavy(const std::string &inputFilePath, const std::string &outputFile
 }
 
 /**
- * @brief Decrypts a file encrypted with 256-bit Serpent block cipher in CTR mode.
- * @param inputFilePath the file to be decrypted.
- * @param outputFilePath the file to store the decrypted content.
- * @param password the password used to decrypt the file.
+ * @brief Decrypts a file encrypted by encryptFileWithMoreRounds() function.
+ * @param inputFilePath The file to be decrypted.
+ * @param outputFilePath The file to store the decrypted content.
+ * @param password The password used to decrypt the file.
  */
 void
-decryptFileHeavy(const std::string &inputFilePath, const std::string &outputFilePath, const std::string &password) {
+decryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &outputFilePath,
+                          const std::string &password) {
     // Check if the input file exists and is a regular file and open it for reading
     checkFile(inputFilePath);
     std::ifstream inputFile(inputFilePath, std::ios::binary);

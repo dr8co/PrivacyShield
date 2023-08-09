@@ -9,10 +9,15 @@
 #include "../utils/utils.hpp"
 
 /**
- * @brief Encrypts a string using AES256 cipher in CBC mode.
- * @param plaintext the string to be encrypted.
- * @param password the string to be used to derive the encryption key.
- * @return Base64-encoded ciphertext (the encrypted data)
+ * @brief Encrypts a string using symmetric unauthenticated encryption.
+ * @param plaintext The string to be encrypted.
+ * @param password The string to be used to derive the encryption key.
+ * @return Base64-encoded ciphertext (the encrypted data).
+ *
+ * @details Available ciphers: AES-256, Camellia-256, and Aria-256.
+ * @details Encryption mode: CBC.
+ * @details The key is derived from the password using PBKDF2 with 100,000 rounds (salted).
+ * @details The IV is generated randomly using a CSPRNG and prepended to the ciphertext.
  */
 std::string encryptString(const std::string &plaintext, const std::string &password) {
     CryptoCipher cipher;
@@ -81,10 +86,10 @@ std::string encryptString(const std::string &plaintext, const std::string &passw
 }
 
 /**
- * @brief Decrypts a string using AES256 cipher in CBC mode.
+ * @brief Decrypts a string encrypted with the encryptString() function.
  * @param encodedCiphertext Base64-encoded ciphertext to be decrypted.
- * @param password the string to be used to derive the decryption key.
- * @return the decrypted string (the plaintext)
+ * @param password The string to be used to derive the decryption key.
+ * @return The decrypted string (the plaintext).
  */
 std::string decryptString(const std::string &encodedCiphertext, const std::string &password) {
     CryptoCipher cipher;
@@ -156,13 +161,18 @@ std::string decryptString(const std::string &encodedCiphertext, const std::strin
 }
 
 /**
- * @brief Encrypts a string using 256-bit Serpent block cipher in CTR mode.
- * @param plaintext the string to be encrypted.
- * @param password the string to be used to derive the encryption key.
- * @return Base64-encoded ciphertext (the encrypted data)
+ * @brief Encrypts a string with ciphers with more rounds.
+ * @param plaintext The string to be encrypted.
+ * @param password The string to be used to derive the encryption key.
+ * @return Base64-encoded ciphertext (the encrypted data).
+ *
+ * @details Available ciphers: Serpent-256 and Twofish-256.
+ * @details Encryption mode: CTR.
+ * @details Key derivation function: PBKDF2 with 100,000 rounds.
+ * @details The IV(nonce) is generated randomly and prepended to the ciphertext.
  */
 std::string
-encryptStringHeavy(const std::string &plaintext, const std::string &password) {
+encryptStringWithMoreRounds(const std::string &plaintext, const std::string &password) {
     gcry_error_t err;   // error tracker
     auto algorithm = GCRY_CIPHER_SERPENT256;
 
@@ -227,13 +237,13 @@ encryptStringHeavy(const std::string &plaintext, const std::string &password) {
 }
 
 /**
- * @brief Decrypts a string using the 256-bit Serpent block cipher in CBC mode.
+ * @brief Decrypts a string encrypted by encryptStringWithMoreRounds() function.
  * @param encodedCiphertext Base64-encoded ciphertext to be decrypted.
- * @param password the string to be used to derive the decryption key.
- * @return the decrypted string (the plaintext)
+ * @param password The string to be used to derive the decryption key.
+ * @return The decrypted string (the plaintext).
  */
 std::string
-decryptStringHeavy(const std::string &encodedCiphertext, const std::string &password) {
+decryptStringWithMoreRounds(const std::string &encodedCiphertext, const std::string &password) {
     // Fetch the cipher's IV size and key size
     auto algorithm = GCRY_CIPHER_SERPENT256;
 
