@@ -217,3 +217,46 @@ std::uintmax_t getAvailableSpace(const std::string &path) noexcept {
     // or maybe just mine.
     return std::cmp_less(space.available, 0) || std::cmp_equal(space.available, UINTMAX_MAX) ? 0 : space.available;
 }
+
+/**
+ * @brief Copies a file's permissions to another, replacing if necessary.
+ * @param srcFile The source file.
+ * @param destFile The destination file.
+ * @return True if the operation is successful, else false.
+ *
+ * @note This function is only needed for the preservation of file permissions
+ * during encryption and decryption.
+ */
+bool copyFilePermissions(const std::string &srcFile, const std::string &destFile) {
+    std::error_code ec;
+    // Get the permissions of the input file
+    const auto permissions = fs::status(srcFile, ec).permissions();
+    if (ec) return false;
+
+    // Set the permissions to the output file
+    fs::permissions(destFile, permissions, fs::perm_options::replace, ec);
+    if (ec) return false;
+
+    return true;
+}
+
+/**
+ * @brief Adds write and write permissions to a file (like 'chmod ugo+rw' unix command).
+ * @param fileName The file whose permissions are to be modified.
+ * @return True if the operation succeeds, else false.
+ *
+ * @note This function is meant for the file shredder ONLY, which might
+ * need to modify a file's permissions (if and only if it has to) to successfully shred it.
+ * @note Outside the shredder, if the needed permissions are insufficient, a runtime
+ * error will be thrown and the user notified of the issue.
+ *
+ * @warning Modifying file permissions unnecessarily is a serious security risk,
+ * and this program doesn't take that for granted.
+ */
+bool addReadWritePermissions(const std::string &fileName) noexcept {
+    std::error_code ec;
+    fs::permissions(fileName, fs::perms::owner_read | fs::perms::owner_write | fs::perms::group_read |
+                              fs::perms::group_write | fs::perms::others_read | fs::perms::others_write,
+                    fs::perm_options::add, ec);
+    return !ec;
+}
