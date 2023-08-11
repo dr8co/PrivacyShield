@@ -7,6 +7,10 @@
 #include <unistd.h>
 #include <iostream>
 #include "utils.hpp"
+#include <filesystem>
+#include <utility>
+
+namespace fs = std::filesystem;
 
 
 /**
@@ -181,7 +185,35 @@ void handleAccessError(const std::string &filename) {
         case EROFS:         // Read-only file system
             std::cerr << "Error: '" << filename << "' is read-only." << std::endl;
             break;
-        default:
+        default:            // Success (most likely)
             return;
     }
+}
+
+/**
+ * @brief Checks the available space on disk.
+ * @param path The path to check.
+ * @return The available space in bytes.
+ *
+ * @warning This function does not throw, and returns 0 in case of an error.
+ * @note This function is meant to be used to detect possible errors
+ * early enough before file operations, and to warn the user to
+ * check their filesystem storage space when it seems insufficient.
+ */
+std::uintmax_t getAvailableSpace(const std::string &path) noexcept {
+    fs::path filePath(path);
+
+    std::error_code ec; // For ignoring errors to avoid throwing
+    fs::space_info space{};
+
+    // Find an existing component of the path
+    while ((!fs::exists(filePath, ec)) && filePath.has_parent_path())
+        filePath = filePath.parent_path();
+    if (ec) ec.clear();
+
+    space = fs::space(filePath, ec);
+
+    // -1 should be returned if an error occurs, but it wraps around std::uintmax_t on some systems,
+    // or maybe just mine.
+    return std::cmp_less(space.available, 0) || std::cmp_equal(space.available, UINTMAX_MAX) ? 0 : space.available;
 }
