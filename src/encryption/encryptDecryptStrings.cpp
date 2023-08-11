@@ -1,8 +1,5 @@
 #include <iostream>
-#include <openssl/evp.h>
-#include <gcrypt.h>
 #include <sodium.h>
-#include <string>
 #include <format>
 #include "encryptDecrypt.hpp"
 #include "cryptoCipher.hpp"
@@ -19,7 +16,7 @@
  * @details The key is derived from the password using PBKDF2 with 100,000 rounds (salted).
  * @details The IV is generated randomly using a CSPRNG and prepended to the ciphertext.
  */
-std::string encryptString(const std::string &plaintext, const std::string &password) {
+std::string encryptString(const std::string &plaintext, const std::string &password, const std::string& algo) {
     CryptoCipher cipher;
 
     // Create the cipher context
@@ -28,9 +25,9 @@ std::string encryptString(const std::string &plaintext, const std::string &passw
         throw std::runtime_error("Failed to create the cipher context.");
 
     // Fetch the cipher implementation
-    cipher.setCipher(libContext, "AES-256-CBC", propertyQuery);
+    cipher.setCipher(libContext, algo.c_str(), propertyQuery);
     if (cipher.getCipher() == nullptr)
-        throw std::runtime_error("Failed to fetch AES-256-CBC cipher.");
+        throw std::runtime_error(std::format("Failed to fetch {} cipher.", algo));
 
     // Fetch the sizes of the IV and the key for the cipher
     const int ivSize = EVP_CIPHER_get_iv_length(cipher.getCipher());
@@ -91,7 +88,7 @@ std::string encryptString(const std::string &plaintext, const std::string &passw
  * @param password The string to be used to derive the decryption key.
  * @return The decrypted string (the plaintext).
  */
-std::string decryptString(const std::string &encodedCiphertext, const std::string &password) {
+std::string decryptString(const std::string &encodedCiphertext, const std::string &password, const std::string& algo) {
     CryptoCipher cipher;
 
     // Create the cipher context
@@ -100,9 +97,9 @@ std::string decryptString(const std::string &encodedCiphertext, const std::strin
         throw std::runtime_error("Failed to create the cipher context.");
 
     // Fetch the cipher implementation
-    cipher.setCipher(libContext, "AES-256-CBC", propertyQuery);
+    cipher.setCipher(libContext, algo.c_str(), propertyQuery);
     if (cipher.getCipher() == nullptr)
-        throw std::runtime_error("Failed to fetch AES-256-CBC cipher.");
+        throw std::runtime_error(std::format("Failed to fetch {} cipher.", algo));
 
     // Fetch the sizes of IV and the key from the cipher
     const int ivSize = EVP_CIPHER_get_iv_length(cipher.getCipher());
@@ -172,9 +169,8 @@ std::string decryptString(const std::string &encodedCiphertext, const std::strin
  * @details The IV(nonce) is generated randomly and prepended to the ciphertext.
  */
 std::string
-encryptStringWithMoreRounds(const std::string &plaintext, const std::string &password) {
+encryptStringWithMoreRounds(const std::string &plaintext, const std::string &password, const gcry_cipher_algos &algorithm) {
     gcry_error_t err;   // error tracker
-    auto algorithm = GCRY_CIPHER_SERPENT256;
 
     // Set up the encryption context
     gcry_cipher_hd_t cipherHandle;
@@ -243,9 +239,8 @@ encryptStringWithMoreRounds(const std::string &plaintext, const std::string &pas
  * @return The decrypted string (the plaintext).
  */
 std::string
-decryptStringWithMoreRounds(const std::string &encodedCiphertext, const std::string &password) {
+decryptStringWithMoreRounds(const std::string &encodedCiphertext, const std::string &password, const gcry_cipher_algos &algorithm) {
     // Fetch the cipher's IV size and key size
-    auto algorithm = GCRY_CIPHER_SERPENT256;
 
     size_t ivSize = gcry_cipher_get_algo_blklen(algorithm);
     size_t keySize = gcry_cipher_get_algo_keylen(algorithm);

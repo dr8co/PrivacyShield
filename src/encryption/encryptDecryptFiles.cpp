@@ -1,7 +1,6 @@
 #include <iostream>
 #include <fstream>
 #include <memory>
-#include <gcrypt.h>
 #include <openssl/kdf.h>
 #include <openssl/core_names.h>
 #include <openssl/rand.h>
@@ -145,7 +144,8 @@ inline void checkFileOverwrite(const std::string &file) {
  * @details Key derivation function: PBKDF2 with BLAKE2b512 as the digest function (salted).
  * @details The IV is generated randomly with a CSPRNG and prepended to the encrypted file.
  */
-void encryptFile(const std::string &inputFile, const std::string &outputFile, const std::string &password) {
+void encryptFile(const std::string &inputFile, const std::string &outputFile, const std::string &password,
+                 const std::string &algo) {
     // Check if the input file exists and is a regular file, then open it for reading
     checkFile(inputFile);
     std::ifstream inFile(inputFile, std::ios::binary);
@@ -167,9 +167,9 @@ void encryptFile(const std::string &inputFile, const std::string &outputFile, co
         throw std::runtime_error("Failed to create the cipher context.");
 
     // Fetch the cipher implementation
-    cipher.setCipher(libContext, "AES-256-CBC", propertyQuery);
+    cipher.setCipher(libContext, algo.c_str(), propertyQuery);
     if (cipher.getCipher() == nullptr)
-        throw std::runtime_error("Failed to fetch AES-256-CBC cipher.");
+        throw std::runtime_error(std::format("Failed to fetch {} cipher.", algo));
 
     // Fetch the sizes of the IV and the key for the cipher
     const int ivSize = EVP_CIPHER_get_iv_length(cipher.getCipher());
@@ -234,7 +234,8 @@ void encryptFile(const std::string &inputFile, const std::string &outputFile, co
  * @param outputFile The file to store the decrypted content.
  * @param password The password used to decrypt the file.
  */
-void decryptFile(const std::string &inputFile, const std::string &outputFile, const std::string &password) {
+void decryptFile(const std::string &inputFile, const std::string &outputFile, const std::string &password,
+                 const std::string &algo) {
     // Check if the input file exists and is a regular file and open it for reading
     checkFile(inputFile);
     std::ifstream inFile(inputFile, std::ios::binary);
@@ -256,9 +257,9 @@ void decryptFile(const std::string &inputFile, const std::string &outputFile, co
         throw std::runtime_error("Failed to create the cipher context.");
 
     // Fetch the cipher implementation
-    cipher.setCipher(libContext, "AES-256-CBC", propertyQuery);
+    cipher.setCipher(libContext, algo.c_str(), propertyQuery);
     if (cipher.getCipher() == nullptr)
-        throw std::runtime_error("Failed to fetch AES-256-CBC cipher.");
+        throw std::runtime_error(std::format("Failed to fetch {} cipher.", algo));
 
     // Fetch the sizes of the IV and the key for the cipher
     const int ivSize = EVP_CIPHER_get_iv_length(cipher.getCipher());
@@ -339,7 +340,7 @@ void decryptFile(const std::string &inputFile, const std::string &outputFile, co
  */
 void
 encryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &outputFilePath,
-                          const std::string &password) {
+                          const std::string &password, const gcry_cipher_algos &algorithm) {
     // Check if the input file exists and is a regular file and open it for reading
     checkFile(inputFilePath);
     std::ifstream inputFile(inputFilePath, std::ios::binary);
@@ -356,13 +357,13 @@ encryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
 
     // Set up the encryption context
     gcry_cipher_hd_t cipherHandle;
-    err = gcry_cipher_open(&cipherHandle, GCRY_CIPHER_SERPENT256, GCRY_CIPHER_MODE_CTR, GCRY_CIPHER_SECURE);
+    err = gcry_cipher_open(&cipherHandle, algorithm, GCRY_CIPHER_MODE_CTR, GCRY_CIPHER_SECURE);
     if (err)
         throw std::runtime_error(std::format("Failed to create the encryption cipher context: {}", gcry_strerror(err)));
 
     // Check the key size, and the IV size required by the cipher
-    size_t ivSize = gcry_cipher_get_algo_blklen(GCRY_CIPHER_SERPENT256);
-    size_t keySize = gcry_cipher_get_algo_keylen(GCRY_CIPHER_SERPENT256);
+    size_t ivSize = gcry_cipher_get_algo_blklen(algorithm);
+    size_t keySize = gcry_cipher_get_algo_keylen(algorithm);
 
     // Set key size to default (256 bits) if the previous call failed
     if (keySize == 0)
@@ -422,7 +423,7 @@ encryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
  */
 void
 decryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &outputFilePath,
-                          const std::string &password) {
+                          const std::string &password, const gcry_cipher_algos &algorithm) {
     // Check if the input file exists and is a regular file and open it for reading
     checkFile(inputFilePath);
     std::ifstream inputFile(inputFilePath, std::ios::binary);
@@ -436,8 +437,8 @@ decryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
         throw std::runtime_error(std::format("Failed to open '{}' for writing.", outputFilePath));
 
     // Fetch the cipher's IV size and key size
-    size_t ivSize = gcry_cipher_get_algo_blklen(GCRY_CIPHER_SERPENT256);
-    size_t keySize = gcry_cipher_get_algo_keylen(GCRY_CIPHER_SERPENT256);
+    size_t ivSize = gcry_cipher_get_algo_blklen(algorithm);
+    size_t keySize = gcry_cipher_get_algo_keylen(algorithm);
     if (keySize == 0)
         keySize = 32;
 
@@ -463,7 +464,7 @@ decryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
     // Set up the decryption context
     gcry_error_t err;
     gcry_cipher_hd_t cipherHandle;
-    err = gcry_cipher_open(&cipherHandle, GCRY_CIPHER_SERPENT256, GCRY_CIPHER_MODE_CTR, GCRY_CIPHER_SECURE);
+    err = gcry_cipher_open(&cipherHandle, algorithm, GCRY_CIPHER_MODE_CTR, GCRY_CIPHER_SECURE);
     if (err)
         throw std::runtime_error(std::format("Failed to create the decryption cipher context: {}", gcry_strerror(err)));
 
