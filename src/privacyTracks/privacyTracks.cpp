@@ -17,12 +17,13 @@ const char *homeDir = std::getenv("HOME");
 /**
  * @brief Represents different browsers in a system.
  */
-enum Browser {
-    Firefox = 1 << 0,
-    Chrome = 1 << 1,
-    Chromium = 1 << 2,
-    Opera = 1 << 3,
-    Safari = 1 << 4
+enum class Browser : const
+unsigned int {
+        Firefox = 1 << 0,
+        Chrome = 1 << 1,
+        Chromium = 1 << 2,
+        Opera = 1 << 3,
+        Safari = 1 << 4
 };
 
 // TODO: Add support for snap/flatpak-installed browsers on Linux
@@ -80,15 +81,15 @@ unsigned int detectBrowsers(const std::string &pathEnv) {
             // Check for the existence of the browser executable
             if (!entry.is_directory() && entry.exists()) {
                 if (entry.path().filename() == "firefox")
-                    detectedBrowsers |= Browser::Firefox;
+                    detectedBrowsers |= static_cast<unsigned int>(Browser::Firefox);
                 else if (entry.path().filename() == "google-chrome")
-                    detectedBrowsers |= Browser::Chrome;
+                    detectedBrowsers |= static_cast<unsigned int>(Browser::Chrome);
                 else if (entry.path().filename() == "chromium-browser")
-                    detectedBrowsers |= Browser::Chromium;
+                    detectedBrowsers |= static_cast<unsigned int>(Browser::Chromium);
                 else if (entry.path().filename() == "opera")
-                    detectedBrowsers |= Browser::Opera;
+                    detectedBrowsers |= static_cast<unsigned int>(Browser::Opera);
                 else if (entry.path().filename() == "safari")
-                    detectedBrowsers |= Browser::Safari;
+                    detectedBrowsers |= static_cast<unsigned int>(Browser::Safari);
             }
         }
     }
@@ -444,7 +445,7 @@ bool clearSafariTracks() {
  * @brief Clears Firefox cookies and history.
  * @return true if successful, false otherwise.
  */
-bool clearFirefoxTracks(){
+bool clearFirefoxTracks() {
 #if __linux__ or __linux
     std::string profilePath = std::string(homeDir) + "/.mozilla/firefox";
     return clearFirefoxTracks(profilePath);
@@ -466,31 +467,31 @@ bool clearFirefoxTracks(){
 bool clearTracks(unsigned int browsers) {
     bool ret{true};
 
-    if (browsers & Browser::Firefox) {
+    if (browsers & static_cast<unsigned int>(Browser::Firefox)) {
         std::cout << "\nClearing Firefox tracks..." << std::endl;
         ret = clearFirefoxTracks();
         std::cout << (ret ? "Firefox tracks cleared successfully." : "Failed to clear Firefox tracks.") << std::endl;
     }
 
-    if (browsers & Browser::Chrome) {
+    if (browsers & static_cast<unsigned int>(Browser::Chrome)) {
         std::cout << "\nClearing Chrome tracks..." << std::endl;
         ret = clearChromeTracks();
         std::cout << (ret ? "Chrome tracks cleared successfully." : "Failed to clear Chrome tracks.") << std::endl;
     }
 
-    if (browsers & Browser::Chromium) {
+    if (browsers & static_cast<unsigned int>(Browser::Chromium)) {
         std::cout << "\nClearing Chromium tracks..." << std::endl;
         ret = clearChromiumTracks();
         std::cout << (ret ? "Chromium tracks cleared successfully." : "Failed to clear Chromium tracks.") << std::endl;
     }
 
-    if (browsers & Browser::Opera) {
+    if (browsers & static_cast<unsigned int>(Browser::Opera)) {
         std::cout << "\nClearing Opera tracks..." << std::endl;
         ret = clearOperaTracks();
         std::cout << (ret ? "Opera tracks cleared successfully." : "Failed to clear Opera tracks.") << std::endl;
     }
 
-    if (browsers & Browser::Safari) {
+    if (browsers & static_cast<unsigned int>(Browser::Safari)) {
 #if __APPLE__
         std::cout << "Clearing Safari tracks..." << std::endl;
         ret = clearSafariTracks();
@@ -515,19 +516,19 @@ void clearPrivacyTracks() {
         return;
     } else [[likely]] {
         std::cout << "Supported browsers found:" << std::endl;
-        if (browsers & Browser::Firefox)
+        if (browsers & static_cast<unsigned int>(Browser::Firefox))
             std::cout << "Firefox" << std::endl;
 
-        if (browsers & Browser::Chrome)
+        if (browsers & static_cast<unsigned int>(Browser::Chrome))
             std::cout << "Chrome" << std::endl;
 
-        if (browsers & Browser::Chromium)
+        if (browsers & static_cast<unsigned int>(Browser::Chromium))
             std::cout << "Chromium" << std::endl;
 
-        if (browsers & Browser::Opera)
+        if (browsers & static_cast<unsigned int>(Browser::Opera))
             std::cout << "Opera" << std::endl;
 
-        if (browsers & Browser::Safari)
+        if (browsers & static_cast<unsigned int>(Browser::Safari))
             std::cout << "Safari" << std::endl;
     }
     std::cout << (clearTracks(browsers) ? "\nAll tracks cleared successfully." : "\nFailed to clear all tracks.")
