@@ -241,9 +241,13 @@ bool copyFilePermissions(const std::string &srcFile, const std::string &destFile
 }
 
 /**
- * @brief Adds write and write permissions to a file (like 'chmod ugo+rw' unix command).
+ * @brief Adds write and write permissions to a file.
  * @param fileName The file whose permissions are to be modified.
  * @return True if the operation succeeds, else false.
+ *
+ * @details The actions of this function are similar to the unix command:
+ * @code chmod ugo+rw fileName @endcode or @code chmod a+rw fileName @endcode
+ * The read/write permissions are added for everyone.
  *
  * @note This function is meant for the file shredder ONLY, which might
  * need to modify a file's permissions (if and only if it has to) to successfully shred it.
