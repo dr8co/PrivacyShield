@@ -29,7 +29,7 @@ unsigned int {
 // TODO: Add support for snap/flatpak-installed browsers on Linux
 
 /**
- * @brief handles errors during file operations.
+ * @brief A convenience function for handling errors during file operations.
  * @param ec the error code associated with the error.
  * @param context the context in which the error occurred.
  * @param path the path of the file in which the error occurred.
@@ -79,16 +79,16 @@ unsigned int detectBrowsers(const std::string &pathEnv) {
             handleFileError(ec, "reading", entry.path());
 
             // Check for the existence of the browser executable
-            if (!entry.is_directory() && entry.exists()) {
-                if (entry.path().filename() == "firefox")
+            if (auto executable = entry.path().filename().string(); !entry.is_directory() && entry.exists()) {
+                if (executable == "firefox")
                     detectedBrowsers |= static_cast<unsigned int>(Browser::Firefox);
-                else if (entry.path().filename() == "google-chrome")
+                else if (executable == "google-chrome")
                     detectedBrowsers |= static_cast<unsigned int>(Browser::Chrome);
-                else if (entry.path().filename() == "chromium-browser")
+                else if (executable == "chromium-browser")
                     detectedBrowsers |= static_cast<unsigned int>(Browser::Chromium);
-                else if (entry.path().filename() == "opera")
+                else if (executable == "opera")
                     detectedBrowsers |= static_cast<unsigned int>(Browser::Opera);
-                else if (entry.path().filename() == "safari")
+                else if (executable == "safari")
                     detectedBrowsers |= static_cast<unsigned int>(Browser::Safari);
             }
         }
@@ -324,7 +324,7 @@ bool clearOperaTracks(const std::string &profilePath) {
         if (ec) {
             handleFileError(ec, "deleting", profilePath + "/cookies");
             ec.clear();
-            ret = false;  // we don't to return yet, we want to try to clear history too
+            ret = false;  // We don't to return yet, we want to try to clear history too
         }
     }
 
