@@ -112,7 +112,7 @@ std::string decryptString(const std::string &encodedCiphertext, const std::strin
     // Base64 decode the encoded ciphertext
     std::vector<unsigned char> ciphertext = base64Decode(encodedCiphertext);
 
-    if (ciphertext.size() > (static_cast<size_t>(SALT_SIZE) + ivSize)) [[likely]] {
+    if (ciphertext.size() > (static_cast<std::size_t>(SALT_SIZE) + ivSize)) [[likely]] {
         // Read the salt and IV from the ciphertext
         salt.assign(ciphertext.begin(), ciphertext.begin() + SALT_SIZE);
         iv.assign(ciphertext.begin() + SALT_SIZE, ciphertext.begin() + SALT_SIZE + ivSize);
@@ -179,8 +179,8 @@ encryptStringWithMoreRounds(const std::string &plaintext, const std::string &pas
         throw std::runtime_error(std::format("{}: {}", gcry_strsource(err), gcry_strerror(err)));
 
     // Check the key size, and the IV size required by the cipher
-    size_t ivSize = gcry_cipher_get_algo_blklen(algorithm);
-    size_t keySize = gcry_cipher_get_algo_keylen(algorithm);
+    std::size_t ivSize = gcry_cipher_get_algo_blklen(algorithm);
+    std::size_t keySize = gcry_cipher_get_algo_keylen(algorithm);
 
     // Set key size to default (256 bits) if the previous call failed
     if (keySize == 0)
@@ -242,8 +242,8 @@ std::string
 decryptStringWithMoreRounds(const std::string &encodedCiphertext, const std::string &password, const gcry_cipher_algos &algorithm) {
     // Fetch the cipher's IV size and key size
 
-    size_t ivSize = gcry_cipher_get_algo_blklen(algorithm);
-    size_t keySize = gcry_cipher_get_algo_keylen(algorithm);
+    std::size_t ivSize = gcry_cipher_get_algo_blklen(algorithm);
+    std::size_t keySize = gcry_cipher_get_algo_keylen(algorithm);
 
     // Set key size to default (256 bits) if the previous call failed
     if (keySize == 0)
@@ -265,7 +265,7 @@ decryptStringWithMoreRounds(const std::string &encodedCiphertext, const std::str
     } else
         throw std::runtime_error("invalid ciphertext.");
 
-    size_t encryptedTextSize = encryptedText.size();
+    std::size_t encryptedTextSize = encryptedText.size();
 
     // Derive the key and lock the memory
     std::vector<unsigned char> key = deriveKey(password, salt, static_cast<int>(keySize));

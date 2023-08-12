@@ -19,11 +19,11 @@ const char *homeDir = std::getenv("HOME");
  */
 enum class Browser : const
 unsigned int {
-        Firefox = 1 << 0,
-        Chrome = 1 << 1,
+        Firefox  = 1 << 0,
+        Chrome   = 1 << 1,
         Chromium = 1 << 2,
-        Opera = 1 << 3,
-        Safari = 1 << 4
+        Opera    = 1 << 3,
+        Safari   = 1 << 4
 };
 
 // TODO: Add support for snap/flatpak-installed browsers on Linux
@@ -58,7 +58,7 @@ unsigned int detectBrowsers(const std::string &pathEnv) {
     // Split the PATH variable into individual paths
     std::string pathEnvStr = pathEnv;
     std::vector<std::string> paths;
-    size_t pos;
+    std::size_t pos;
     while ((pos = pathEnvStr.find(':')) != std::string::npos) {
         paths.emplace_back(pathEnvStr.substr(0, pos));
         pathEnvStr.erase(0, pos + 1);

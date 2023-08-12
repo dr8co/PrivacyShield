@@ -99,7 +99,7 @@ std::string hexEncode(const std::vector<unsigned char> &data) {
 std::vector<unsigned char> hexDecode(const std::string &encodedData) {
     std::vector<unsigned char> decoded_data(encodedData.length() / 2);
 
-    for (size_t i = 0; i < encodedData.length(); i += 2) {
+    for (std::size_t i = 0; i < encodedData.length(); i += 2) {
         std::stringstream ss;
         ss << std::hex << encodedData.substr(i, 2);
         int byte_value;
@@ -141,18 +141,20 @@ int getResponseInt(const std::string &prompt) {
 }
 
 /**
- * @brief Checks if an existing file is writable.
+ * @brief Checks if an existing file grants write permissions
+ * to the current user.
  * @param filename the path to the file.
- * @return true if the file is writable, else false.
+ * @return true if the current user has write permissions, else false.
  */
 bool isWritable(const std::string &filename) {
     return access(filename.c_str(), F_OK | W_OK) == 0;
 }
 
 /**
- * @brief Checks if an existing file is readable.
+ * @brief Checks if an existing file grants read permissions
+ * to the current user.
  * @param filename the path to the file.
- * @return true if the file is readable, else false.
+ * @return true if the current user has read permissions, else false.
  */
 bool isReadable(const std::string &filename) {
     return access(filename.c_str(), F_OK | R_OK) == 0;
@@ -213,7 +215,7 @@ std::uintmax_t getAvailableSpace(const std::string &path) noexcept {
 
     space = fs::space(filePath, ec);
 
-    // -1 should be returned if an error occurs, but it wraps around std::uintmax_t on some systems,
+    // -1 should be returned if an error occurs, but it wraps on some systems,
     // or maybe just mine.
     return std::cmp_less(space.available, 0) || std::cmp_equal(space.available, UINTMAX_MAX) ? 0 : space.available;
 }
@@ -227,7 +229,7 @@ std::uintmax_t getAvailableSpace(const std::string &path) noexcept {
  * @note This function is only needed for the preservation of file permissions
  * during encryption and decryption.
  */
-bool copyFilePermissions(const std::string &srcFile, const std::string &destFile) {
+bool copyFilePermissions(const std::string &srcFile, const std::string &destFile) noexcept {
     std::error_code ec;
     // Get the permissions of the input file
     const auto permissions = fs::status(srcFile, ec).permissions();

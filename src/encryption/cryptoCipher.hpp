@@ -3,8 +3,7 @@
 #include <openssl/evp.h>
 
 /**
- * @brief A RAII (Resource Acquisition Is Initialization)
- * wrapper for OpenSSL cipher implementations and contexts.
+ * @brief A class wrapper for OpenSSL cipher implementations and contexts.
  */
 class CryptoCipher {
 public:

@@ -13,7 +13,7 @@
 
 namespace fs = std::filesystem;
 
-constexpr size_t CHUNK_SIZE = 4096;  // Read and process files in chunks of 4 kB
+constexpr std::size_t CHUNK_SIZE = 4096;  // Read and process files in chunks of 4 kB
 
 
 /**
@@ -64,7 +64,7 @@ std::string calculateBlake2Hash(const std::string &filePath) {
     }
 
     // Hash the last chunk of data
-    size_t remainingBytes = file.gcount();
+    std::size_t remainingBytes = file.gcount();
     if (crypto_generichash_blake2b_update(&state,
                                           reinterpret_cast<const unsigned char *>(buffer.data()),
                                           remainingBytes) != 0)
@@ -85,7 +85,7 @@ std::string calculateBlake2Hash(const std::string &filePath) {
     // Create the hash context handle
     gcry_md_hd_t handle;
 
-    size_t mdLength = gcry_md_get_algo_dlen(algo);
+    std::size_t mdLength = gcry_md_get_algo_dlen(algo);
 
     // Create a message digest object for the algorithm
     err = gcry_md_open(&handle, algo, 0);
@@ -97,7 +97,7 @@ std::string calculateBlake2Hash(const std::string &filePath) {
         gcry_md_write(handle, buffer.data(), CHUNK_SIZE);
     }
     // update the hash with the last chunk of data
-    size_t remainingBytes = file.gcount();
+    std::size_t remainingBytes = file.gcount();
     gcry_md_write(handle, buffer.data(), remainingBytes);
 
     file.close(); // We're done with the file
@@ -163,13 +163,13 @@ void traverseDirectory(const std::string &directoryPath, std::vector<FileInfo> &
  * @param start the index where processing starts.
  * @param end the index where processing ends.
  */
-void calculateHashes(std::vector<FileInfo> &files, size_t start, size_t end) {
+void calculateHashes(std::vector<FileInfo> &files, std::size_t start, std::size_t end) {
     // Check if the range is valid
     if (start > end || end > files.size())
         throw std::runtime_error("Invalid range.");
 
     // Calculate hashes for the files in the range
-    for (size_t i = start; i < end; ++i) {
+    for (std::size_t i = start; i < end; ++i) {
         files[i].hash = calculateBlake2Hash(files[i].path);
     }
 }
@@ -179,7 +179,7 @@ void calculateHashes(std::vector<FileInfo> &files, size_t start, size_t end) {
  * @param directoryPath - the directory to process.
  * @return True if duplicates are found, else False.
  */
-size_t findDuplicates(const std::string &directoryPath) {
+std::size_t findDuplicates(const std::string &directoryPath) {
     // Check if the path exists and is a directory
     if (!fs::exists(directoryPath))
         throw std::runtime_error(std::format("Directory: '{}' does not exist.", directoryPath));
@@ -193,7 +193,7 @@ size_t findDuplicates(const std::string &directoryPath) {
     // Collect file information
     std::vector<FileInfo> files;
     traverseDirectory(directoryPath, files);
-    size_t filesProcessed = files.size();
+    std::size_t filesProcessed = files.size();
     if (filesProcessed < 1) return 0;
 
     // Number of threads to use
@@ -202,8 +202,8 @@ size_t findDuplicates(const std::string &directoryPath) {
 
     // Divide files among threads
     std::vector<std::jthread> threads;
-    size_t filesPerThread = filesProcessed / numThreads;
-    size_t start = 0;
+    std::size_t filesPerThread = filesProcessed / numThreads;
+    std::size_t start = 0;
 
     // Calculate the hashes in parallel
     for (int i = 0; i < static_cast<int>(numThreads - 1); ++i) {
@@ -230,7 +230,7 @@ size_t findDuplicates(const std::string &directoryPath) {
         hashMap[hash].push_back(filePath);
     }
 
-    size_t duplicatesSet = 0, numDuplicates = 0;
+    std::size_t duplicatesSet = 0, numDuplicates = 0;
 
     // Display duplicate files
     std::cout << "Duplicates found:" << std::endl;

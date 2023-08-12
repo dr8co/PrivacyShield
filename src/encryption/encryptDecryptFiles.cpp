@@ -17,7 +17,7 @@ const char *propertyQuery = nullptr;
 constexpr int SALT_SIZE = 32;                       // Default salt length (256 bits)
 constexpr int KEY_SIZE_256 = 32;                    // Default key size (256 bits)
 constexpr int MAX_KEY_SIZE = EVP_MAX_KEY_LENGTH;    // For bounds checking
-constexpr size_t CHUNK_SIZE = 4096;                 // Read files in chunks of 4 kB
+constexpr std::size_t CHUNK_SIZE = 4096;            // Read/Write files in chunks of 4 kB
 constexpr unsigned int PBKDF2_ITERATIONS = 100'000; // Iterations for PBKDF2 key derivation
 
 
@@ -229,7 +229,7 @@ void decryptFile(const std::string &inputFile, const std::string &outputFile, co
     std::vector<unsigned char> salt(SALT_SIZE);
     std::vector<unsigned char> iv(ivSize);
 
-    size_t saltBytesRead, ivBytesRead;
+    std::size_t saltBytesRead, ivBytesRead;
 
     // Read the salt and IV from the input file
     inFile.read(reinterpret_cast<char *>(salt.data()), static_cast<std::streamsize>(salt.size()));
@@ -239,7 +239,7 @@ void decryptFile(const std::string &inputFile, const std::string &outputFile, co
     ivBytesRead = inFile.gcount();
 
     // Without valid salt and IV, decryption would fail
-    if (saltBytesRead < SALT_SIZE || ivBytesRead < static_cast<size_t>(ivSize))
+    if (saltBytesRead < SALT_SIZE || ivBytesRead < static_cast<std::size_t>(ivSize))
         throw std::length_error("Invalid ciphertext.");
 
     // Derive the decryption key
@@ -321,8 +321,8 @@ encryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
         throw std::runtime_error(std::format("Failed to create the encryption cipher context: {}", gcry_strerror(err)));
 
     // Check the key size, and the IV size required by the cipher
-    size_t ivSize = gcry_cipher_get_algo_blklen(algorithm);
-    size_t keySize = gcry_cipher_get_algo_keylen(algorithm);
+    std::size_t ivSize = gcry_cipher_get_algo_blklen(algorithm);
+    std::size_t keySize = gcry_cipher_get_algo_keylen(algorithm);
 
     // Set key size to default (256 bits) if the previous call failed
     if (keySize == 0)
@@ -394,14 +394,14 @@ decryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
         throw std::runtime_error(std::format("Failed to open '{}' for writing.", outputFilePath));
 
     // Fetch the cipher's IV size and key size
-    size_t ivSize = gcry_cipher_get_algo_blklen(algorithm);
-    size_t keySize = gcry_cipher_get_algo_keylen(algorithm);
+    std::size_t ivSize = gcry_cipher_get_algo_blklen(algorithm);
+    std::size_t keySize = gcry_cipher_get_algo_keylen(algorithm);
     if (keySize == 0)
         keySize = 32;
 
     std::vector<unsigned char> salt(SALT_SIZE);
     std::vector<unsigned char> iv(ivSize);
-    size_t saltBytesRead, ivBytesRead;
+    std::size_t saltBytesRead, ivBytesRead;
 
     // Read the salt, and the IV from the input file
     inputFile.read(reinterpret_cast<char *>(salt.data()), static_cast<std::streamsize>(salt.size()));

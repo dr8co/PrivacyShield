@@ -12,7 +12,9 @@ template<typename T>
  * @brief A concept describing a type convertible & comparable to uintmax_t.
  * @tparam T - An integral type.
  */
-concept Num = std::is_integral_v<T> && std::convertible_to<T, std::uintmax_t>;
+concept Num = std::is_integral_v<T> && std::convertible_to<T, std::uintmax_t> && requires(T t, std::uintmax_t u) {
+    std::cmp_equal(t, u);
+};
 
 /**
  * @brief A class to make file sizes more readable.
@@ -138,8 +140,8 @@ inline void checkFiles(const fs::path &inFile, fs::path &outFile, const int &mod
         }
     }
 
-    // Determine if the output file can be written/created
-    if (auto file = outFile.string(); !(isWritable(file) && isReadable(file)))
+    // Determine if the output file can be written if it exists
+    if (auto file = outFile.string(); fs::exists(outFile) && !(isWritable(file) && isReadable(file)))
         throw std::runtime_error(std::format("{} is not writable/readable.", file));
 
     // Check if there is enough space on the disk to save the output file.
@@ -162,7 +164,7 @@ inline void checkFiles(const fs::path &inFile, fs::path &outFile, const int &mod
 
 void fileEncryptionDecryption(const std::string &inputFileName, const std::string &outputFileName,
                               const std::string &password, unsigned int algo, int mode) {
-    // Mode must be valid: either encryption or decryption
+    // The mode must be valid: must be either encryption or decryption
     if (mode != static_cast<int>(OperationMode::Encryption) && mode != static_cast<int>(OperationMode::Decryption)) {
         std::cout << "Invalid mode of operation." << std::endl;
         return;
@@ -172,9 +174,10 @@ void fileEncryptionDecryption(const std::string &inputFileName, const std::strin
         const auto inputFilePath = fs::path(inputFileName);
         auto outputFilePath = fs::path(outputFileName);
 
-        // Check the files
+        // Perform the necessary checks on the files
         checkFiles(inputFilePath, outputFilePath, mode);
 
+        /** Encrypts/decrypts a file based on the passed mode and algorithm. */
         auto encryptDecrypt = [&](const std::string &algorithm) -> void {
             if (mode == static_cast<int>(OperationMode::Encryption))  // Encryption
                 encryptFile(inputFilePath.string(), outputFilePath.string(), password, algorithm);
@@ -182,6 +185,7 @@ void fileEncryptionDecryption(const std::string &inputFileName, const std::strin
                 decryptFile(inputFilePath.string(), outputFilePath.string(), password, algorithm);
         };
 
+        /** Encrypts/decrypts a file using a cipher with more rounds. */
         auto encryptDecryptMoreRounds = [&](const gcry_cipher_algos &algo) -> void {
             if (mode == static_cast<int>(OperationMode::Encryption))  // Encryption
                 encryptFileWithMoreRounds(inputFilePath.string(), outputFilePath.string(), password, algo);
@@ -206,7 +210,7 @@ void fileEncryptionDecryption(const std::string &inputFileName, const std::strin
         std::cout << std::format("{}cryption completed successfully. \n{}crypted file saved at '{}'.", pre, pre,
                                  outputFilePath.string()) << std::endl;
 
-        // Copy permissions
+        // Preserve file permissions
         if (!copyFilePermissions(inputFilePath.string(), outputFilePath.string()))
             std::cerr << "Check the permissions of the " << pre << "crypted file." << std::endl;
 

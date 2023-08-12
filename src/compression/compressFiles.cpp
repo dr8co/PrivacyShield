@@ -2,7 +2,6 @@
 #include <fstream>
 #include <vector>
 #include <bzlib.h>
-#include <chrono>
 
 constexpr int BufferSize = 8192;  // Read files in chunks of 8 KB
 

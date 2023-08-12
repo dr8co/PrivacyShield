@@ -16,21 +16,21 @@ namespace fs = std::filesystem;
  * @param fileSize the size of the file in bytes.
  * @param nPasses the number of passes to overwrite the file.
  */
-void overwriteRandom(std::ofstream &file, const size_t fileSize, int nPasses = 1) {
+void overwriteRandom(std::ofstream &file, const std::size_t fileSize, int nPasses = 1) {
 
     // Create a random device for generating secure random numbers
     std::random_device rd;
     std::uniform_int_distribution<uint8_t> dist(0, 255);
 
     for (int i = 0; i < nPasses; ++i) {
-        // (Re)seed the Mersenne Twister engine in every iteration
+        // (Re)seed the Mersenne Twister engine in every pass
         std::mt19937_64 gen(rd());
 
         // seek to the beginning of the file
         file.seekp(0, std::ios::beg);
 
         // Overwrite the file with random data
-        for (size_t pos = 0; pos < fileSize; ++pos) {
+        for (std::size_t pos = 0; pos < fileSize; ++pos) {
             uint8_t randomByte = dist(gen);
             file.write(reinterpret_cast<char *>(&randomByte), sizeof(uint8_t));
         }
@@ -84,7 +84,7 @@ inline void renameAndRemove(const std::string &filename, int numTimes = 1) {
 
     // Generate a random name using the safe characters (Not exhaustive)
     const std::string safeChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    std::uniform_int_distribution<size_t> dist(0, safeChars.size() - 1);
+    std::uniform_int_distribution<std::size_t> dist(0, safeChars.size() - 1);
 
     fs::path path(filename);
     std::error_code ec;
@@ -162,8 +162,8 @@ inline void wipeClusterTips(const std::string &fileName) {
         }
 
         std::vector<char> zeroBuffer(clusterTipSize, 0);
-        ssize_t bytesWritten = write(fileDescriptor, zeroBuffer.data(), zeroBuffer.size());
-        if (bytesWritten == -1) {
+        std::size_t bytesWritten = write(fileDescriptor, zeroBuffer.data(), zeroBuffer.size());
+        if (bytesWritten == static_cast<std::size_t>(-1)) {
             perror("Failed to write zeros:");
             close(fileDescriptor);
             return;
@@ -246,10 +246,10 @@ void dod5220Shred(const std::string &filename, const int &nPasses = 3, bool wipe
  * @brief Represents the different shredding options.
  */
 enum shredOptions {
-    Simple = 1,         // Simple overwrite
-    Dod5220 = 2,        // DoD 5220.22-M Standard algorithm
-    Dod5220_7 = 4,      // DoD 5220.22-M Standard algorithm with 7 passes
-    WipeClusterTips = 8 // Wipe the cluster tips
+    Simple          = 1 << 0,   // Simple overwrite
+    Dod5220         = 1 << 1,   // DoD 5220.22-M Standard algorithm
+    Dod5220_7       = 1 << 2,   // DoD 5220.22-M Standard algorithm with 7 passes
+    WipeClusterTips = 1 << 3    // Wipe the cluster tips
 };
 
 /**
