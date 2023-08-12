@@ -99,41 +99,6 @@ deriveKey(const std::string &password, const std::vector<unsigned char> &salt, c
 }
 
 /**
- * @brief Checks if a file exists and is a regular file.
- * @param file the file to check.
- */
-inline void checkFile(const std::string &file) {
-    if (!std::filesystem::exists(file))
-        throw std::runtime_error(std::format("File '{}' does not exist.", file));
-
-    if (std::filesystem::is_directory(file))
-        throw std::runtime_error(std::format("'{}' is a directory.", file));
-
-    if (!std::filesystem::is_regular_file(file))
-        throw std::runtime_error(std::format("'{}' is not a regular file.", file));
-}
-
-/**
- * @brief Checks if a file exists and is a regular file.
- * If it exists, asks the user if they want to overwrite it.
- * @param file the file to check.
- */
-inline void checkFileOverwrite(const std::string &file) {
-    if (std::filesystem::exists(file)) {
-        if (std::filesystem::is_regular_file(file)) {
-            std::cout << "File '" << file << "' already exists. Overwrite? (y/n): ";
-            char choice;
-            std::cin >> choice;
-            std::cin.ignore();
-            if (choice != 'y' && choice != 'Y')
-                throw std::runtime_error("Operation aborted.");
-        } else if (std::filesystem::is_directory(file))
-            throw std::runtime_error(std::format("'{}' is a directory.", file));
-        else throw std::runtime_error(std::format("'{}' is not a regular file.", file));
-    } else std::cout << "File '" << file << "' does not exist. Creating it.." << std::endl;
-}
-
-/**
  * @brief Encrypts a file with a strong block cipher.
  * @param inputFile The file to be encrypted.
  * @param outputFile The file to store the encrypted content.
@@ -146,14 +111,12 @@ inline void checkFileOverwrite(const std::string &file) {
  */
 void encryptFile(const std::string &inputFile, const std::string &outputFile, const std::string &password,
                  const std::string &algo) {
-    // Check if the input file exists and is a regular file, then open it for reading
-    checkFile(inputFile);
+    // Open the input file for reading
     std::ifstream inFile(inputFile, std::ios::binary);
     if (!inFile)
         throw std::runtime_error(std::format("Failed to open '{}' for reading.", inputFile));
 
-    // Check if the output file exists and is a regular file, then open it for writing
-    checkFileOverwrite(outputFile);
+    // Open the output file for writing
     std::ofstream outFile(outputFile, std::ios::binary);
     if (!outFile)
         throw std::runtime_error(std::format("Failed to open '{}' for writing.", outputFile));
@@ -236,14 +199,12 @@ void encryptFile(const std::string &inputFile, const std::string &outputFile, co
  */
 void decryptFile(const std::string &inputFile, const std::string &outputFile, const std::string &password,
                  const std::string &algo) {
-    // Check if the input file exists and is a regular file and open it for reading
-    checkFile(inputFile);
+    // Open the input file for reading
     std::ifstream inFile(inputFile, std::ios::binary);
     if (!inFile)
         throw std::runtime_error(std::format("Failed to open '{}' for reading.", inputFile));
 
-    // Check if the output file exists and is a regular file, then open it for writing
-    checkFileOverwrite(outputFile);
+    // Open the output file for writing
     std::ofstream outFile(outputFile, std::ios::binary);
     if (!outFile)
         throw std::runtime_error(std::format("Failed to open '{}' for writing.", outputFile));
@@ -341,14 +302,12 @@ void decryptFile(const std::string &inputFile, const std::string &outputFile, co
 void
 encryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &outputFilePath,
                           const std::string &password, const gcry_cipher_algos &algorithm) {
-    // Check if the input file exists and is a regular file and open it for reading
-    checkFile(inputFilePath);
+    // Open the input file for reading
     std::ifstream inputFile(inputFilePath, std::ios::binary);
     if (!inputFile)
         throw std::runtime_error(std::format("Failed to open '{}' for reading.", inputFilePath));
 
-    // Check if the output file exists and is a regular file, then open it for writing
-    checkFileOverwrite(outputFilePath);
+    // Open the output file for writing
     std::ofstream outputFile(outputFilePath, std::ios::binary);
     if (!outputFile)
         throw std::runtime_error(std::format("Failed to open '{}' for writing.", outputFilePath));
@@ -424,14 +383,12 @@ encryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
 void
 decryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &outputFilePath,
                           const std::string &password, const gcry_cipher_algos &algorithm) {
-    // Check if the input file exists and is a regular file and open it for reading
-    checkFile(inputFilePath);
+    // Open the input file for reading
     std::ifstream inputFile(inputFilePath, std::ios::binary);
     if (!inputFile)
         throw std::runtime_error(std::format("Failed to open '{}' for reading.", inputFilePath));
 
-    // Check if the output file exists and is a regular file, then open it for writing
-    checkFileOverwrite(outputFilePath);
+    // Open the input file for reading
     std::ofstream outputFile(outputFilePath, std::ios::binary);
     if (!outputFile)
         throw std::runtime_error(std::format("Failed to open '{}' for writing.", outputFilePath));
