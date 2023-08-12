@@ -7,20 +7,20 @@
 #include <format>
 #include <cmath>
 
-
 template<typename T>
 /**
- * @brief A concept describing a type convertible to uintmax_t.
+ * @brief A concept describing a type convertible & comparable to uintmax_t.
  * @tparam T - An integral type.
  */
 concept Num = std::is_integral_v<T> && std::convertible_to<T, std::uintmax_t>;
 
 /**
- * @brief A class
+ * @brief A class to make file sizes more readable.
  */
 class FormatFileSize {
 public:
     explicit FormatFileSize(const Num auto &size) {
+        // Default negative values to zero
         if (std::cmp_greater(size, this->size))
             this->size = static_cast<std::uintmax_t>(size);
     }
@@ -40,24 +40,33 @@ private:
 };
 
 /**
- * @brief Available encryption/decryption ciphers
+ * @brief Available encryption/decryption ciphers.
  */
 enum class Algorithms : const
 unsigned int {
-AES = 1 << 0,
+        AES      = 1 << 0,
         Camellia = 1 << 1,
-        Aria = 1 << 2,
-        Serpent = 1 << 3,
-        Twofish = 1 << 4
+        Aria     = 1 << 2,
+        Serpent  = 1 << 3,
+        Twofish  = 1 << 4
 };
 
 /**
- * @brief A structure to aid algorithm selection
+ * @brief Operation modes: encryption or decryption.
+ */
+enum class OperationMode : const
+int {
+        Encryption = 1,
+        Decryption = 2
+};
+
+/**
+ * @brief A structure to aid algorithm selection.
  */
 const struct {
-    const std::string AES = "AES-256-CBC";
+    const std::string AES      = "AES-256-CBC";
     const std::string Camellia = "CAMELLIA-256-CBC";
-    const std::string Aria = "ARIA-256-CBC";
+    const std::string Aria     = "ARIA-256-CBC";
     const gcry_cipher_algos Serpent = GCRY_CIPHER_SERPENT256;
     const gcry_cipher_algos Twofish = GCRY_CIPHER_TWOFISH;
 } AlgoSelection;
@@ -65,12 +74,13 @@ const struct {
 namespace fs = std::filesystem;
 
 // A function to perform the necessary checks before encrypting/decrypting a file
-inline void checkFiles(const fs::path &inFile, fs::path &outFile, const int &mode = 1) {
-    if (mode != 1 && mode != 2)
+inline void checkFiles(const fs::path &inFile, fs::path &outFile, const int &mode) {
+    // Just to be sure
+    if (mode != static_cast<int>(OperationMode::Encryption) && mode != static_cast<int>(OperationMode::Decryption))
         throw std::invalid_argument("Invalid mode of operation.");
     /** Check the input file **/
 
-    // Determine if the input file exists and is not a directory
+    // Ensure the input file exists and is not a directory
     if (!fs::exists(inFile))
         throw std::runtime_error(std::format("'{}' does not exist.", inFile.string()));
     if (fs::is_directory(inFile))
@@ -78,7 +88,7 @@ inline void checkFiles(const fs::path &inFile, fs::path &outFile, const int &mod
 
     // Check if the input file is a regular file and ask for confirmation if it is not
     if (!fs::is_regular_file(inFile)) {
-        if (mode == 1) { // Encryption
+        if (mode == static_cast<int>(OperationMode::Encryption)) { // Encryption
             std::cout << inFile.string() << " is not a regular file. \nDo you want to continue? (y/n): ";
             char answer;
             std::cin >> answer;
@@ -95,9 +105,9 @@ inline void checkFiles(const fs::path &inFile, fs::path &outFile, const int &mod
 
     /** Check the output file **/
 
-    // Determine if the output file is a directory, and if it is, append the input file name, input file extension, and ".enc" to it
+    // Determine if the output file is a directory, and give it an appropriate name if so
     if (fs::is_directory(outFile)) {
-        if (mode == 1) {
+        if (mode == static_cast<int>(OperationMode::Encryption)) {
             outFile /= inFile.filename();
             outFile += ".enc";
         } else if (inFile.extension() == ".enc") // Decryption: strip the '.enc' extension
@@ -114,31 +124,31 @@ inline void checkFiles(const fs::path &inFile, fs::path &outFile, const int &mod
         if (answer != 'y' && answer != 'Y')
             throw std::runtime_error("Operation aborted.");
     }
-        // Determine if the output file is empty, and use the input file name, input file extension, and ".enc" if it is
+        // If the output file is not specified, name it appropriately
     else if (outFile.string().empty()) {
         outFile = inFile;
         if (inFile.extension() == ".enc")
             outFile.replace_extension("");
-        else if (mode == 1)
+        else if (mode == static_cast<int>(OperationMode::Encryption))
             outFile += ".enc";
-        else if (mode == 2) {
+        else if (mode == static_cast<int>(OperationMode::Decryption)) {
             outFile.replace_extension("");
             outFile += "_decrypted";
             outFile += inFile.extension();
         }
     }
 
-    // Determine if the output file is writable
+    // Determine if the output file can be written/created
     if (auto file = outFile.string(); !(isWritable(file) && isReadable(file)))
         throw std::runtime_error(std::format("{} is not writable/readable.", file));
 
-    // Determine if there is enough space on the disk to save the encrypted file.
+    // Check if there is enough space on the disk to save the output file.
     const auto availableSpace = getAvailableSpace(outFile.string());
     const auto fileSize = fs::file_size(inFile);
     if (std::cmp_less(availableSpace, fileSize)) {
-        std::cout << "Not enough space on disk to save " << outFile.string() << std::endl;
-        std::cout << "Required:  " << FormatFileSize(fileSize) << std::endl;
-        std::cout << "Available: " << FormatFileSize(availableSpace) << std::endl;
+        std::cerr << "Not enough space on disk to save " << outFile.string() << std::endl;
+        std::cerr << "Required:  " << FormatFileSize(fileSize) << std::endl;
+        std::cerr << "Available: " << FormatFileSize(availableSpace) << std::endl;
 
         std::cout << "Do you want to continue? (y/n) ";
         char ans;
@@ -150,47 +160,58 @@ inline void checkFiles(const fs::path &inFile, fs::path &outFile, const int &mod
     }
 }
 
-void fileEncryption(const std::string &inputFileName, const std::string &outputFileName, const std::string &password,
-                    unsigned int algo) {
-    const auto inputFilePath = fs::path(inputFileName);
-    auto outputFilePath = fs::path(outputFileName);
-    int mode{1}; // Encryption mode
+void fileEncryptionDecryption(const std::string &inputFileName, const std::string &outputFileName,
+                              const std::string &password, unsigned int algo, int mode) {
+    // Mode must be valid: either encryption or decryption
+    if (mode != static_cast<int>(OperationMode::Encryption) && mode != static_cast<int>(OperationMode::Decryption)) {
+        std::cout << "Invalid mode of operation." << std::endl;
+        return;
+    }
 
-    // Check the file
-    checkFiles(inputFilePath, outputFilePath, mode);
+    try {
+        const auto inputFilePath = fs::path(inputFileName);
+        auto outputFilePath = fs::path(outputFileName);
 
-    if (algo & static_cast<unsigned int>(Algorithms::AES))
-        encryptFile(inputFilePath.string(), outputFilePath.string(), password, AlgoSelection.AES);
-    else if (algo & static_cast<unsigned int>(Algorithms::Camellia))
-        encryptFile(inputFilePath.string(), outputFilePath.string(), password, AlgoSelection.Camellia);
-    else if (algo & static_cast<unsigned int>(Algorithms::Aria))
-        encryptFile(inputFilePath.string(), outputFilePath.string(), password, AlgoSelection.Aria);
-    else if (algo & static_cast<unsigned int>(Algorithms::Serpent))
-        encryptFileWithMoreRounds(inputFilePath.string(), outputFilePath.string(), password, AlgoSelection.Serpent);
-    else if (algo & static_cast<unsigned int>(Algorithms::Twofish))
-        encryptFileWithMoreRounds(inputFilePath.string(), outputFilePath.string(), password, AlgoSelection.Twofish);
+        // Check the files
+        checkFiles(inputFilePath, outputFilePath, mode);
 
-}
+        auto encryptDecrypt = [&](const std::string &algorithm) -> void {
+            if (mode == static_cast<int>(OperationMode::Encryption))  // Encryption
+                encryptFile(inputFilePath.string(), outputFilePath.string(), password, algorithm);
+            else   // Decryption
+                decryptFile(inputFilePath.string(), outputFilePath.string(), password, algorithm);
+        };
 
-void fileDecryption(const std::string &inputFileName, const std::string &outputFileName, const std::string &password,
-                    unsigned int algo) {
-    const auto inputFilePath = fs::path(inputFileName);
-    auto outputFilePath = fs::path(outputFileName);
-    int mode{2}; // Decryption mode
+        auto encryptDecryptMoreRounds = [&](const gcry_cipher_algos &algo) -> void {
+            if (mode == static_cast<int>(OperationMode::Encryption))  // Encryption
+                encryptFileWithMoreRounds(inputFilePath.string(), outputFilePath.string(), password, algo);
+            else   // Decryption
+                decryptFileWithMoreRounds(inputFilePath.string(), outputFilePath.string(), password, algo);
+        };
 
-    // Check the file
-    checkFiles(inputFilePath, outputFilePath, mode);
+        // Encrypt/decrypt with the specified algorithm
+        if (algo & static_cast<unsigned int>(Algorithms::AES))
+            encryptDecrypt(AlgoSelection.AES);
+        else if (algo & static_cast<unsigned int>(Algorithms::Camellia))
+            encryptDecrypt(AlgoSelection.Camellia);
+        else if (algo & static_cast<unsigned int>(Algorithms::Aria))
+            encryptDecrypt(AlgoSelection.Aria);
+        else if (algo & static_cast<unsigned int>(Algorithms::Serpent))
+            encryptDecryptMoreRounds(AlgoSelection.Serpent);
+        else if (algo & static_cast<unsigned int>(Algorithms::Twofish))
+            encryptDecryptMoreRounds(AlgoSelection.Twofish);
 
-    // Decrypt the file
-    if (algo & static_cast<unsigned int>(Algorithms::AES))
-        decryptFile(inputFilePath.string(), outputFilePath.string(), password, AlgoSelection.AES);
-    else if (algo & static_cast<unsigned int>(Algorithms::Camellia))
-        decryptFile(inputFilePath.string(), outputFilePath.string(), password, AlgoSelection.Camellia);
-    else if (algo & static_cast<unsigned int>(Algorithms::Aria))
-        decryptFile(inputFilePath.string(), outputFilePath.string(), password, AlgoSelection.Aria);
-    else if (algo & static_cast<unsigned int>(Algorithms::Serpent))
-        decryptFileWithMoreRounds(inputFilePath.string(), outputFilePath.string(), password, AlgoSelection.Serpent);
-    else if (algo & static_cast<unsigned int>(Algorithms::Twofish))
-        decryptFileWithMoreRounds(inputFilePath.string(), outputFilePath.string(), password, AlgoSelection.Twofish);
+        // If we reach here, the operation was successful
+        auto pre = mode == static_cast<int>(OperationMode::Encryption) ? "En" : "De";
+        std::cout << std::format("{}cryption completed successfully. \n{}crypted file saved at '{}'.", pre, pre,
+                                 outputFilePath.string()) << std::endl;
+
+        // Copy permissions
+        if (!copyFilePermissions(inputFilePath.string(), outputFilePath.string()))
+            std::cerr << "Check the permissions of the " << pre << "crypted file." << std::endl;
+
+    } catch (std::exception &ex) {
+        std::cerr << "Error: " << ex.what() << std::endl;
+    }
 }
 
