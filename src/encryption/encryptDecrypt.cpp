@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <system_error>
 #include <filesystem>
 #include "encryptDecrypt.hpp"
@@ -6,6 +7,7 @@
 #include <iostream>
 #include <format>
 #include <cmath>
+#include <unordered_map>
 
 template<typename T>
 /**
@@ -75,12 +77,9 @@ const struct {
 
 namespace fs = std::filesystem;
 
-// A function to perform the necessary checks before encrypting/decrypting a file
-inline void checkFiles(const fs::path &inFile, fs::path &outFile, const int &mode) {
-    // Just to be sure
+inline void checkInputFile(fs::path &inFile, const int &mode) {
     if (mode != static_cast<int>(OperationMode::Encryption) && mode != static_cast<int>(OperationMode::Decryption))
         throw std::invalid_argument("Invalid mode of operation.");
-    /** Check the input file **/
 
     // Ensure the input file exists and is not a directory
     if (!fs::exists(inFile))
@@ -104,8 +103,12 @@ inline void checkFiles(const fs::path &inFile, fs::path &outFile, const int &mod
     // Check if the input file is readable
     if (auto file = inFile.string();!isReadable(file))
         throw std::runtime_error(std::format("{} is not readable.", file));
+}
 
-    /** Check the output file **/
+
+inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const int &mode) {
+    if (mode != static_cast<int>(OperationMode::Encryption) && mode != static_cast<int>(OperationMode::Decryption))
+        throw std::invalid_argument("Invalid mode of operation.");
 
     // Determine if the output file is a directory, and give it an appropriate name if so
     if (fs::is_directory(outFile)) {
@@ -117,17 +120,8 @@ inline void checkFiles(const fs::path &inFile, fs::path &outFile, const int &mod
         else outFile /= inFile.filename();
     }
 
-    // Determine if the output file exists ask for confirmation if it does
-    if (auto file = outFile.string();fs::exists(outFile)) {
-        std::cout << file << " already exists. \nDo you want to overwrite it? (y/n): ";
-        char answer;
-        std::cin >> answer;
-        std::cin.ignore();
-        if (answer != 'y' && answer != 'Y')
-            throw std::runtime_error("Operation aborted.");
-    }
-        // If the output file is not specified, name it appropriately
-    else if (outFile.string().empty()) {
+    // If the output file is not specified, name it appropriately
+    if (outFile.string().empty()) {
         outFile = inFile;
         if (inFile.extension() == ".enc")
             outFile.replace_extension("");
@@ -138,6 +132,16 @@ inline void checkFiles(const fs::path &inFile, fs::path &outFile, const int &mod
             outFile += "_decrypted";
             outFile += inFile.extension();
         }
+    }
+
+    // If the output file exists, ask for confirmation for overwriting
+    if (auto file = outFile.string();fs::exists(outFile)) {
+        std::cout << file << " already exists. \nDo you want to overwrite it? (y/n): ";
+        char answer;
+        std::cin >> answer;
+        std::cin.ignore();
+        if (answer != 'y' && answer != 'Y')
+            throw std::runtime_error("Operation aborted.");
     }
 
     // Determine if the output file can be written if it exists
@@ -152,7 +156,7 @@ inline void checkFiles(const fs::path &inFile, fs::path &outFile, const int &mod
         std::cerr << "Required:  " << FormatFileSize(fileSize) << std::endl;
         std::cerr << "Available: " << FormatFileSize(availableSpace) << std::endl;
 
-        std::cout << "Do you want to continue? (y/n) ";
+        std::cout << "\nDo you want to continue? (y/n) ";
         char ans;
         std::cin >> ans;
         std::cin.ignore();
@@ -161,6 +165,7 @@ inline void checkFiles(const fs::path &inFile, fs::path &outFile, const int &mod
             throw std::runtime_error("Insufficient storage space.");
     }
 }
+
 
 void fileEncryptionDecryption(const std::string &inputFileName, const std::string &outputFileName,
                               const std::string &password, unsigned int algo, int mode) {
@@ -171,26 +176,20 @@ void fileEncryptionDecryption(const std::string &inputFileName, const std::strin
     }
 
     try {
-        const auto inputFilePath = fs::path(inputFileName);
-        auto outputFilePath = fs::path(outputFileName);
-
-        // Perform the necessary checks on the files
-        checkFiles(inputFilePath, outputFilePath, mode);
-
         /** Encrypts/decrypts a file based on the passed mode and algorithm. */
         auto encryptDecrypt = [&](const std::string &algorithm) -> void {
             if (mode == static_cast<int>(OperationMode::Encryption))  // Encryption
-                encryptFile(inputFilePath.string(), outputFilePath.string(), password, algorithm);
+                encryptFile(inputFileName, outputFileName, password, algorithm);
             else   // Decryption
-                decryptFile(inputFilePath.string(), outputFilePath.string(), password, algorithm);
+                decryptFile(inputFileName, outputFileName, password, algorithm);
         };
 
         /** Encrypts/decrypts a file using a cipher with more rounds. */
         auto encryptDecryptMoreRounds = [&](const gcry_cipher_algos &algo) -> void {
             if (mode == static_cast<int>(OperationMode::Encryption))  // Encryption
-                encryptFileWithMoreRounds(inputFilePath.string(), outputFilePath.string(), password, algo);
+                encryptFileWithMoreRounds(inputFileName, outputFileName, password, algo);
             else   // Decryption
-                decryptFileWithMoreRounds(inputFilePath.string(), outputFilePath.string(), password, algo);
+                decryptFileWithMoreRounds(inputFileName, outputFileName, password, algo);
         };
 
         // Encrypt/decrypt with the specified algorithm
@@ -208,14 +207,98 @@ void fileEncryptionDecryption(const std::string &inputFileName, const std::strin
         // If we reach here, the operation was successful
         auto pre = mode == static_cast<int>(OperationMode::Encryption) ? "En" : "De";
         std::cout << std::format("{}cryption completed successfully. \n{}crypted file saved at '{}'.", pre, pre,
-                                 outputFilePath.string()) << std::endl;
+                                 outputFileName) << std::endl;
 
         // Preserve file permissions
-        if (!copyFilePermissions(inputFilePath.string(), outputFilePath.string()))
+        if (!copyFilePermissions(inputFileName, outputFileName))
             std::cerr << "Check the permissions of the " << pre << "crypted file." << std::endl;
 
     } catch (std::exception &ex) {
         std::cerr << "Error: " << ex.what() << std::endl;
+    }
+}
+
+void encryptDecrypt() {
+    // I'm avoiding writing many if-else statements with these hashmaps
+    std::unordered_map<int, Algorithms> algoChoice = {
+            {0, Algorithms::AES}, // Default
+            {1, Algorithms::AES},
+            {2, Algorithms::Camellia},
+            {3, Algorithms::Aria},
+            {4, Algorithms::Serpent},
+            {5, Algorithms::Twofish}
+    };
+
+    std::unordered_map<Algorithms, std::string> algoDescription = {
+            {Algorithms::AES,      "256-bit AES in CBC mode"},
+            {Algorithms::Camellia, "256-bit Camellia in CBC mode"},
+            {Algorithms::Aria,     "256-bit Aria in CBC mode"},
+            {Algorithms::Serpent,  "256-bit Serpent in CTR mode"},
+            {Algorithms::Twofish,  "256-bit Twofish in CTR mode"}
+    };
+
+    while (true) {
+        std::cout << "------------- file encryption/decryption utility -------------" << std::endl;
+        std::cout << "1. Encrypt a file" << std::endl;
+        std::cout << "2. Decrypt a file" << std::endl;
+        std::cout << "3. Exit" << std::endl;
+        std::cout << "--------------------------------------------------------------" << std::endl;
+
+        int choice = getResponseInt("Enter your choice: ");
+
+        if (choice == 1 || choice == 2) {
+            try {
+                std::string pre = choice == 1 ? "En" : "De";
+                std::string pre_l{pre};
+
+                std::ranges::transform(pre_l.begin(), pre_l.end(), pre_l.begin(), [](unsigned char c) -> unsigned char {
+                    return std::tolower(c);
+                });
+                std::cout << "Enter the path to the file to " << pre_l << "crypt:" << std::endl;
+                std::string inputFile = getResponseStr();
+
+                fs::path inputPath(inputFile);
+                checkInputFile(inputPath, choice);
+
+                std::cout << "Enter the path to save the " << pre_l
+                          << "crypted file \n(or leave it blank to save it in the same directory): " << std::endl;
+                std::string outputFile = getResponseStr();
+
+                fs::path outputPath(outputFile);
+                checkOutputFile(inputPath, outputPath, choice);
+
+                std::cout << "Choose a cipher (All are 256-bit): " << std::endl;
+                std::cout << "1. Advanced Encryption Standard (AES)" << std::endl;
+                std::cout << "2. Camellia" << std::endl;
+                std::cout << "3. Aria" << std::endl;
+                std::cout << "4. Serpent" << std::endl;
+                std::cout << "5. Twofish" << std::endl;
+                std::cout << "Leave blank to use the default (AES)" << std::endl;
+
+                int algo = getResponseInt();
+                if (algo < 0 || algo > 5) {
+                    std::cout << "Invalid choice!" << std::endl;
+                    break;
+                }
+
+                auto it = algoChoice.find(algo);
+                auto cipher = it != algoChoice.end() ? it->second : Algorithms::AES;
+
+                std::string password = getSensitiveInfo("Enter the password: ");
+                // TODO: Confirm the password during encryption
+
+                std::cout << pre << "crypting " << inputPath << " with " << algoDescription.find(cipher)->second
+                          << "..." << std::endl;
+
+                fileEncryptionDecryption(inputPath.string(), outputPath.string(), password,
+                                         static_cast<int>(cipher), choice);
+                std::cout << std::endl;
+            } catch (std::exception &ex) {
+                std::cerr << "Error: " << ex.what() << std::endl;
+            }
+
+        } else if (choice == 3) break;
+        else std::cerr << "Invalid choice!" << std::endl;
     }
 }
 

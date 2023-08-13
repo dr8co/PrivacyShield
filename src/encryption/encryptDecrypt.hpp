@@ -40,3 +40,5 @@ decryptString(const std::string &ciphertext, const std::string &password, const 
 
 std::string decryptStringWithMoreRounds(const std::string &ciphertext, const std::string &password,
                                         const gcry_cipher_algos &algorithm = GCRY_CIPHER_SERPENT256);
+
+void encryptDecrypt();
