@@ -13,34 +13,6 @@ namespace fs = std::filesystem;
 typedef std::string string;
 
 /**
- * @brief Reads sensitive input from a terminal without echoing them.
- * @param prompt the prompt to display.
- * @return the user's input.
- */
-string getSensitiveInfo(const string &prompt = "") {
-    string password;
-    char *tmp;
-    termios oldSettings{}, newSettings{};
-
-    // Turn off terminal echoing
-    tcgetattr(STDIN_FILENO, &oldSettings);
-    newSettings = oldSettings;
-    newSettings.c_lflag &= ~ECHO;
-    tcsetattr(STDIN_FILENO, TCSANOW, &newSettings);
-
-    // Read password from input
-    tmp = readline(prompt.c_str());
-    password = string(tmp);
-    OPENSSL_clear_free(tmp, password.size());
-
-    // Restore terminal settings
-    tcsetattr(STDIN_FILENO, TCSANOW, &oldSettings);
-    std::cout << std::endl;
-
-    return password;
-}
-
-/**
  * @brief Checks the strength of a password.
  * @param password the password to process.
  * @return True if the password is strong, False otherwise.
