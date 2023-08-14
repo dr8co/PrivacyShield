@@ -9,6 +9,7 @@
 #include "utils.hpp"
 #include <filesystem>
 #include <utility>
+#include <termios.h>
 
 namespace fs = std::filesystem;
 
@@ -116,7 +117,8 @@ std::vector<unsigned char> hexDecode(const std::string &encodedData) {
  * @return the user's input (string) if successful, else nullptr.
  */
 std::string getResponseStr(const std::string &prompt) {
-    char *tmp = readline(prompt.c_str());
+    std::cout << prompt << std::endl;
+    char *tmp = readline("> ");
     auto str = std::string(tmp);
 
     // tmp must be freed
@@ -141,7 +143,46 @@ int getResponseInt(const std::string &prompt) {
 }
 
 /**
- * @brief Checks if an existing file grants write permissions
+ * @brief Reads sensitive input from a terminal without echoing them.
+ * @param prompt the prompt to display.
+ * @return the user's input.
+ */
+std::string getSensitiveInfo(const std::string &prompt) {
+    std::string password;
+    char *tmp;
+    termios oldSettings{}, newSettings{};
+
+    // Turn off terminal echoing
+    tcgetattr(STDIN_FILENO, &oldSettings);
+    newSettings = oldSettings;
+    newSettings.c_lflag &= ~ECHO;
+    tcsetattr(STDIN_FILENO, TCSANOW, &newSettings);
+
+    // Read password from input
+    tmp = readline(prompt.c_str());
+    password = std::string(tmp);
+    OPENSSL_clear_free(tmp, password.size());
+
+    // Restore terminal settings
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldSettings);
+    std::cout << std::endl;
+
+    return password;
+}
+
+/**
+ * @brief Confirms a user's response to a yes/no (y/n) situation.
+ * @param prompt The confirmation prompt.
+ * @return True if the user confirms the action, else false.
+ */
+bool validateYesNo(const std::string &prompt) {
+    std::string resp = getResponseStr(prompt);
+    if (resp.empty()) return false;
+    return std::tolower(resp.at(0)) == 'y';
+}
+
+/**
+ * @brief Checks if an existing file grants write permissions.
  * to the current user.
  * @param filename the path to the file.
  * @return true if the current user has write permissions, else false.
@@ -151,7 +192,7 @@ bool isWritable(const std::string &filename) {
 }
 
 /**
- * @brief Checks if an existing file grants read permissions
+ * @brief Checks if an existing file grants read permissions.
  * to the current user.
  * @param filename the path to the file.
  * @return true if the current user has read permissions, else false.

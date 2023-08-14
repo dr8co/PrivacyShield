@@ -19,3 +19,11 @@ bool isWritable(const std::string &filename);
 bool isReadable(const std::string &filename);
 
 std::uintmax_t getAvailableSpace(const std::string &path) noexcept;
+
+bool addReadWritePermissions(const std::string &fileName) noexcept;
+
+bool copyFilePermissions(const std::string &srcFile, const std::string &destFile) noexcept;
+
+std::string getSensitiveInfo(const std::string &prompt = "");
+
+bool validateYesNo(const std::string &prompt = "");

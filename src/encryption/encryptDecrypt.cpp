@@ -91,10 +91,7 @@ inline void checkInputFile(fs::path &inFile, const int &mode) {
     if (!fs::is_regular_file(inFile)) {
         if (mode == static_cast<int>(OperationMode::Encryption)) { // Encryption
             std::cout << inFile.string() << " is not a regular file. \nDo you want to continue? (y/n): ";
-            char answer;
-            std::cin >> answer;
-            std::cin.ignore();
-            if (answer != 'y' && answer != 'Y')
+            if (!validateYesNo())
                 throw std::runtime_error(std::format("{} is not a regular file.", inFile.string()));
         } else
             throw std::runtime_error(
@@ -137,10 +134,7 @@ inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const int
     // If the output file exists, ask for confirmation for overwriting
     if (auto file = outFile.string();fs::exists(outFile)) {
         std::cout << file << " already exists. \nDo you want to overwrite it? (y/n): ";
-        char answer;
-        std::cin >> answer;
-        std::cin.ignore();
-        if (answer != 'y' && answer != 'Y')
+        if (!validateYesNo())
             throw std::runtime_error("Operation aborted.");
     }
 
@@ -157,11 +151,7 @@ inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const int
         std::cerr << "Available: " << FormatFileSize(availableSpace) << std::endl;
 
         std::cout << "\nDo you want to continue? (y/n) ";
-        char ans;
-        std::cin >> ans;
-        std::cin.ignore();
-
-        if (ans != 'y' && ans != 'Y')
+        if (!validateYesNo())
             throw std::runtime_error("Insufficient storage space.");
     }
 }
@@ -212,6 +202,8 @@ void fileEncryptionDecryption(const std::string &inputFileName, const std::strin
         // Preserve file permissions
         if (!copyFilePermissions(inputFileName, outputFileName))
             std::cerr << "Check the permissions of the " << pre << "crypted file." << std::endl;
+
+        // TODO: Preserve file time stamps as well
 
     } catch (std::exception &ex) {
         std::cerr << "Error: " << ex.what() << std::endl;
