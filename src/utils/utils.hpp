@@ -3,6 +3,12 @@
 #include <vector>
 #include <string>
 #include <cstdint>
+#include <optional>
+
+template<typename T>
+concept PrintableToStream = requires(std::ostream &os, const T &t) {
+    os << t;
+};
 
 std::vector<unsigned char> base64Decode(const std::string &encodedData);
 
@@ -27,3 +33,9 @@ bool copyFilePermissions(const std::string &srcFile, const std::string &destFile
 std::string getSensitiveInfo(const std::string &prompt = "");
 
 bool validateYesNo(const std::string &prompt = "");
+
+void printColor(const PrintableToStream auto &text, const char &color = 'w', const bool &printNewLine = false, std::ostream &os=std::cout);
+
+std::string getHomeDir();
+
+std::optional<std::string> getEnv(const char *var);

@@ -10,6 +10,7 @@
 #include <filesystem>
 #include <utility>
 #include <termios.h>
+#include <optional>
 
 namespace fs = std::filesystem;
 
@@ -134,12 +135,12 @@ std::string getResponseStr(const std::string &prompt) {
  * @return the user's input (an integer) on if it's convertible to integer, else 0.
  */
 int getResponseInt(const std::string &prompt) {
-    constexpr auto to_int = [](std::string_view s) noexcept -> int {
+    constexpr auto toInt = [](std::string_view s) noexcept -> int {
         int value;
         return std::from_chars(s.begin(), s.end(), value).ec == std::errc{} ? value : 0;
     };
 
-    return to_int(getResponseStr(prompt));
+    return toInt(getResponseStr(prompt));
 }
 
 /**
@@ -161,7 +162,7 @@ std::string getSensitiveInfo(const std::string &prompt) {
     // Read password from input
     tmp = readline(prompt.c_str());
     password = std::string(tmp);
-    OPENSSL_clear_free(tmp, password.size());
+    std::free(tmp);
 
     // Restore terminal settings
     tcsetattr(STDIN_FILENO, TCSANOW, &oldSettings);
@@ -306,4 +307,72 @@ bool addReadWritePermissions(const std::string &fileName) noexcept {
                               fs::perms::group_write | fs::perms::others_read | fs::perms::others_write,
                     fs::perm_options::add, ec);
     return !ec;
+}
+
+/**
+ * @brief Gets the value of an environment variable.
+ * @param var an environment variable to query.
+ * @return the value of the environment variable if it exists, else nullopt.
+ */
+std::optional<std::string> getEnv(const char *var) {
+    // Use secure_getenv() if available
+#if _GNU_SOURCE
+    if (const char *value = secure_getenv(var))
+        return value;
+#else
+    if (const char *value = std::getenv(var))
+        return value;
+#endif
+    return std::nullopt;
+}
+
+/**
+ * @brief Retrieves the user's home directory
+ * @return The home directory read from {'HOME', 'USERPROFILE'}
+ * environment variables, else the current working directory.
+ */
+std::string getHomeDir() {
+    if (auto envHome = getEnv("HOME"); envHome)
+        return *envHome;
+    if (auto envUserProfile = getEnv("USERPROFILE"); envUserProfile)
+        return *envUserProfile;
+    return std::filesystem::current_path().string();
+}
+
+/**
+ * @brief Prints colored text to a stream.
+ * @param text the text to print.
+ * @param color a character representing the desired color.
+ * @param printNewLine a flag to indicate whether a newline should be printed after the text
+ * @param os the stream object to print to.
+ */
+void printColor(const PrintableToStream auto &text, const char &color, const bool &printNewLine, std::ostream &os) {
+    switch (color) {
+        case 'r': // Red
+            os << "\033[1;31m";
+            break;
+        case 'g': // Green
+            os << "\033[1;32m";
+            break;
+        case 'y': // Yellow
+            os << "\033[1;33m";
+            break;
+        case 'b': // Blue
+            os << "\033[1;34m";
+            break;
+        case 'm': // Magenta
+            os << "\033[1;35m";
+            break;
+        case 'c': // Cyan
+            os << "\033[1;36m";
+            break;
+        case 'w': // White
+            os << "\033[1;37m";
+            break;
+        default:
+            break;
+    }
+    os << text << "\033[0m";
+    if (printNewLine)
+        os << std::endl;
 }
