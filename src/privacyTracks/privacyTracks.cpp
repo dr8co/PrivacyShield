@@ -5,14 +5,9 @@
 #include <cstdlib>
 #include <filesystem>
 #include "privacyTracks.hpp"
+#include "../utils/utils.hpp"
 
 namespace fs = std::filesystem;
-
-#if _GNU_SOURCE  // Use secure_getenv() on Linux if available
-const char *homeDir = secure_getenv("HOME");
-#elif __APPLE__ or __unix or __unix__
-const char *homeDir = std::getenv("HOME");
-#endif
 
 /**
  * @brief Represents different browsers in a system.
@@ -216,9 +211,8 @@ bool clearFirefoxTracks(std::string &configDir) {
  * @return true if successful, false otherwise.
  */
 bool clearChromiumTracks(const std::string &configDir) {
-    std::string profilePath = std::string(homeDir) + configDir;
-    if (!fs::exists(profilePath)) {
-        std::cout << "Profile path: " << profilePath << std::endl;
+    if (!fs::exists(configDir)) {
+        std::cout << "Profile path: " << configDir << std::endl;
         std::cerr << "Config directory not found." << std::endl;
         return false;
     }
@@ -227,9 +221,9 @@ bool clearChromiumTracks(const std::string &configDir) {
 
     // Find the "Default" or "default" profile directory
     fs::path defaultProfileDir;
-    for (const auto &entry: fs::directory_iterator(profilePath, fs::directory_options::skip_permission_denied |
+    for (const auto &entry: fs::directory_iterator(configDir, fs::directory_options::skip_permission_denied |
                                                                 fs::directory_options::follow_directory_symlink, ec)) {
-        handleFileError(ec, "reading", profilePath);
+        handleFileError(ec, "reading", configDir);
         if (entry.is_directory() && (entry.path().filename() == "Default" || entry.path().filename() == "default")) {
             defaultProfileDir = entry.path();
             break;
@@ -250,9 +244,9 @@ bool clearChromiumTracks(const std::string &configDir) {
 
     // Find other profile directories
     std::vector<fs::path> profileDirs;
-    for (const auto &entry: fs::directory_iterator(profilePath, fs::directory_options::skip_permission_denied |
+    for (const auto &entry: fs::directory_iterator(configDir, fs::directory_options::skip_permission_denied |
                                                                 fs::directory_options::follow_directory_symlink, ec)) {
-        handleFileError(ec, "reading", profilePath);
+        handleFileError(ec, "reading", configDir);
         if (entry.is_directory() && entry.path().filename() != "Default" && entry.path().filename() != "default") {
             profileDirs.emplace_back(entry.path());
         }
@@ -349,10 +343,10 @@ bool clearOperaTracks(const std::string &profilePath) {
  */
 bool clearChromiumTracks() {
 #if __linux__ or __linux
-    std::string configDir = "/.config/chromium";
+    std::string configDir = getHomeDir() + "/.config/chromium";
     return clearChromiumTracks(configDir);
 #elif __APPLE__
-    std::string configDir = "/Library/Application Support/Chromium";
+    std::string configDir = getHomeDir() + "/Library/Application Support/Chromium";
     return clearChromiumTracks(configDir);
 #else
     std::cout << "This OS is not supported at the moment." << std::endl;
@@ -366,10 +360,10 @@ bool clearChromiumTracks() {
  */
 bool clearChromeTracks() {
 #if __linux__ or __linux
-    std::string configDir = "/.config/google-chrome";
+    std::string configDir =  getHomeDir() + "/.config/google-chrome";
     return clearChromiumTracks(configDir);
 #elif __APPLE__
-    std::string configDir = "/Library/Application Support/Google/Chrome";
+    std::string configDir = getHomeDir() + "/Library/Application Support/Google/Chrome";
     return clearChromiumTracks(configDir);
 #else
     std::cout << "This OS is not supported at the moment." << std::endl;
@@ -383,10 +377,10 @@ bool clearChromeTracks() {
  */
 bool clearOperaTracks() {
 #if __linux__ or __linux
-    std::string profilePath = std::string(homeDir) + "/.config/opera";
+    std::string profilePath = getHomeDir() + "/.config/opera";
     return clearOperaTracks(profilePath);
 #elif __APPLE__
-    std::string profilePath = std::string(homeDir) + "/Library/Application Support/com.operasoftware.Opera";
+    std::string profilePath = getHomeDir() + "/Library/Application Support/com.operasoftware.Opera";
     return clearOperaTracks(profilePath);
 #else
     std::cout << "This OS is not supported at the moment." << std::endl;
@@ -400,7 +394,7 @@ bool clearOperaTracks() {
  */
 bool clearSafariTracks() {
 #if __APPLE__
-    std::string cookiesPath = std::string(homeDir) + "/Library/Cookies";
+    std::string cookiesPath = getHomeDir() + "/Library/Cookies";
     if (!fs::exists(cookiesPath)) {
         std::cerr << "Safari cookies directory not found." << std::endl;
         return false;
@@ -416,7 +410,7 @@ bool clearSafariTracks() {
         }
     }
 
-    std::string historyPath = std::string(homeDir) + "/Library/Safari";
+    std::string historyPath = getHomeDir() + "/Library/Safari";
     if (!fs::exists(historyPath)) {
         std::cerr << "Safari history directory not found." << std::endl;
         return false;
@@ -447,10 +441,10 @@ bool clearSafariTracks() {
  */
 bool clearFirefoxTracks() {
 #if __linux__ or __linux
-    std::string profilePath = std::string(homeDir) + "/.mozilla/firefox";
+    std::string profilePath = getHomeDir() + "/.mozilla/firefox";
     return clearFirefoxTracks(profilePath);
 #elif __APPLE__
-    std::string profilePath = std::string(homeDir) + "/Library/Application Support/Firefox";
+    std::string profilePath = getHomeDir() + "/Library/Application Support/Firefox";
     return clearFirefoxTracks(profilePath);
 #else
     std::cout << "This OS is not supported at the moment." << std::endl;
