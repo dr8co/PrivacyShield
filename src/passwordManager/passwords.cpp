@@ -10,7 +10,7 @@
 #include "../utils/utils.hpp"
 
 namespace fs = std::filesystem;
-typedef std::string string;
+using string = std::string;
 
 /**
  * @brief Checks the strength of a password.
@@ -85,15 +85,17 @@ string generatePassword(int length) {
 /**
  * @brief Hashes a password (using Argon2id implementation from Sodium)
  * for verification without having to store the password.
- * @param password the password being hashed.
+ * @param password the password to hash.
+ * @param opsLimit the maximum amount of computations to perform.
+ * @param memLimit the maximum amount of RAM in bytes that the function will use.
  * @return a string of the password hash and it's associated data.
  */
-string hashPassword(const string &password) {
+string hashPassword(const string &password, const size_t &opsLimit, const size_t &memLimit) {
     char hashedPassword[crypto_pwhash_STRBYTES];
 
     if (crypto_pwhash_str
                 (hashedPassword, password.c_str(), password.size(),
-                 crypto_pwhash_OPSLIMIT_SENSITIVE, crypto_pwhash_MEMLIMIT_SENSITIVE) != 0) {
+                 opsLimit, memLimit) != 0) {
         throw std::runtime_error("Out of memory for password hashing.");
     }
 
