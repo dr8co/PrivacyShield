@@ -25,3 +25,7 @@ bool changeMasterPassword(std::string &masterPassword);
 std::pair<std::string, std::string> initialSetup() noexcept;
 
 std::string getHash(const std::string &filePath);
+
+std::vector<passwordRecords> importCsv(const std::string &filePath, bool skipFirst);
+
+void exportCsv(const std::vector<passwordRecords> &records, const std::string &filePath = getHomeDir());

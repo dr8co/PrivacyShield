@@ -5,6 +5,7 @@
 #include <sodium.h>
 #include <readline/readline.h>
 #include <format>
+#include <algorithm>
 #include "../encryption/encryptDecrypt.hpp"
 #include "../utils/utils.hpp"
 #include "passwords.hpp"
@@ -331,4 +332,129 @@ std::string getHash(const std::string &filePath) {
         throw std::runtime_error("Invalid password hash in the password file.");
 
     return pwHash;
+}
+
+/**
+ * @brief Export the password records to a CSV file.
+ * @param records the password records to export.
+ * @param filePath the file to export to.
+ */
+void exportCsv(const std::vector<passwordRecords> &records, const std::string &filePath) {
+    fs::path filepath(filePath);
+
+    // Check if the file path is valid
+    if (!fs::path(filepath).has_filename())
+        throw std::invalid_argument(std::format("Invalid file path: {}", filePath));
+
+    // Check if the file path is a directory
+    if (fs::is_directory(filepath)) {
+        // If the file path is a directory, append the default file name to it
+        filepath.append("credentials.csv");
+    }
+
+    // Check if the file already exists
+    if (fs::exists(filepath)) {
+        // Check if the file is a regular file
+        if (!fs::is_regular_file(filepath))
+            [[unlikely]]
+                    throw std::runtime_error(std::format("The destination file ({}) is not a regular file.", filePath));
+
+        std::cerr << "The destination file already exists. Do you want to overwrite it? (y/n): ";
+        std::string resp = getResponseStr();
+
+        if (std::tolower(resp[0]) != 'y')
+            return;
+        else
+            fs::remove(filepath);
+    }
+
+    // If the file extension is not .csv or doesn't have an extension, append .csv to it
+    if (filepath.extension() != ".csv")
+        filepath.replace_extension(".csv");
+
+    // Open the file for writing
+    std::ofstream file(filepath);
+    if (!file)
+        throw std::runtime_error(std::format("Failed to open the destination file ({}) for writing.", filePath));
+
+    file << "site,username,password" << std::endl;
+
+    for (const auto &record: records)
+        file << std::get<0>(record) << "," << std::get<1>(record) << "," << std::get<2>(record) << std::endl;
+
+    file.close();
+
+    // Notify the user that the export was successful
+    std::cout << "Export successful. The file was saved at " << filepath << std::endl;
+}
+
+/**
+ * @brief Trims space (whitespace) from the beginning and end of a string.
+ * @param str the string to trim.
+ */
+inline void trim(std::string &str) {
+    // Trim leading space (my IDE finds the w-word offensive)
+    std::input_iterator auto it = std::ranges::find_if_not(str.begin(), str.end(), [](char c) { return std::isspace(c); });
+    str.erase(str.begin(), it);
+
+    // Trim trailing space
+    it = std::ranges::find_if_not(str.rbegin(), str.rend(), [](char c) { return std::isspace(c); }).base();
+    str.erase(it, str.end());
+}
+
+/**
+ * @brief Imports password records from a csv file.
+ * @param filePath Path to the csv file.
+ * @param skipFirst A flag to indicate whether the csv file has a header or not.
+ * @return Imported password records.
+ *
+ * @note This function expects the csv data to have only three columns: {site, username, password}.
+ * The password entry cannot be empty, and either site or username can be empty, but not both.
+ * Non-compliant rows will be ignored entirely.
+ */
+std::vector<passwordRecords> importCsv(const std::string &filePath, bool skipFirst) {
+    std::vector<passwordRecords> passwords;
+
+    std::error_code ec;
+
+    if (!fs::exists(filePath, ec))
+        throw std::invalid_argument(std::format("The specified file ({}) does not exist.", filePath));
+
+    if (ec)
+        std::cerr << ec.message() << std::endl;
+
+    std::ifstream file(filePath);
+    if (!file)
+        throw std::runtime_error(std::format("Failed to open the file ({}) for reading.", filePath));
+
+    std::string line, value;
+
+    if (skipFirst)
+        std::getline(file, line); // Read and discard the first line
+
+    while (std::getline(file, line)) {
+        std::istringstream iss(line);
+        std::vector<std::string> tokens;
+
+        // TODO: Limit how many characters of an entry is read for security reasons
+
+        while (std::getline(iss, value, ','))
+            tokens.emplace_back(value);
+
+        // Trim leading and trailing space from the tokens, including tabs and newlines, if any
+        for (auto &token: tokens)
+            trim(token);
+
+        if (tokens.size() == 3) {
+            // Skip empty passwords
+            if (tokens[2].empty()) {
+                std::cerr << std::format("Empty password for {}. Entry skipped.\n", tokens[0]);
+            } else if (!(tokens[0].empty() && tokens[1].empty()))  // Both site & username can't be empty
+                passwords.emplace_back(tokens[0], tokens[1], tokens[2]);
+        } else
+            std::cerr << std::format("Invalid entry skipped: {}\n", line);
+    }
+    file.close();
+
+    return passwords;
 }
