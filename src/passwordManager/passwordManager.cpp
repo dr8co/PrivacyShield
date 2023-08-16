@@ -10,6 +10,7 @@
 #include "../encryption/encryptDecrypt.hpp"
 #include "../utils/utils.hpp"
 #include "passwords.hpp"
+#include "FuzzyMatcher.hpp"
 
 namespace fs = std::filesystem;
 using string = std::string;
