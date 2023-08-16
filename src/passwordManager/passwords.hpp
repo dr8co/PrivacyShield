@@ -19,3 +19,9 @@ std::string generatePassword(int length);
 bool verifyPassword(const std::string &password, const std::string &storedHash);
 
 void passwordManager();
+
+bool changeMasterPassword(std::string &masterPassword);
+
+std::pair<std::string, std::string> initialSetup() noexcept;
+
+std::string getHash(const std::string &filePath);

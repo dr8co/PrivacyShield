@@ -14,14 +14,14 @@
 
 namespace fs = std::filesystem;
 using string = std::string;
-const string passwordFile = "/to/be/determined/later";
+const string DefaultPasswordFile = "/to/be/determined/later";
 
 
 /**
  * @brief A minimalistic password manager.
  */
 void passwordManager() {
-    string encryptionKey;
+    string encryptionKey, passwordFile{DefaultPasswordFile};
     bool newSetup{false};
 
     if (!fs::exists(passwordFile) || !fs::is_regular_file(passwordFile)) {
@@ -75,7 +75,7 @@ void passwordManager() {
         passwords = loadPasswords(passwordFile, encryptionKey);
     }
 
-    // Lambdas to help sort entries
+    // A lambda to help sort entries
     auto comparator = [](const auto &tuple1, const auto &tuple2) noexcept -> bool {
         return std::ranges::lexicographical_compare(std::get<0>(tuple1), std::get<0>(tuple2));
     };

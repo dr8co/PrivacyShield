@@ -199,3 +199,136 @@ std::vector<passwordRecords> loadPasswords(const std::string &filePath, const st
 
     return passwords;
 }
+
+/**
+ * @brief Helps the user change the primary password.
+ * @param masterPassword the current primary password.
+ * @return True if the password is changed successfully, else false.
+ */
+bool changeMasterPassword(std::string &masterPassword) {
+    std::string oldPassword = getSensitiveInfo("Enter the current master password: ");
+    sodium_mlock(oldPassword.data(), oldPassword.size());
+
+    std::string masterHash = hashPassword(masterPassword, crypto_pwhash_OPSLIMIT_INTERACTIVE,
+                                     crypto_pwhash_MEMLIMIT_INTERACTIVE);
+
+    if (!verifyPassword(oldPassword, masterHash)) {
+        sodium_munlock(oldPassword.data(), oldPassword.size());
+        std::cerr << "Password verification failed." << std::endl;
+        return false;
+    }
+    sodium_munlock(oldPassword.data(), oldPassword.size());
+
+    std::string newPassword = getSensitiveInfo("Enter the new master password: ");
+    sodium_mlock(newPassword.data(), newPassword.size());
+
+    std::string newPassword2 = getSensitiveInfo("Enter the new master password again: ");
+    sodium_mlock(newPassword2.data(), newPassword2.size());
+    // Verify that the new password is correct
+    if (!verifyPassword(newPassword2, hashPassword(newPassword, crypto_pwhash_OPSLIMIT_INTERACTIVE,
+                                                   crypto_pwhash_MEMLIMIT_INTERACTIVE))) {
+        sodium_munlock(newPassword.data(), newPassword.size());
+        sodium_munlock(newPassword2.data(), newPassword2.size());
+        std::cerr << "Passwords do not match." << std::endl;
+
+        return false;
+    }
+    sodium_munlock(newPassword2.data(), newPassword2.size());
+    masterPassword = newPassword;
+
+    sodium_munlock(newPassword.data(), newPassword.size());
+
+    return true;
+}
+
+/**
+ * @brief Helps with the initial setup of the password manager.
+ * @return New primary password and/or path to the password file, whichever is applicable.
+ */
+std::pair<std::string, std::string> initialSetup() noexcept {
+    std::pair<std::string, std::string> ret{"", ""}; // ret.first = path to file, ret.second = new primary password
+
+    std::cout << "Looks like you don't have any passwords saved yet." << std::endl;
+
+    while (true) {
+
+        int resp = getResponseInt(
+                "1. Initial setup. (Select if you haven't used this program to manage credentials before).\n"
+                "2. Enter the path to an existing password file (previously created by this program).\n"
+                "3. Exit.\n"
+                "select 1, 2, or 3: ");
+        if (resp == 1) {
+            std::string pass = getSensitiveInfo("Enter a new master password: ");
+
+            int count{0};
+            while (!isPasswordStrong(pass) && count < 2) {
+                std::cerr
+                        << "Weak password! Password should have at least 8 characters and include uppercase letters,\n"
+                           "lowercase letters, special characters and digits" << std::endl;
+                pass = getSensitiveInfo("Please enter a stronger password: ");
+                ++count;
+            }
+
+            if (count == 2) {
+                std::cerr << "\n3 incorrect password attempts." << std::endl;
+                continue;
+            }
+
+            std::string hash = hashPassword(pass, crypto_pwhash_OPSLIMIT_INTERACTIVE, crypto_pwhash_MEMLIMIT_INTERACTIVE);
+            std::string pass2 = getSensitiveInfo("Enter the password again: ");
+
+            if (!verifyPassword(pass2, hash)) {
+                std::cerr << "Password mismatch!" << std::endl;
+                continue;
+            }
+
+            ret.second = pass;
+            break;
+        } else if (resp == 2) {
+            std::string path = getResponseStr("Enter the path to the file: ");
+            if (!(fs::exists(path) && fs::is_regular_file(path))) {
+                std::cerr << "That file doesn't exist or is not a regular file." << std::endl;
+                continue;
+            }
+
+            ret.first = path;
+            break;
+
+        } else if (resp == 3) {
+            return ret;
+        } else {
+            std::cerr << "Invalid choice. Try again" << std::endl;
+            continue;
+        }
+    }
+    return ret;
+}
+
+/**
+ * @brief Reads the primary password hash from the password records.
+ * @param filePath the path to the file containing the password records (the password file).
+ * @return the primary password hash.
+ */
+std::string getHash(const std::string &filePath) {
+    if (fs::is_empty(filePath))
+        [[unlikely]]
+                std::cerr << "The password file seems empty. Trying to read it regardless..." << std::endl;
+
+    std::ifstream passFileStream(filePath);
+
+    if (!passFileStream)
+        throw std::runtime_error("Failed to open the password file for reading.");
+
+    std::string pwHash;
+    std::getline(passFileStream, pwHash); // Read and discard the first line
+    std::getline(passFileStream, pwHash);
+    passFileStream.close();
+
+    if (pwHash.empty())
+        throw std::runtime_error("The password file is empty.");
+
+    if (!pwHash.contains("argon"))
+        throw std::runtime_error("Invalid password hash in the password file.");
+
+    return pwHash;
+}
