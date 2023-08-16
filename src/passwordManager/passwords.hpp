@@ -3,14 +3,14 @@
 #include <string>
 #include <sodium.h>
 
-std::vector<std::pair<std::string, std::string>>
-loadPasswords(const std::string &filePath, const std::string &decryptionKey);
+using passwordRecords = std::tuple<std::string, std::string, std::string>;
 
-bool savePasswords(const std::vector<std::pair<std::string, std::string>> &passwords,
-                   const std::string &filePath, const std::string &encryptionKey);
+std::vector<passwordRecords> loadPasswords(const std::string &filePath, const std::string &decryptionKey);
 
-std::string hashPassword(const std::string &password, const size_t &opsLimit = crypto_pwhash_OPSLIMIT_SENSITIVE,
-                         const size_t &memLimit = crypto_pwhash_MEMLIMIT_SENSITIVE);
+bool savePasswords(const std::vector<passwordRecords> &passwords, const std::string &filePath, const std::string &encryptionKey);
+
+std::string hashPassword(const std::string &password, const std::size_t &opsLimit = crypto_pwhash_OPSLIMIT_SENSITIVE,
+                         const std::size_t &memLimit = crypto_pwhash_MEMLIMIT_SENSITIVE);
 
 bool isPasswordStrong(const std::string &password) noexcept;
 
