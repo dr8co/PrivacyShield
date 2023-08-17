@@ -18,7 +18,7 @@ const string DefaultPasswordFile = "/to/be/determined/later";
 
 
 /**
- * @brief A minimalistic password manager.
+ * @brief A simple, minimalistic password manager.
  */
 void passwordManager() {
     string encryptionKey, passwordFile{DefaultPasswordFile};
@@ -126,16 +126,8 @@ void passwordManager() {
             if (it != passwords.end()) {
                 printColor("A record with the same site and username already exists.", 'y', true);
                 printColor("Do you want to update it? (y/n): ", 'b');
-                char response;
-                std::cin >> response;
-                if (response == 'n' || response == 'N')
-                    continue;
-                else if (response == 'y' || response == 'Y') {
+                if (validateYesNo())
                     passwords.erase(it);
-                } else {
-                    printColor("Invalid response. Try again.", 'r', true);
-                    continue;
-                }
             }
 
             string password = getSensitiveInfo("Enter the password: ");
@@ -184,7 +176,7 @@ void passwordManager() {
 
             string generatedPassword = generatePassword(length);
 
-            std::cout << "Generated password: " << generatedPassword << std::endl; // end of 2
+            std::cout << "Generated password: " << generatedPassword << std::endl;
 
         } else if (choice == 3) {
             std::cout << "All passwords:" << std::endl;
@@ -193,7 +185,7 @@ void passwordManager() {
             for (const auto &password: passwords) {
                 printDetails(password);
                 std::cout << "---------------------------------------------------" << std::endl;
-            } // end of 3
+            }
         } else if (choice == 4) {
             string site = getResponseStr("Enter the site to update: ");
 
@@ -214,8 +206,10 @@ void passwordManager() {
                 printColor("Password updated successfully.", 'g', true);
             } else {
                 printColor("Site not found!", 'r', true);
-            } // end of 4
+            }
         } else if (choice == 5) {
+            // TODO: Update this segment,
+            //  several records can exist under the same site name but with different usernames.
             string site = getResponseStr("Enter the site to delete: ");
 
             auto it = std::ranges::find_if(passwords, [&site](const auto &password) -> bool {
@@ -227,13 +221,15 @@ void passwordManager() {
                 printColor("Password deleted successfully.", 'g', true);
             } else {
                 printColor("Site not found!", 'r', true);
-            } // end of 5
+            }
         } else if (choice == 6) {
             if (changeMasterPassword(encryptionKey))
                 printColor("Master password changed successfully.", 'g', true);
             else printColor("Master password not changed.", 'r', true);
         } else if (choice == 7) {
             string query = getResponseStr("Enter the site name: ");
+
+            // TODO: consider case-insensitive querying.
 
             auto matches = passwords | std::ranges::views::filter([&query](const auto &vec) -> bool {
                 return std::get<0, string>(vec).contains(query);
@@ -255,8 +251,7 @@ void passwordManager() {
                 auto fuzzyMatched = matcher.fuzzyMatch(query, 2);
                 if (fuzzyMatched.size() == 1) {
                     printColor(std::format("Did you mean '{}'? (y/n) ", fuzzyMatched[0]), 'b', false);
-                    string res = getResponseStr();
-                    if (std::tolower(res[0]) == 'y') {
+                    if (validateYesNo()) {
                         auto it = std::ranges::find_if(passwords, [&fuzzyMatched](const auto &vec) -> bool {
                             return std::get<0>(vec) == fuzzyMatched[0];
                         });
@@ -273,9 +268,8 @@ void passwordManager() {
             }
         } else if (choice == 8) {
             string fileName = getResponseStr("Enter the path to the csv file: ");
-            string resp = getResponseStr("Does the file have a header? (Skip the first line?) (y/n): ");
+            bool hasHeader = validateYesNo("Does the file have a header? (Skip the first line?) (y/n): ");
 
-            bool hasHeader = std::tolower(resp[0]) == 'y';
             std::vector<passwordRecords> importedPasswords = importCsv(fileName, hasHeader);
             sodium_mlock(importedPasswords.data(), importedPasswords.size() * sizeof(passwordRecords));
 
@@ -293,6 +287,7 @@ void passwordManager() {
 
             // Add the first password entry before checking for duplicates
             uniqueImportedPasswords.emplace_back(importedPasswords[0]);
+
             // This approach is faster than using std::ranges::unique, apparently. (the expensive erase() call is avoided)
             for (size_t i = 1; i < importedPasswords.size(); ++i) {
                 if (std::get<0>(importedPasswords[i]) != std::get<0>(uniqueImportedPasswords.back()) ||
@@ -317,8 +312,7 @@ void passwordManager() {
                     printDetails(password, false);
                 }
                 printColor("Do you want to overwrite/update them? (y/n): ", 'b', true);
-                string resp2 = getResponseStr();
-                if (std::tolower(resp2[0]) == 'y') {
+                if (validateYesNo()) {
                     // Remove the duplicates from the existing passwords so that they can be replaced
                     passwords.erase(std::remove_if(passwords.begin(), passwords.end(),
                                                    [&duplicates, &comparator](const auto &password) -> bool {
@@ -427,7 +421,7 @@ void passwordManager() {
             // Print sites with reused passwords
             for (const auto &entry: passwordMap) {
                 const std::unordered_set<string> &sites = entry.second;
-                if (auto x = sites.size(); x > 1) {
+                if (const auto &x = sites.size(); x > 1) {
                     printColor(std::format("Password '{}' is reused on {} sites:", entry.first, x), 'y', true);
                     for (const string &site: sites) {
                         printColor(site + "\n", 'y');

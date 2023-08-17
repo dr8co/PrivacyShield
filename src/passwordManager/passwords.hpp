@@ -2,6 +2,7 @@
 
 #include <string>
 #include <sodium.h>
+#include "../utils/utils.hpp"
 
 using passwordRecords = std::tuple<std::string, std::string, std::string>;
 
