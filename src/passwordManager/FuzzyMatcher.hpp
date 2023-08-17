@@ -9,7 +9,7 @@ concept StringContainer = std::ranges::input_range<T> &&
                           std::same_as<std::ranges::range_value_t<T>, std::string>;
 
 /**
- * @brief A simple fuzzy matcher.
+ * @brief A simple case insensitive fuzzy matcher.
  */
 class FuzzyMatcher {
 public:
@@ -19,7 +19,7 @@ public:
 //            : stringList(wordList | std::ranges::to<std::vector>()){} // When the feature becomes available in GCC & Clang
 
     /**
-     * @brief Fuzzy-matches strings to a pattern.
+     * @brief Fuzzy-matches (case insensitive) strings to a pattern.
      * @param pattern the pattern to match.
      * @param maxDistance the maximum Levenshtein Distance to consider a match.
      * @return a vector of strings matching the pattern.
@@ -52,6 +52,8 @@ private:
      * @param str1 the first string.
      * @param str2 the second string.
      * @return the calculated distance.
+     * @note The Levenshtein distance calculated by this function is case insensitive,
+     * i.e the strings are converted to lowercase when calculating the edit distance.
      */
     static int levenshteinDistance(const std::string &str1, const std::string &str2) {
         int m = static_cast<int>(str1.length());

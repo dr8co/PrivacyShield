@@ -21,6 +21,7 @@ const string DefaultPasswordFile = "/to/be/determined/later";
  * @brief A simple, minimalistic password manager.
  */
 void passwordManager() {
+    // TODO: Exception handling
     string encryptionKey, passwordFile{DefaultPasswordFile};
     bool newSetup{false};
 
@@ -112,6 +113,8 @@ void passwordManager() {
         std::cout << "-----------------------------------" << std::endl;
 
         int choice = getResponseInt("Enter your choice: ");
+
+        // TODO: Find an alternative to these many if-else branches
 
         if (choice == 1) {
             string site = getResponseStr("Enter the site/platform: ");

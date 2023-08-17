@@ -3,20 +3,21 @@
 #include <filesystem>
 #include "encryptDecrypt.hpp"
 #include "../utils/utils.hpp"
+#include "../passwordManager/passwords.hpp"
 #include <utility>
 #include <iostream>
 #include <format>
 #include <cmath>
 #include <unordered_map>
+#include <sodium.h>
 
 template<typename T>
 /**
- * @brief A concept describing a type convertible & comparable to uintmax_t.
+ * @brief A concept describing a type convertible & comparable with uintmax_t.
  * @tparam T - An integral type.
  */
-concept Num = std::is_integral_v<T> && std::convertible_to<T, std::uintmax_t> && requires(T t, std::uintmax_t u) {
-    std::cmp_equal(t, u);
-};
+concept Num = std::integral<T> && std::convertible_to<T, std::uintmax_t> &&
+              std::equality_comparable_with<T, std::uintmax_t>;
 
 /**
  * @brief A class to make file sizes more readable.
@@ -196,7 +197,7 @@ void fileEncryptionDecryption(const std::string &inputFileName, const std::strin
 
         // If we reach here, the operation was successful
         auto pre = mode == static_cast<int>(OperationMode::Encryption) ? "En" : "De";
-        std::cout << std::format("{}cryption completed successfully. \n{}crypted file saved at '{}'.", pre, pre,
+        std::cout << std::format("{}cryption completed successfully. \n{}crypted file saved at '{}'", pre, pre,
                                  outputFileName) << std::endl;
 
         // Preserve file permissions
@@ -249,12 +250,20 @@ void encryptDecrypt() {
                 std::cout << "Enter the path to the file to " << pre_l << "crypt:" << std::endl;
                 std::string inputFile = getResponseStr();
 
+                // Remove the trailing directory separator
+                // ('\\' is considered as well in case the program is to be extended to Windows)
+                if (inputFile.ends_with('/') || inputFile.ends_with('\\'))
+                    inputFile.erase(inputFile.size() - 1);
+
                 fs::path inputPath(inputFile);
                 checkInputFile(inputPath, choice);
 
                 std::cout << "Enter the path to save the " << pre_l
                           << "crypted file \n(or leave it blank to save it in the same directory): " << std::endl;
                 std::string outputFile = getResponseStr();
+
+                if (outputFile.ends_with('/') || outputFile.ends_with('\\'))
+                    outputFile.erase(outputFile.size() - 1);
 
                 fs::path outputPath(outputFile);
                 checkOutputFile(inputPath, outputPath, choice);
@@ -268,16 +277,32 @@ void encryptDecrypt() {
                 std::cout << "Leave blank to use the default (AES)" << std::endl;
 
                 int algo = getResponseInt();
-                if (algo < 0 || algo > 5) {
+                if (algo < 1 || algo > 5) {
                     std::cout << "Invalid choice!" << std::endl;
-                    break;
+                    continue;
                 }
 
                 auto it = algoChoice.find(algo);
                 auto cipher = it != algoChoice.end() ? it->second : Algorithms::AES;
 
                 std::string password = getSensitiveInfo("Enter the password: ");
-                // TODO: Confirm the password during encryption
+                sodium_mlock(password.data(), password.size());
+
+                // Confirm the password during encryption
+                if (choice == 1) {
+                    std::string password2 = getSensitiveInfo("Enter the password again: ");
+                    sodium_mlock(password2.data(), password2.size());
+
+                    if (!verifyPassword(password2, hashPassword(password, crypto_pwhash_OPSLIMIT_INTERACTIVE,
+                                                                crypto_pwhash_MEMLIMIT_INTERACTIVE))) {
+                        std::cerr << "Passwords do not match." << std::endl;
+
+                        sodium_munlock(password.data(), password.size());
+                        sodium_munlock(password2.data(), password2.size());
+
+                        continue;
+                    }
+                }
 
                 std::cout << pre << "crypting " << inputPath << " with " << algoDescription.find(cipher)->second
                           << "..." << std::endl;
@@ -285,8 +310,11 @@ void encryptDecrypt() {
                 fileEncryptionDecryption(inputPath.string(), outputPath.string(), password,
                                          static_cast<int>(cipher), choice);
                 std::cout << std::endl;
+
+                sodium_munlock(password.data(), password.size());
             } catch (std::exception &ex) {
                 std::cerr << "Error: " << ex.what() << std::endl;
+                continue;
             }
 
         } else if (choice == 3) break;
