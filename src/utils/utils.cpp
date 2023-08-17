@@ -312,9 +312,10 @@ bool addReadWritePermissions(const std::string &fileName) noexcept {
 /**
  * @brief Gets the value of an environment variable.
  * @param var an environment variable to query.
- * @return the value of the environment variable if it exists, else nullopt.
+ * @return the value of the environment variable if it exists, else nullopt (nothing).
+ * @note The returned value MUST be checked before access.
  */
-std::optional<std::string> getEnv(const char *var) {
+std::optional<std::string> getEnv(const char *const var) {
     // Use secure_getenv() if available
 #if _GNU_SOURCE
     if (const char *value = secure_getenv(var))
@@ -329,50 +330,20 @@ std::optional<std::string> getEnv(const char *var) {
 /**
  * @brief Retrieves the user's home directory
  * @return The home directory read from {'HOME', 'USERPROFILE'}
- * environment variables, else the current working directory.
+ * environment variables, else the current working directory (or an empty
+ * string if the current directory couldn't be determined).
  */
-std::string getHomeDir() {
+std::string getHomeDir() noexcept {
+    std::error_code ec;
     if (auto envHome = getEnv("HOME"); envHome)
         return *envHome;
     if (auto envUserProfile = getEnv("USERPROFILE"); envUserProfile)
         return *envUserProfile;
-    return std::filesystem::current_path().string();
-}
 
-/**
- * @brief Prints colored text to a stream.
- * @param text the text to print.
- * @param color a character representing the desired color.
- * @param printNewLine a flag to indicate whether a newline should be printed after the text
- * @param os the stream object to print to.
- */
-void printColor(const PrintableToStream auto &text, const char &color, const bool &printNewLine, std::ostream &os) {
-    switch (color) {
-        case 'r': // Red
-            os << "\033[1;31m";
-            break;
-        case 'g': // Green
-            os << "\033[1;32m";
-            break;
-        case 'y': // Yellow
-            os << "\033[1;33m";
-            break;
-        case 'b': // Blue
-            os << "\033[1;34m";
-            break;
-        case 'm': // Magenta
-            os << "\033[1;35m";
-            break;
-        case 'c': // Cyan
-            os << "\033[1;36m";
-            break;
-        case 'w': // White
-            os << "\033[1;37m";
-            break;
-        default:
-            break;
-    }
-    os << text << "\033[0m";
-    if (printNewLine)
-        os << std::endl;
+    std::cerr << "\nCouldn't find your home directory, using the current working directory instead.." << std::endl;
+
+    std::string currentDir = std::filesystem::current_path(ec);
+    if (ec) std::cerr << ec.message() << std::endl;
+
+    return currentDir;
 }
