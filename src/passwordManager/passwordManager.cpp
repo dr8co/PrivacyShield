@@ -27,22 +27,20 @@ void passwordManager() {
 
     if (!fs::exists(passwordFile) || !fs::is_regular_file(passwordFile)) {
         auto [path, pass] = initialSetup();
-        sodium_mlock(pass.data(), pass.size());
 
-        if (path.empty()) [[likely]] { // user provided a new primary password
+        if (path.empty() && pass.empty()) { // user exited
+            return;
+        } else if (path.empty()) [[likely]] { // user provided a new primary password
             encryptionKey = pass;
 
             // Lock the memory area holding the new password
             sodium_mlock(encryptionKey.data(), encryptionKey.size());
 
             newSetup = true;
-        } else if (path.empty() && pass.empty()) { // user exited
-            return;
-        } else {
+        } else {  // user pointed us to an existing password records
             passwordFile = path;
         }
 
-        sodium_munlock(pass.data(), pass.size());
     }
 
     std::vector<passwordRecords> passwords;
@@ -56,7 +54,7 @@ void passwordManager() {
 
         // Get the primary password
         do {
-            encryptionKey = getSensitiveInfo("Enter the master password: ");
+            encryptionKey = getSensitiveInfo("Enter the primary password: ");
             isCorrect = verifyPassword(encryptionKey, pwHash);
             if (!isCorrect && attempts < 2)
                 std::cerr << "Sorry, try again." << std::endl;
@@ -66,7 +64,7 @@ void passwordManager() {
 
         // If the user failed to enter the correct password 3 times, exit
         if (attempts == 3) {
-//            throw std::invalid_argument("3 incorrect password attempts.");
+            throw std::invalid_argument("3 incorrect password attempts.");
         }
 
         // Lock the memory area holding the password
@@ -126,11 +124,14 @@ void passwordManager() {
             });
 
             // If the record already exists, ask the user if they want to update it
+            bool update{false};
             if (it != passwords.end()) {
                 printColor("A record with the same site and username already exists.", 'y', true);
                 printColor("Do you want to update it? (y/n): ", 'b');
-                if (validateYesNo())
-                    passwords.erase(it);
+                update = validateYesNo();
+
+                if (!update)
+                    continue;
             }
 
             string password = getSensitiveInfo("Enter the password: ");
@@ -156,9 +157,11 @@ void passwordManager() {
 
 
             string encryptedPassword = encryptString(password, encryptionKey);
-            passwords.emplace_back(site, username, encryptedPassword);
+            if (update)
+                std::get<2>(*it) = encryptedPassword;
+            else passwords.emplace_back(site, username, encryptedPassword);
 
-            printColor("Password added successfully.", 'g', true);
+            printColor(std::format("Password {} successfully.", update ? "updated" : "added"), 'g', true);
 
             // Entries should always be sorted
             std::ranges::sort(passwords, comparator);
@@ -168,13 +171,13 @@ void passwordManager() {
 
             int tries{0};
 
-            while (length < 8 && tries < 3) {
+            while (length < 8 && ++tries < 3) {
                 printColor("A strong password should be at least 8 characters long.", 'y', true);
-                printColor(std::format("{} Trial(s) left. Try again: ", 2 - tries), 'y');
+                printColor(std::format("{}", tries == 2 ? "Last chance:" : "Please try again:"),
+                           tries == 2 ? 'r' : 'y');
                 length = getResponseInt();
-                ++tries;
             }
-            if (tries == 3)
+            if (length < 8)
                 continue;
 
             string generatedPassword = generatePassword(length);
@@ -220,7 +223,7 @@ void passwordManager() {
             });
 
             if (it != passwords.end()) {
-                passwords.erase(it);
+                passwords.erase(std::remove(passwords.begin(), passwords.end(), *it), passwords.end());
                 printColor("Password deleted successfully.", 'g', true);
             } else {
                 printColor("Site not found!", 'r', true);
@@ -270,6 +273,7 @@ void passwordManager() {
                 }
             }
         } else if (choice == 8) {
+            // TODO: More concurrency: encrypt/process passwords concurrently
             string fileName = getResponseStr("Enter the path to the csv file: ");
             bool hasHeader = validateYesNo("Does the file have a header? (Skip the first line?) (y/n): ");
 
@@ -335,17 +339,24 @@ void passwordManager() {
             }
 
             // A lambda to encrypt the passwords
-            auto encryptPasswords = [&encryptionKey](const auto &password) -> passwordRecords {
-                return {std::get<0>(password), std::get<1>(password),
-                        encryptString(std::get<2>(password), encryptionKey)};
-            };
+//            auto encryptPasswords = [&encryptionKey](const auto &password) -> passwordRecords {
+//                return {std::get<0>(password), std::get<1>(password),
+//                        encryptString(std::get<2>(password), encryptionKey)};
+//            };
 
             // Encrypt the passwords before importing
-            std::ranges::transform(uniqueImportedPasswords, std::back_inserter(passwords), encryptPasswords);
+//            std::ranges::transform(uniqueImportedPasswords, std::back_inserter(passwords), encryptPasswords);
+            auto encryptedPasswords = encryptDecryptConcurrently(uniqueImportedPasswords, encryptionKey, true);
 
             // Zeroize the imported passwords and unlock the memory area
             sodium_munlock(uniqueImportedPasswords.data(),
                            uniqueImportedPasswords.size() * sizeof(passwordRecords));
+
+            std::ranges::sort(encryptedPasswords, comparator);
+
+            for (const auto &el: encryptedPasswords) {
+                passwords.emplace_back(el);
+            }
 
             // Lock the passwords vector using sodium_mlock
             sodium_mlock(passwords.data(), passwords.size() * sizeof(passwordRecords));
@@ -452,7 +463,7 @@ void passwordManager() {
             // Print the statistics
             std::cout << "\nTotal passwords: " << total << std::endl;
             if (weak > 0)[[likely]] {
-                char col{std::cmp_greater(weak, total / 2) ? 'r' : 'y'};
+                char col{std::cmp_greater(weak, total / 4) ? 'r' : 'y'};
 
                 printColor(std::format("{}% of your passwords are weak.",
                                        std::round(static_cast<double>(weak) / static_cast<double>(total) * 100 * 100) /

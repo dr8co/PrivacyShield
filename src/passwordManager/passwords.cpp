@@ -6,6 +6,8 @@
 #include <readline/readline.h>
 #include <format>
 #include <algorithm>
+#include <thread>
+#include <functional>
 #include "../encryption/encryptDecrypt.hpp"
 #include "../utils/utils.hpp"
 #include "passwords.hpp"
@@ -467,4 +469,48 @@ std::vector<passwordRecords> importCsv(const std::string &filePath, bool skipFir
     file.close();
 
     return passwords;
+}
+
+void
+encryptDecryptRange(std::vector<passwordRecords> &passwords, const std::string &key, std::size_t start, std::size_t end,
+                    bool encrypt = false) {
+    if (start > end || end > passwords.size())
+        throw std::runtime_error("Invalid range.");
+
+
+    for (std::size_t i = start; i < end; ++i) {
+        std::get<2>(passwords[i]) = encrypt ? encryptStringWithMoreRounds(std::get<2>(passwords[i]), key) : decryptString(
+                std::get<2>(passwords[i]), key);
+    }
+}
+
+
+std::vector<passwordRecords>
+encryptDecryptConcurrently(const std::vector<passwordRecords> &passwordRecords, const std::string &key,
+                           bool encrypt) {
+    auto passwordCopies{passwordRecords};
+
+    std::size_t numPasswords = passwordRecords.size();
+    const unsigned int numThreads{std::jthread::hardware_concurrency() ? std::jthread::hardware_concurrency() : 8};
+
+    // Divide the password entries among threads
+    std::vector<std::jthread> threads;
+    std::size_t passPerThread = numPasswords / numThreads;
+    std::size_t start = 0;
+
+    // encrypt/decrypt passwords in parallel
+    for (int i = 0; i < static_cast<int>(numThreads - 1); ++i) {
+        threads.emplace_back(encryptDecryptRange, std::ref(passwordCopies), key, start, start + passPerThread, encrypt);
+        start += passPerThread;
+    }
+
+    // Account for the division remainder in the last thread
+    threads.emplace_back(encryptDecryptRange, std::ref(passwordCopies), key, start, passwordCopies.size(), encrypt);
+
+    // Wait for all threads to finish execution
+    for (auto &thread: threads) {
+        thread.join();
+    }
+
+    return passwordCopies;
 }
