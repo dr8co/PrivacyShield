@@ -7,6 +7,7 @@
 #include <sodium/utils.h>
 #include <format>
 #include <filesystem>
+#include <mutex>
 #include "cryptoCipher.hpp"
 #include "encryptDecrypt.hpp"
 
@@ -22,13 +23,15 @@ constexpr unsigned int PBKDF2_ITERATIONS = 100'000; // Iterations for PBKDF2 key
 
 
 /**
- * @brief Generates a random salt/iv using a CSPRNG.
+ * @brief Generates random bytes using a CSPRNG.
  * @param saltSize number of bytes of salt to generate.
  * @return the generated salt as a vector.
  */
 std::vector<unsigned char> generateSalt(int saltSize) {
+    std::mutex m;  // Not sure if RAND_bytes is thread-safe
     std::vector<unsigned char> salt(saltSize);
-    if (RAND_bytes(salt.data(), saltSize) != 1) {
+    if (std::scoped_lock<std::mutex> lock(m); RAND_bytes(salt.data(), saltSize) != 1) {
+        // TODO: Try Gcrypt's (or Sodium's) random facilities upon the failure of OpenSSL's
         throw std::runtime_error("Failed to generate salt/iv.");
     }
     return salt;
@@ -287,6 +290,12 @@ void decryptFile(const std::string &inputFile, const std::string &outputFile, co
     outFile.flush();
 }
 
+inline void throwSafeError(gcry_error_t &err, const std::string &message) {
+    std::mutex m;
+    std::scoped_lock<std::mutex> locker(m);
+    throw std::runtime_error(std::format("{}: {}", message, gcry_strerror(err)));
+}
+
 /**
  * @brief Encrypts a file with ciphers that use more rounds.
  * @param inputFilePath the file to be encrypted.
@@ -318,19 +327,19 @@ encryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
     gcry_cipher_hd_t cipherHandle;
     err = gcry_cipher_open(&cipherHandle, algorithm, GCRY_CIPHER_MODE_CTR, GCRY_CIPHER_SECURE);
     if (err)
-        throw std::runtime_error(std::format("Failed to create the encryption cipher context: {}", gcry_strerror(err)));
+        throwSafeError(err, "Failed to create the encryption cipher context");
 
-    // Check the key size, and the IV size required by the cipher
-    std::size_t ivSize = gcry_cipher_get_algo_blklen(algorithm);
+    // Check the key size, and the counter size required by the cipher
+    std::size_t ctrSize = gcry_cipher_get_algo_blklen(algorithm);
     std::size_t keySize = gcry_cipher_get_algo_keylen(algorithm);
 
-    // Set key size to default (256 bits) if the previous call failed
-    if (keySize == 0)
-        keySize = KEY_SIZE_256;
+    // Default the key size to 256 bits if the previous call failed
+    if (keySize == 0) keySize = KEY_SIZE_256;
+    if (ctrSize == 0) ctrSize = 16;  // Default the counter size to 128 bits if we can't get the block length
 
-    // Generate a random salt and a random IV
+    // Generate a random salt, and a random counter
     std::vector<unsigned char> salt = generateSalt(SALT_SIZE);
-    std::vector<unsigned char> iv = generateSalt(static_cast<int>(ivSize));
+    std::vector<unsigned char> ctr = generateSalt(static_cast<int>(ctrSize));
 
     // Derive the key
     std::vector<unsigned char> key = deriveKey(password, salt, static_cast<int>(keySize));
@@ -341,19 +350,19 @@ encryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
     // Set the key
     err = gcry_cipher_setkey(cipherHandle, key.data(), key.size());
     if (err)
-        throw std::runtime_error(std::format("Failed to set the encryption key: {}", gcry_strerror(err)));
+        throwSafeError(err, "Failed to set the encryption key");
 
     // Zeroize the key, we don't need it anymore
     sodium_munlock(key.data(), key.size());
 
-    // Set the IV in the encryption context
-    err = gcry_cipher_setiv(cipherHandle, iv.data(), iv.size());
+    // Set the counter
+    err = gcry_cipher_setctr(cipherHandle, ctr.data(), ctr.size());
     if (err)
-        throw std::runtime_error(std::format("Failed to set the encryption IV: {}", gcry_strerror(err)));
+        throwSafeError(err, "Failed to set the encryption counter");
 
-    // Write the salt, and the IV to the output file
+    // Write the salt, and the counter to the output file
     outputFile.write(reinterpret_cast<const char *>(salt.data()), static_cast<std::streamsize>(salt.size()));
-    outputFile.write(reinterpret_cast<const char *>(iv.data()), static_cast<std::streamsize>(iv.size()));
+    outputFile.write(reinterpret_cast<const char *>(ctr.data()), static_cast<std::streamsize>(ctr.size()));
 
     // Encrypt the file in chunks
     std::vector<unsigned char> buffer(CHUNK_SIZE);
@@ -364,12 +373,11 @@ encryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
         // Encrypt the chunk
         err = gcry_cipher_encrypt(cipherHandle, buffer.data(), buffer.size(), nullptr, 0);
         if (err)
-            throw std::runtime_error(std::format("Failed to encrypt file: {}", gcry_strerror(err)));
+            throwSafeError(err, "Failed to encrypt file");
 
         // Write the encrypted chunk to the output file
         outputFile.write(reinterpret_cast<const char *>(buffer.data()), bytesRead);
     }
-
     // Clean up
     gcry_cipher_close(cipherHandle);
 }
@@ -393,25 +401,26 @@ decryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
     if (!outputFile)
         throw std::runtime_error(std::format("Failed to open '{}' for writing.", outputFilePath));
 
-    // Fetch the cipher's IV size and key size
-    std::size_t ivSize = gcry_cipher_get_algo_blklen(algorithm);
+    // Fetch the cipher's counter size and key size
+    std::size_t ctrSize = gcry_cipher_get_algo_blklen(algorithm);
     std::size_t keySize = gcry_cipher_get_algo_keylen(algorithm);
-    if (keySize == 0)
-        keySize = 32;
+
+    if (keySize == 0) keySize = KEY_SIZE_256;
+    if (ctrSize == 0) ctrSize = 16;
 
     std::vector<unsigned char> salt(SALT_SIZE);
-    std::vector<unsigned char> iv(ivSize);
-    std::size_t saltBytesRead, ivBytesRead;
+    std::vector<unsigned char> ctr(ctrSize);
+    std::size_t saltBytesRead, ctrBytesRead;
 
-    // Read the salt, and the IV from the input file
+    // Read the salt, and the counter from the input file
     inputFile.read(reinterpret_cast<char *>(salt.data()), static_cast<std::streamsize>(salt.size()));
     saltBytesRead = inputFile.gcount();
 
-    inputFile.read(reinterpret_cast<char *>(iv.data()), static_cast<std::streamsize>(iv.size()));
-    ivBytesRead = inputFile.gcount();
+    inputFile.read(reinterpret_cast<char *>(ctr.data()), static_cast<std::streamsize>(ctr.size()));
+    ctrBytesRead = inputFile.gcount();
 
-    // Without valid salt and IV, decryption would fail, or the plaintext would be garbage
-    if (saltBytesRead < SALT_SIZE or ivBytesRead < ivSize)
+    // Without valid salt and counter, decryption would fail, or the plaintext would be garbage
+    if (saltBytesRead < SALT_SIZE or ctrBytesRead < ctrSize)
         throw std::length_error("Invalid ciphertext.");
 
     // Derive the key and lock the memory
@@ -423,20 +432,20 @@ decryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
     gcry_cipher_hd_t cipherHandle;
     err = gcry_cipher_open(&cipherHandle, algorithm, GCRY_CIPHER_MODE_CTR, GCRY_CIPHER_SECURE);
     if (err)
-        throw std::runtime_error(std::format("Failed to create the decryption cipher context: {}", gcry_strerror(err)));
+        throwSafeError(err, "Failed to create the decryption cipher context");
 
     // Set the decryption key
     err = gcry_cipher_setkey(cipherHandle, key.data(), key.size());
     if (err)
-        throw std::runtime_error(std::format("Failed to set the decryption key: {}", gcry_strerror(err)));
+        throwSafeError(err, "Failed to set the decryption key");
 
     // Key is not needed anymore, zeroize it and unlock it
     sodium_munlock(key.data(), key.size());
 
-    // Set the IV in the decryption context
-    err = gcry_cipher_setiv(cipherHandle, iv.data(), iv.size());
+    // Set the counter
+    err = gcry_cipher_setctr(cipherHandle, ctr.data(), ctr.size());
     if (err)
-        throw std::runtime_error(std::format("Failed to set the encryption IV: {}", gcry_strerror(err)));
+        throwSafeError(err, "Failed to set the decryption counter");
 
     // Decrypt the file in chunks
     std::vector<unsigned char> buffer(CHUNK_SIZE);
@@ -447,12 +456,11 @@ decryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
         // Decrypt the chunk in place
         err = gcry_cipher_decrypt(cipherHandle, buffer.data(), buffer.size(), nullptr, 0);
         if (err)
-            throw std::runtime_error(std::format("Failed to decrypt the ciphertext: {}", gcry_strerror(err)));
+            throwSafeError(err, "Failed to decrypt the ciphertext");
 
         // Write the decrypted chunk to the output file
         outputFile.write(reinterpret_cast<const char *>(buffer.data()), bytesRead);
     }
-
-    // Clean up
+    // Release resources
     gcry_cipher_close(cipherHandle);
 }

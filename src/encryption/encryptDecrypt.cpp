@@ -157,6 +157,12 @@ inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const int
     }
 }
 
+inline void copyLastWrite(const std::string &srcFile, const std::string &destFile) noexcept {
+    std::error_code ec;
+    auto srcTime = fs::last_write_time(srcFile, ec);
+    if (ec) ec.clear();
+    fs::last_write_time(destFile, srcTime, ec);
+}
 
 void fileEncryptionDecryption(const std::string &inputFileName, const std::string &outputFileName,
                               const std::string &password, unsigned int algo, int mode) {
@@ -204,7 +210,8 @@ void fileEncryptionDecryption(const std::string &inputFileName, const std::strin
         if (!copyFilePermissions(inputFileName, outputFileName))
             std::cerr << "Check the permissions of the " << pre << "crypted file." << std::endl;
 
-        // TODO: Preserve file time stamps as well
+        // Try to preserve the time of last modification
+        copyLastWrite(inputFileName, outputFileName);
 
     } catch (std::exception &ex) {
         std::cerr << "Error: " << ex.what() << std::endl;

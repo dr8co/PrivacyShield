@@ -1,4 +1,5 @@
 #include <iostream>
+#include <mutex>
 #include <sodium.h>
 #include <format>
 #include "encryptDecrypt.hpp"
@@ -16,7 +17,7 @@
  * @details The key is derived from the password using PBKDF2 with 100,000 rounds (salted).
  * @details The IV is generated randomly using a CSPRNG and prepended to the ciphertext.
  */
-std::string encryptString(const std::string &plaintext, const std::string &password, const std::string& algo) {
+std::string encryptString(const std::string &plaintext, const std::string &password, const std::string &algo) {
     CryptoCipher cipher;
 
     // Create the cipher context
@@ -60,7 +61,6 @@ std::string encryptString(const std::string &plaintext, const std::string &passw
                           static_cast<int>(plaintext.size())) != 1) {
         throw std::runtime_error("Failed to encrypt the data.");
     }
-
     // Finalize the encryption operation
     int finalLength = 0;
     if (EVP_EncryptFinal_ex(cipher.getCtx(), ciphertext.data() + ciphertextLength, &finalLength) != 1)
@@ -88,7 +88,7 @@ std::string encryptString(const std::string &plaintext, const std::string &passw
  * @param password The string to be used to derive the decryption key.
  * @return The decrypted string (the plaintext).
  */
-std::string decryptString(const std::string &encodedCiphertext, const std::string &password, const std::string& algo) {
+std::string decryptString(const std::string &encodedCiphertext, const std::string &password, const std::string &algo) {
     CryptoCipher cipher;
 
     // Create the cipher context
@@ -157,6 +157,12 @@ std::string decryptString(const std::string &encodedCiphertext, const std::strin
     return decryptedText;
 }
 
+inline void throwSafeError(gcry_error_t &err, const std::string &message) {
+    std::mutex m;
+    std::scoped_lock<std::mutex> locker(m);
+    throw std::runtime_error(std::format("{}: {}", message, gcry_strerror(err)));
+}
+
 /**
  * @brief Encrypts a string with ciphers with more rounds.
  * @param plaintext The string to be encrypted.
@@ -169,26 +175,27 @@ std::string decryptString(const std::string &encodedCiphertext, const std::strin
  * @details The IV(nonce) is generated randomly and prepended to the ciphertext.
  */
 std::string
-encryptStringWithMoreRounds(const std::string &plaintext, const std::string &password, const gcry_cipher_algos &algorithm) {
+encryptStringWithMoreRounds(const std::string &plaintext, const std::string &password,
+                            const gcry_cipher_algos &algorithm) {
     gcry_error_t err;   // error tracker
 
     // Set up the encryption context
     gcry_cipher_hd_t cipherHandle;
     err = gcry_cipher_open(&cipherHandle, algorithm, GCRY_CIPHER_MODE_CTR, GCRY_CIPHER_SECURE);
     if (err)
-        throw std::runtime_error(std::format("{}: {}", gcry_strsource(err), gcry_strerror(err)));
+        throwSafeError(err, "Failed to create the encryption cipher context");
 
-    // Check the key size, and the IV size required by the cipher
-    std::size_t ivSize = gcry_cipher_get_algo_blklen(algorithm);
+    // Check the key size, and the counter size required by the cipher
+    std::size_t ctrSize = gcry_cipher_get_algo_blklen(algorithm);
     std::size_t keySize = gcry_cipher_get_algo_keylen(algorithm);
 
-    // Set key size to default (256 bits) if the previous call failed
-    if (keySize == 0)
-        keySize = KEY_SIZE_256;
+    // Default the key size to 256 bits if the previous call failed
+    if (keySize == 0) keySize = KEY_SIZE_256;
+    if (ctrSize == 0) ctrSize = 16;  // Default the counter size to 128 bits if we can't get the block length
 
-    // Generate a random salt and a random IV
+    // Generate a random salt, and a random counter
     std::vector<unsigned char> salt = generateSalt(SALT_SIZE);
-    std::vector<unsigned char> iv = generateSalt(static_cast<int>(ivSize));
+    std::vector<unsigned char> ctr = generateSalt(static_cast<int>(ctrSize));
 
     // Derive the key
     std::vector<unsigned char> key = deriveKey(password, salt, static_cast<int>(keySize));
@@ -199,33 +206,32 @@ encryptStringWithMoreRounds(const std::string &plaintext, const std::string &pas
     // Set the key
     err = gcry_cipher_setkey(cipherHandle, key.data(), key.size());
     if (err)
-        throw std::runtime_error(std::format("Failed to set the encryption key: {}", gcry_strerror(err)));
+        throwSafeError(err, "Failed to set the encryption key");
 
     // Zeroize the key, we don't need it anymore
     sodium_munlock(key.data(), key.size());
 
-    // Set the IV in the encryption context
-    err = gcry_cipher_setiv(cipherHandle, iv.data(), iv.size());
+    // Set the counter
+    err = gcry_cipher_setctr(cipherHandle, ctr.data(), ctr.size());
     if (err)
-        throw std::runtime_error(
-                std::format("Failed to set the encryption IV: {}: {}", gcry_strsource(err), gcry_strerror(err)));
+        throwSafeError(err, "Failed to set the encryption counter");
 
     // Encrypt the plaintext
     std::vector<unsigned char> ciphertext(plaintext.size());
     err = gcry_cipher_encrypt(cipherHandle, ciphertext.data(), ciphertext.size(), plaintext.data(), plaintext.size());
     if (err)
-        throw std::runtime_error(std::format("Failed to encrypt data: {}", gcry_strerror(err)));
+        throwSafeError(err, "Failed to encrypt data");
 
     // Clean up the resources associated with the encryption handle
     gcry_cipher_close(cipherHandle);
 
-    // Export the salt, iv, and the ciphertext
+    // Export the salt, ctr, and the ciphertext
     std::vector<unsigned char> result;
-    result.reserve(salt.size() + iv.size() + ciphertext.size());
+    result.reserve(salt.size() + ctr.size() + ciphertext.size());
 
-    // Construct result = salt + iv + ciphertext in that order
+    // Construct result = salt + ctr + ciphertext in that order
     result.assign(salt.begin(), salt.end());
-    result.insert(result.end(), iv.begin(), iv.end());
+    result.insert(result.end(), ctr.begin(), ctr.end());
     result.insert(result.end(), ciphertext.begin(), ciphertext.end());
 
     // Return Base64-encoded ciphertext
@@ -239,31 +245,31 @@ encryptStringWithMoreRounds(const std::string &plaintext, const std::string &pas
  * @return The decrypted string (the plaintext).
  */
 std::string
-decryptStringWithMoreRounds(const std::string &encodedCiphertext, const std::string &password, const gcry_cipher_algos &algorithm) {
-    // Fetch the cipher's IV size and key size
-
-    std::size_t ivSize = gcry_cipher_get_algo_blklen(algorithm);
+decryptStringWithMoreRounds(const std::string &encodedCiphertext, const std::string &password,
+                            const gcry_cipher_algos &algorithm) {
+    // Fetch the cipher's counter size and key size
+    std::size_t ctrSize = gcry_cipher_get_algo_blklen(algorithm);
     std::size_t keySize = gcry_cipher_get_algo_keylen(algorithm);
 
-    // Set key size to default (256 bits) if the previous call failed
-    if (keySize == 0)
-        keySize = 32;
+    // Default the key size to 256 bits if the previous call failed
+    if (keySize == 0) keySize = KEY_SIZE_256;
+    if (ctrSize == 0) ctrSize = 16;  // Default the counter size to 128 bits if we can't get the block length
 
     std::vector<unsigned char> salt(SALT_SIZE);
-    std::vector<unsigned char> iv(ivSize);
+    std::vector<unsigned char> ctr(ctrSize);
     std::vector<unsigned char> encryptedText;
 
     // Base64-decode the encoded ciphertext
     std::vector<unsigned char> ciphertext = base64Decode(encodedCiphertext);
 
-    if (ciphertext.size() >= SALT_SIZE + ivSize) [[likely]] {
-        // Read the salt and IV from the ciphertext
+    if (ciphertext.size() >= SALT_SIZE + ctrSize) [[likely]] {
+        // Read the salt and the counter from the ciphertext
         salt.assign(ciphertext.begin(), ciphertext.begin() + SALT_SIZE);
-        iv.assign(ciphertext.begin() + SALT_SIZE, ciphertext.begin() + SALT_SIZE + static_cast<long>(ivSize));
+        ctr.assign(ciphertext.begin() + SALT_SIZE, ciphertext.begin() + SALT_SIZE + static_cast<long>(ctrSize));
 
-        encryptedText.assign(ciphertext.begin() + static_cast<long>(salt.size() + iv.size()), ciphertext.end());
+        encryptedText.assign(ciphertext.begin() + static_cast<long>(salt.size() + ctr.size()), ciphertext.end());
     } else
-        throw std::runtime_error("invalid ciphertext.");
+        throw std::runtime_error("Invalid ciphertext.");
 
     std::size_t encryptedTextSize = encryptedText.size();
 
@@ -276,30 +282,29 @@ decryptStringWithMoreRounds(const std::string &encodedCiphertext, const std::str
     gcry_cipher_hd_t cipherHandle;
     err = gcry_cipher_open(&cipherHandle, algorithm, GCRY_CIPHER_MODE_CTR, GCRY_CIPHER_SECURE);
     if (err)
-        throw std::runtime_error(std::format("Failed to set up the decryption context: {}", gcry_strerror(err)));
+        throwSafeError(err, "Failed to create the decryption cipher context");
 
     // Set the decryption key
     err = gcry_cipher_setkey(cipherHandle, key.data(), key.size());
     if (err)
-        throw std::runtime_error(std::format("Failed to set the decryption key: {}", gcry_strerror(err)));
+        throwSafeError(err, "Failed to set the decryption key");
 
     // Key is not needed anymore, zeroize it and unlock it
     sodium_munlock(key.data(), key.size());
 
-    // Set the IV in the decryption context
-    err = gcry_cipher_setiv(cipherHandle, iv.data(), iv.size());
+    // Set the counter in the decryption context
+    err = gcry_cipher_setctr(cipherHandle, ctr.data(), ctr.size());
     if (err)
-        throw std::runtime_error(
-                std::format("Failed to set the decryption IV: {}: {}", gcry_strsource(err), gcry_strerror(err)));
+        throwSafeError(err, "Failed to set the decryption counter");
 
     // Decrypt the ciphertext
     std::vector<unsigned char> plaintext(encryptedTextSize);
     err = gcry_cipher_decrypt(cipherHandle, plaintext.data(), plaintext.size(), encryptedText.data(),
                               encryptedTextSize);
     if (err)
-        throw std::runtime_error(std::format("Failed to decrypt the ciphertext: {}", gcry_strerror(err)));
+        throwSafeError(err, "Failed to decrypt the ciphertext");
 
-    // Clean up the decryption handle's resources
+    // Release the decryption handle's resources
     gcry_cipher_close(cipherHandle);
 
     // Return the plaintext
