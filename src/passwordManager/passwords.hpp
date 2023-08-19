@@ -8,7 +8,7 @@ using passwordRecords = std::tuple<std::string, std::string, std::string>;
 
 std::vector<passwordRecords> loadPasswords(const std::string &filePath, const std::string &decryptionKey);
 
-bool savePasswords(const std::vector<passwordRecords> &passwords, const std::string &filePath,
+bool savePasswords(std::vector<passwordRecords> &passwords, const std::string &filePath,
                    const std::string &encryptionKey);
 
 std::string hashPassword(const std::string &password, const std::size_t &opsLimit = crypto_pwhash_OPSLIMIT_SENSITIVE,
@@ -22,7 +22,7 @@ bool verifyPassword(const std::string &password, const std::string &storedHash);
 
 void passwordManager();
 
-bool changeMasterPassword(std::string &masterPassword);
+bool changeMasterPassword(std::vector<passwordRecords> &passwordEntries, std::string &primaryPassword);
 
 std::pair<std::string, std::string> initialSetup() noexcept;
 
@@ -32,6 +32,6 @@ std::vector<passwordRecords> importCsv(const std::string &filePath, bool skipFir
 
 void exportCsv(const std::vector<passwordRecords> &records, const std::string &filePath = getHomeDir());
 
-std::vector<passwordRecords>
-encryptDecryptConcurrently(const std::vector<passwordRecords> &passwordRecords, const std::string &key,
-                           bool encrypt = true);
+void
+encryptDecryptConcurrently(std::vector<passwordRecords> &passwordEntries, const std::string &key,
+                           bool encrypt = true, bool allFields = false);

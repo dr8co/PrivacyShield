@@ -90,7 +90,8 @@ void passwordManager() {
         if (string username = std::get<1>(pw); !username.empty())
             std::cout << "\nUsername: " << username;
 
-        std::cout << "\nPassword: " << (decrypt ? decryptString(std::get<2>(pw), encryptionKey) : std::get<2>(pw))
+        std::cout << "\nPassword: "
+                  << (decrypt ? decryptStringWithMoreRounds(std::get<2>(pw), encryptionKey) : std::get<2>(pw))
                   << std::endl;
 
     };
@@ -156,7 +157,7 @@ void passwordManager() {
                            true);
 
 
-            string encryptedPassword = encryptString(password, encryptionKey);
+            string encryptedPassword = encryptStringWithMoreRounds(password, encryptionKey);
             if (update)
                 std::get<2>(*it) = encryptedPassword;
             else passwords.emplace_back(site, username, encryptedPassword);
@@ -208,7 +209,7 @@ void passwordManager() {
                             "lowercase letters, special characters, and digits.\nPlease consider using a stronger one.",
                             'y', true);
 
-                std::get<2>(*it) = encryptString(newPassword, encryptionKey);
+                std::get<2>(*it) = encryptStringWithMoreRounds(newPassword, encryptionKey);
                 printColor("Password updated successfully.", 'g', true);
             } else {
                 printColor("Site not found!", 'r', true);
@@ -229,7 +230,7 @@ void passwordManager() {
                 printColor("Site not found!", 'r', true);
             }
         } else if (choice == 6) {
-            if (changeMasterPassword(encryptionKey))
+            if (changeMasterPassword(passwords, encryptionKey))
                 printColor("Master password changed successfully.", 'g', true);
             else printColor("Master password not changed.", 'r', true);
         } else if (choice == 7) {
@@ -346,17 +347,14 @@ void passwordManager() {
 
             // Encrypt the passwords before importing
 //            std::ranges::transform(uniqueImportedPasswords, std::back_inserter(passwords), encryptPasswords);
-            auto encryptedPasswords = encryptDecryptConcurrently(uniqueImportedPasswords, encryptionKey, true);
+            encryptDecryptConcurrently(uniqueImportedPasswords, encryptionKey, true, false);
 
+            for (const auto &el: uniqueImportedPasswords) {
+                passwords.emplace_back(el);
+            }
             // Zeroize the imported passwords and unlock the memory area
             sodium_munlock(uniqueImportedPasswords.data(),
                            uniqueImportedPasswords.size() * sizeof(passwordRecords));
-
-            std::ranges::sort(encryptedPasswords, comparator);
-
-            for (const auto &el: encryptedPasswords) {
-                passwords.emplace_back(el);
-            }
 
             // Lock the passwords vector using sodium_mlock
             sodium_mlock(passwords.data(), passwords.size() * sizeof(passwordRecords));
@@ -372,7 +370,7 @@ void passwordManager() {
             // A lambda to decrypt the passwords
             auto decryptPasswords = [&encryptionKey](const auto &password) -> passwordRecords {
                 return {std::get<0>(password), std::get<1>(password),
-                        decryptString(std::get<2>(password), encryptionKey)};
+                        decryptStringWithMoreRounds(std::get<2>(password), encryptionKey)};
             };
 
             // Decrypt the passwords before exporting
@@ -400,7 +398,7 @@ void passwordManager() {
             // A lambda to decrypt the passwords
             auto decryptPasswords = [&encryptionKey](const auto &password) -> passwordRecords {
                 return {std::get<0>(password), std::get<1>(password),
-                        decryptString(std::get<2>(password), encryptionKey)};
+                        decryptStringWithMoreRounds(std::get<2>(password), encryptionKey)};
             };
 
             // Decrypt the passwords before analyzing
