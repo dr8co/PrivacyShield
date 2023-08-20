@@ -7,8 +7,14 @@
  */
 class CryptoCipher {
 public:
-    // Only one constructor without parameters to avoid potential mix-ups.
+    // Only one constructor without parameters to avoid potential mix-ups
     CryptoCipher() = default;
+
+    // Delete the copy constructor to disable copying of CryptoCipher objects
+    CryptoCipher(const CryptoCipher &other) = delete;
+
+    // Delete the copy assignment operator too
+    CryptoCipher &operator=(const CryptoCipher &other) = delete;
 
     // Setters
     /** setter for the cipher implementation */
