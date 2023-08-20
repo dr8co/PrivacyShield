@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <format>
 #include "shredFiles.hpp"
 #include "../utils/utils.hpp"
 
@@ -214,8 +215,8 @@ void dod5220Shred(const std::string &filename, const int &nPasses = 3, bool wipe
 
     // The DoD 5220.22-M Standard algorithm (I'm avoiding recursion, hence the lambda)
     auto dod3Pass = [&file, &fileSize] -> void {
-        uint8_t zeroByte = 0x00;
-        uint8_t oneByte = 0xFF;
+        unsigned char zeroByte = 0x00;
+        unsigned char oneByte = 0xFF;
         // Pass 1: Overwrite with zeros
         overwriteConstantByte(file, zeroByte, fileSize);
 
@@ -245,78 +246,213 @@ void dod5220Shred(const std::string &filename, const int &nPasses = 3, bool wipe
 /**
  * @brief Represents the different shredding options.
  */
-enum shredOptions {
-    Simple          = 1 << 0,   // Simple overwrite
+enum class shredOptions : const
+unsigned int {
+    Simple          = 1 << 0,   // Simple overwrite with random bytes
     Dod5220         = 1 << 1,   // DoD 5220.22-M Standard algorithm
     Dod5220_7       = 1 << 2,   // DoD 5220.22-M Standard algorithm with 7 passes
-    WipeClusterTips = 1 << 3    // Wipe the cluster tips
+    WipeClusterTips = 1 << 3    // Wiping of the cluster tips
 };
 
 /**
- * @brief shreds a file using the specified options
+ * @brief Adds write and write permissions to a file, if the user has authority.
+ * @param fileName The file to modify.
+ * @return True if the operation succeeds, else false.
+ *
+ * @details The actions of this function are similar to the unix command:
+ * @code chmod ugo+rw fileName @endcode or @code chmod a+rw fileName @endcode
+ * The read/write permissions are added for everyone.
+ *
+ * @note This function is meant for the file shredder ONLY, which might
+ * need to modify a file's permissions (if and only if it has to) to successfully shred it.
+ *
+ * @warning Modifying file permissions unnecessarily is a serious security risk,
+ * and this program doesn't take that for granted.
+ */
+inline bool addReadWritePermissions(const std::string &fileName) noexcept {
+    std::error_code ec;
+    fs::permissions(fileName, fs::perms::owner_read | fs::perms::owner_write | fs::perms::group_read |
+                              fs::perms::group_write | fs::perms::others_read | fs::perms::others_write,
+                    fs::perm_options::add, ec);
+    return !ec;
+}
+
+/**
+ * @brief shreds a file (or all files and subdirectories of a directory)
+ * using the specified options.
  * @param filePath - the path to the file to be shred.
  * @param options - the options to use when shredding the file.
- * @return true if the file was shred successfully, false otherwise.
+ * @param simplePasses - the number of passes for random overwrite
+ * for simple shredding.
+ * @return true if the file (or directory) was shred successfully, false otherwise.
+ * @warning If the filePath is a directory, then all its files and subdirectories
+ * are shredded without warning.
  */
-bool shredFiles(const std::string &filePath, const unsigned int &options) {
+bool shredFiles(const std::string &filePath, const unsigned int &options, const int &simplePasses = 3) {
     // Check if the file exists and is a regular file.
     if (!fs::exists(filePath)) {
         std::cerr << "File does not exist: " << filePath << std::endl;
         return false;
-    }// If the filepath is a directory, ask to shred all files in the directory and all subdirectories
+    }// If the filepath is a directory, shred all the files in the directory and all its subdirectories
     else if (fs::is_directory(filePath)) {
         if (fs::is_empty(filePath)) {
             std::cout << "The path is an empty directory." << std::endl;
             return true;
         }
+        static std::size_t numShredded{0}, numNotShredded{0};
+        //TODO: handle symlinks (check if they are broken), use cached status during iteration
 
-        std::cout << "Shred all files in '" << filePath << "' and all subdirectories? (y/n): ";
-        char response;
-        std::cin >> response;
-        std::cin.ignore();
-        if (response == 'n' || response == 'N') [[likely]] return false;
-        else if (response != 'y' && response != 'Y') {
-            std::cerr << "Invalid response." << std::endl;
-            return false;
-        }
         // Shred all files in the directory and all subdirectories
         for (const auto &entry: fs::recursive_directory_iterator(filePath)) {
             if (!fs::is_directory(entry)) {
                 std::cout << "Shredding " << entry.path() << "..";
                 try {
-                    std::cout
-                            << (shredFiles(entry.path(), options) ? "\tshredded successfully." : "\tshredding failed.")
-                            << std::endl;
+                    bool shredded = shredFiles(entry.path(), options);
+                    std::cout << (shredded ? "\tshredded successfully." : "\tshredding failed.") << std::endl;
+
+                    ++(shredded ? numShredded : numNotShredded);
+
                 } catch (std::runtime_error &err) {
                     std::cerr << err.what() << std::endl;
-                    std::cout << "shredding failed." << std::endl;
+                    std::cerr << "shredding failed." << std::endl;
                 }
             }
         }
+        fs::remove_all(filePath);
+
+        std::cout << "\nProcessed " << numShredded + numNotShredded << " files." << std::endl;
+        if (numShredded) std::cout << "Successfully shredded and deleted: " << numShredded << std::endl;
+        if (numNotShredded) std::cerr << "Failed to shred " << numNotShredded << " files." << std::endl;
+
         return true;
     } else if (!fs::is_regular_file(filePath)) {
-        std::cerr << "Not a regular file: " << filePath << std::endl;
-        std::cout << "Do you want to shred the file anyway? (y/n): ";
+        std::cerr << "'" << filePath << "' is not a regular file." << std::endl;
+        std::cout << "Do you want to (try to) shred the file anyway? (y/n):" << std::endl;
 
-        char response;
-        std::cin >> response;
-        std::cin.ignore();
-        if (response != 'y' && response != 'Y') return false;
+        if (!validateYesNo()) return false;
     }
 
-    // Check if the file is writable
-    if (!isWritable(filePath)) {
-        std::cerr << "\nInsufficient permissions to shred file: " << filePath << std::endl;
-        return false;
+    // Check file permissions
+    if (!isWritable(filePath) || !isReadable(filePath)) {
+        if (!addReadWritePermissions(filePath)) {
+            std::cerr << "\nInsufficient permissions to shred file: " << filePath << std::endl;
+            return false;
+        }
     }
     // shred the file according to the options
-    if (options & shredOptions::Simple)
-        simpleShred(filePath, 3, options & shredOptions::WipeClusterTips);
-    else if (options & shredOptions::Dod5220)
-        dod5220Shred(filePath, 3, options & shredOptions::WipeClusterTips);
-    else if (options & shredOptions::Dod5220_7)
-        dod5220Shred(filePath, 7, options & shredOptions::WipeClusterTips);
+    if (options & static_cast<unsigned int>(shredOptions::Simple))
+        simpleShred(filePath, simplePasses, options & static_cast<unsigned int>(shredOptions::WipeClusterTips));
+    else if (options & static_cast<unsigned int>(shredOptions::Dod5220))
+        dod5220Shred(filePath, 3, options & static_cast<unsigned int>(shredOptions::WipeClusterTips));
+    else if (options & static_cast<unsigned int>(shredOptions::Dod5220_7))
+        dod5220Shred(filePath, 7, options & static_cast<unsigned int>(shredOptions::WipeClusterTips));
     else throw std::runtime_error("Invalid shred options.");
 
     return true;
+}
+
+void fileShredder() {
+    std::string options{"\n1. Continue with default shredding options\n"
+                        "2. Configure shredding options"};
+
+    std::string moreOptions{"\nChoose a shredding algorithm:\n"
+                            "1. Overwrite with random bytes (default)\n"
+                            "2. 3-pass DoD 5220.22-M Standard algorithm\n"
+                            "3. 7-pass DoD 5220.22-M Standard algorithm"};
+
+    std::string moreSimpleOptions{"\n1. Continue\n"
+                                  "2. Change the number of passes (default is 3)\n"
+                                  "3. Configure wiping of cluster tips (enabled by default)"};
+    // TODO: Add a 'back' option
+
+    /** @brief Configures the shredding options. */
+    auto selectPreferences = [&moreOptions, &moreSimpleOptions](unsigned int &preferences, int &simpleNumPass) {
+        int moreChoices1 = getResponseInt("\n1. Continue with default shredding options\n"
+                                          "2. Configure shredding options");
+        if (moreChoices1 == 1) {
+            preferences |= static_cast<unsigned int>(shredOptions::Simple);
+            preferences |= static_cast<unsigned int>(shredOptions::WipeClusterTips);
+        } else if (moreChoices1 == 2) {
+            int alg = getResponseInt(moreOptions);
+            if (alg == 1) {
+                preferences |= static_cast<unsigned int>(shredOptions::Simple);
+                int simpleConfig = getResponseInt(moreSimpleOptions);
+                if (simpleConfig == 1) {
+                    preferences |= static_cast<unsigned int>(shredOptions::WipeClusterTips);
+                } else if (simpleConfig == 2) {
+                    simpleNumPass = getResponseInt(
+                            "How many times would you like to overwrite? (3 times is recommended.)");
+                    if (simpleNumPass > 10)
+                        throw std::length_error("Too many passes.");
+                    else if (simpleNumPass < 1) throw std::length_error("Number of passes should be at least 1.");
+                } else if (simpleConfig == 3) {
+                    if (validateYesNo("Wipe cluster tips (Recommended)? (y/n)"))
+                        preferences |= static_cast<unsigned int>(shredOptions::WipeClusterTips);
+                } else throw std::invalid_argument("Invalid option");
+
+            } else if (alg == 2 || alg == 3) {
+                preferences |= static_cast<unsigned int>(alg == 2 ? shredOptions::Dod5220 : shredOptions::Dod5220_7);
+
+                if (validateYesNo("Wipe cluster tips (Recommended)? (y/n)"))
+                    preferences |= static_cast<unsigned int>(shredOptions::WipeClusterTips);
+
+            } else throw std::invalid_argument("Invalid option");
+
+        } else throw std::invalid_argument("Invalid option");
+    };
+
+    while (true) {
+        std::cout << "\n------------------ file shredder ------------------" << std::endl;
+        std::cout << "1. Shred a file" << std::endl;
+        std::cout << "2. Shred a directory" << std::endl;
+        std::cout << "3. Exit" << std::endl;
+        std::cout << "---------------------------------------------------" << std::endl;
+
+        int choice = getResponseInt("Enter your choice: ");
+
+        if (choice == 1 || choice == 2) {
+            try {
+                std::string path = getResponseStr(std::format("Enter the path to the {} you would like to shred:",
+                                                              choice == 1 ? "file" : "directory"));
+
+                if (auto len = path.size(); len > 1 && (path.ends_with('/') || path.ends_with('\\')))
+                    path.erase(len - 1);
+
+                if (!fs::exists(path)) {
+                    std::cerr << "'" << path << "' does not exist." << std::endl;
+                    continue;
+                } else if (choice == 1 && fs::is_directory(path)) {
+                    std::cout << "'" << path << "' is a directory.\n";
+                    std::cout << "Shred all files in '" << path << "' and all its subdirectories? (y/n):" << std::endl;
+                    if (!validateYesNo()) continue;
+                } else if (choice == 2 && !fs::is_directory(path)) {
+                    std::cout << "'" << path << "' is not a directory.\n";
+                    if (!validateYesNo("Shred it anyway? (y/n):")) continue;
+                }
+                unsigned int preferences{0};
+                int simpleNumPass{3};
+                try {
+                    selectPreferences(preferences, simpleNumPass);
+                } catch (const std::exception &ex) {
+                    std::cerr << "Error: " << ex.what() << std::endl;
+                    continue;
+                }
+                if (validateYesNo(std::format("The {} contents will be lost permanently. Continue? (y/n)",
+                                              choice == 1 ? "file" : "directory's (and all its subdirectories')"))) {
+
+                    std::cout << "Shredding '" << path << "'..." << std::endl;
+                    bool shredded = shredFiles(path, preferences, simpleNumPass);
+                    if (choice == 1)
+                        std::cout << (shredded ? "Successfully shredded " : "Failed to shred ") << path << std::endl;
+                }
+            } catch (const std::exception &err) {
+                std::cerr << "Error: " << err.what() << std::endl;
+                continue;
+            }
+
+        } else if (choice == 3) break;
+        else {
+            std::cerr << "Invalid choice." << std::endl;
+        }
+    }
 }
