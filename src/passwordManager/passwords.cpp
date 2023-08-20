@@ -306,6 +306,9 @@ bool changeMasterPassword(std::vector<passwordRecords> &passwordEntries, std::st
 
     if (!isPasswordStrong(newPassword)) {
         std::cerr << "The password is still weak. Please try again later." << std::endl;
+        // The passwords must be encrypted before returning
+        bg.wait();
+        encryptDecryptConcurrently(passwordEntries, primaryPassword, true, false);
         return false;
     }
 
