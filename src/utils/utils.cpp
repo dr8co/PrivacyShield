@@ -1,4 +1,3 @@
-#include <iomanip>
 #include <charconv>
 #include <vector>
 #include <readline/readline.h>
@@ -79,36 +78,18 @@ std::vector<unsigned char> base64Decode(const std::string &encodedData) {
 }
 
 /**
- * @brief Performs Hex encoding.
- * @param data binary data to be encoded.
- * @return the encoded string.
+ * @brief Trims space (whitespace) off the beginning and end of a string.
+ * @param str the string to trim.
  */
-std::string hexEncode(const std::vector<unsigned char> &data) {
-    std::stringstream ss;
-    ss << std::hex << std::setfill('0');
+inline void trimSpace(std::string &str) {
+    // Trim the leading space (my IDE finds the w-word offensive)
+    std::input_iterator auto it = std::ranges::find_if_not(str.begin(), str.end(),
+                                                           [](char c) { return std::isspace(c); });
+    str.erase(str.begin(), it);
 
-    for (const auto &byte: data) {
-        ss << std::setw(2) << static_cast<int>(byte);
-    }
-    return ss.str();
-}
-
-/**
- * @brief Performs Hex decoding.
- * @param encodedData Hex encoded string.
- * @return binary data.
- */
-std::vector<unsigned char> hexDecode(const std::string &encodedData) {
-    std::vector<unsigned char> decoded_data(encodedData.length() / 2);
-
-    for (std::size_t i = 0; i < encodedData.length(); i += 2) {
-        std::stringstream ss;
-        ss << std::hex << encodedData.substr(i, 2);
-        int byte_value;
-        ss >> byte_value;
-        decoded_data[i / 2] = static_cast<unsigned char>(byte_value);
-    }
-    return decoded_data;
+    // Trim the trailing space
+    it = std::ranges::find_if_not(str.rbegin(), str.rend(), [](char c) { return std::isspace(c); }).base();
+    str.erase(it, str.end());
 }
 
 /**
@@ -120,7 +101,10 @@ std::vector<unsigned char> hexDecode(const std::string &encodedData) {
 std::string getResponseStr(const std::string &prompt) {
     std::cout << prompt << std::endl;
     char *tmp = readline("> ");
-    auto str = std::string(tmp);
+    auto str = std::string{tmp};
+
+    // Trim leading and trailing spaces
+    trimSpace(str);
 
     // tmp must be freed
     free(tmp);
@@ -149,8 +133,6 @@ int getResponseInt(const std::string &prompt) {
  * @return the user's input.
  */
 std::string getSensitiveInfo(const std::string &prompt) {
-    std::string password;
-    char *tmp;
     termios oldSettings{}, newSettings{};
 
     // Turn off terminal echoing
@@ -160,15 +142,18 @@ std::string getSensitiveInfo(const std::string &prompt) {
     tcsetattr(STDIN_FILENO, TCSANOW, &newSettings);
 
     // Read password from input
-    tmp = readline(prompt.c_str());
-    password = std::string(tmp);
+    char *tmp = readline(prompt.c_str());
+    std::string secret{tmp};
     std::free(tmp);
+
+    // Trim leading and trailing spaces
+    trimSpace(secret);
 
     // Restore terminal settings
     tcsetattr(STDIN_FILENO, TCSANOW, &oldSettings);
     std::cout << std::endl;
 
-    return password;
+    return secret;
 }
 
 /**
@@ -282,31 +267,6 @@ bool copyFilePermissions(const std::string &srcFile, const std::string &destFile
     if (ec) return false;
 
     return true;
-}
-
-/**
- * @brief Adds write and write permissions to a file.
- * @param fileName The file whose permissions are to be modified.
- * @return True if the operation succeeds, else false.
- *
- * @details The actions of this function are similar to the unix command:
- * @code chmod ugo+rw fileName @endcode or @code chmod a+rw fileName @endcode
- * The read/write permissions are added for everyone.
- *
- * @note This function is meant for the file shredder ONLY, which might
- * need to modify a file's permissions (if and only if it has to) to successfully shred it.
- * @note Outside the shredder, if the needed permissions are insufficient, a runtime
- * error will be thrown and the user notified of the issue.
- *
- * @warning Modifying file permissions unnecessarily is a serious security risk,
- * and this program doesn't take that for granted.
- */
-bool addReadWritePermissions(const std::string &fileName) noexcept {
-    std::error_code ec;
-    fs::permissions(fileName, fs::perms::owner_read | fs::perms::owner_write | fs::perms::group_read |
-                              fs::perms::group_write | fs::perms::others_read | fs::perms::others_write,
-                    fs::perm_options::add, ec);
-    return !ec;
 }
 
 /**
