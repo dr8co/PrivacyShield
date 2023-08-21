@@ -19,9 +19,9 @@ namespace fs = std::filesystem;
  */
 void overwriteRandom(std::ofstream &file, const std::size_t fileSize, int nPasses = 1) {
 
-    // Create a random device for generating secure random numbers
+    // Instantiate the random number generator
     std::random_device rd;
-    std::uniform_int_distribution<uint8_t> dist(0, 255);
+    std::uniform_int_distribution<unsigned char> dist(0, 255);
 
     for (int i = 0; i < nPasses; ++i) {
         // (Re)seed the Mersenne Twister engine in every pass
@@ -32,8 +32,8 @@ void overwriteRandom(std::ofstream &file, const std::size_t fileSize, int nPasse
 
         // Overwrite the file with random data
         for (std::size_t pos = 0; pos < fileSize; ++pos) {
-            uint8_t randomByte = dist(gen);
-            file.write(reinterpret_cast<char *>(&randomByte), sizeof(uint8_t));
+            unsigned char randomByte = dist(gen);
+            file.write(reinterpret_cast<char *>(&randomByte), sizeof(decltype(randomByte)));
         }
     }
 
@@ -71,7 +71,7 @@ inline void renameAndRemove(const std::string &filename, int numTimes = 1) {
     if (numTimes < 1) return;
     else if (numTimes > maxTries) numTimes = maxTries;
 
-    // Create a random device for generating secure random numbers
+    // Create an instance of the random device for generating secure random numbers
     std::random_device rd;
 
     // Mersenne Twister engine seeded with rd
@@ -138,7 +138,6 @@ inline void wipeClusterTips(const std::string &fileName) {
         close(fileDescriptor);
         return;
     }
-
     // Get the block size of the filesystem
     const auto blockSize = fileStat.st_blksize;
     if (blockSize == 0) {
@@ -161,7 +160,6 @@ inline void wipeClusterTips(const std::string &fileName) {
             close(fileDescriptor);
             return;
         }
-
         std::vector<char> zeroBuffer(clusterTipSize, 0);
         std::size_t bytesWritten = write(fileDescriptor, zeroBuffer.data(), zeroBuffer.size());
         if (bytesWritten == static_cast<std::size_t>(-1)) {
@@ -289,32 +287,42 @@ inline bool addReadWritePermissions(const std::string &fileName) noexcept {
  * are shredded without warning.
  */
 bool shredFiles(const std::string &filePath, const unsigned int &options, const int &simplePasses = 3) {
+    std::error_code ec;
+    fs::file_status fileStatus = fs::status(filePath, ec);
+    if (ec) {
+        std::cerr << "Failed to determine " << filePath << "'s status: " << ec.message() << std::endl;
+        return false;
+    }
     // Check if the file exists and is a regular file.
-    if (!fs::exists(filePath)) {
+    if (!fs::exists(fileStatus)) {
         std::cerr << "File does not exist: " << filePath << std::endl;
         return false;
     }// If the filepath is a directory, shred all the files in the directory and all its subdirectories
-    else if (fs::is_directory(filePath)) {
-        if (fs::is_empty(filePath)) {
-            std::cout << "The path is an empty directory." << std::endl;
-            return true;
+    else if (fs::is_directory(fileStatus)) {
+        if (fs::is_empty(filePath, ec)) {
+            if (ec) ec.clear();
+            else {
+                std::cout << "The path is an empty directory." << std::endl;
+                return true;
+            }
         }
         static std::size_t numShredded{0}, numNotShredded{0};
-        //TODO: handle symlinks (check if they are broken), use cached status during iteration
 
         // Shred all files in the directory and all subdirectories
         for (const auto &entry: fs::recursive_directory_iterator(filePath)) {
-            if (!fs::is_directory(entry)) {
-                std::cout << "Shredding " << entry.path() << "..";
-                try {
-                    bool shredded = shredFiles(entry.path(), options);
-                    std::cout << (shredded ? "\tshredded successfully." : "\tshredding failed.") << std::endl;
+            if (fs::exists(entry.status())) {
+                if (!fs::is_directory(entry.status())) {
+                    std::cout << "Shredding " << entry.path() << "..";
+                    try {
+                        bool shredded = shredFiles(entry.path(), options);
+                        std::cout << (shredded ? "\tshredded successfully." : "\tshredding failed.") << std::endl;
 
-                    ++(shredded ? numShredded : numNotShredded);
+                        ++(shredded ? numShredded : numNotShredded);
 
-                } catch (std::runtime_error &err) {
-                    std::cerr << err.what() << std::endl;
-                    std::cerr << "shredding failed." << std::endl;
+                    } catch (std::runtime_error &err) {
+                        std::cerr << err.what() << std::endl;
+                        std::cerr << "shredding failed." << std::endl;
+                    }
                 }
             }
         }
@@ -325,7 +333,7 @@ bool shredFiles(const std::string &filePath, const unsigned int &options, const 
         if (numNotShredded) std::cerr << "Failed to shred " << numNotShredded << " files." << std::endl;
 
         return true;
-    } else if (!fs::is_regular_file(filePath)) {
+    } else if (!fs::is_regular_file(fileStatus)) {
         std::cerr << "'" << filePath << "' is not a regular file." << std::endl;
         std::cout << "Do you want to (try to) shred the file anyway? (y/n):" << std::endl;
 
@@ -352,49 +360,54 @@ bool shredFiles(const std::string &filePath, const unsigned int &options, const 
 }
 
 void fileShredder() {
-    std::string options{"\n1. Continue with default shredding options\n"
-                        "2. Configure shredding options"};
-
-    std::string moreOptions{"\nChoose a shredding algorithm:\n"
-                            "1. Overwrite with random bytes (default)\n"
-                            "2. 3-pass DoD 5220.22-M Standard algorithm\n"
-                            "3. 7-pass DoD 5220.22-M Standard algorithm"};
-
-    std::string moreSimpleOptions{"\n1. Continue\n"
-                                  "2. Change the number of passes (default is 3)\n"
-                                  "3. Configure wiping of cluster tips (enabled by default)"};
-    // TODO: Add a 'back' option
-
     /** @brief Configures the shredding options. */
-    auto selectPreferences = [&moreOptions, &moreSimpleOptions](unsigned int &preferences, int &simpleNumPass) {
+    auto selectPreferences = [](unsigned int &preferences, int &simpleNumPass) {
         int moreChoices1 = getResponseInt("\n1. Continue with default shredding options\n"
                                           "2. Configure shredding options");
+        unsigned const int &wipeTips = static_cast<unsigned int>(shredOptions::WipeClusterTips);
+
         if (moreChoices1 == 1) {
-            preferences |= static_cast<unsigned int>(shredOptions::Simple);
-            preferences |= static_cast<unsigned int>(shredOptions::WipeClusterTips);
+            preferences |= static_cast<unsigned int>(shredOptions::Simple) | wipeTips;
         } else if (moreChoices1 == 2) {
-            int alg = getResponseInt(moreOptions);
+            int alg = getResponseInt("\nChoose a shredding algorithm:\n"
+                                     "1. Overwrite with random bytes (default)\n"
+                                     "2. 3-pass DoD 5220.22-M Standard algorithm\n"
+                                     "3. 7-pass DoD 5220.22-M Standard algorithm");
             if (alg == 1) {
-                preferences |= static_cast<unsigned int>(shredOptions::Simple);
-                int simpleConfig = getResponseInt(moreSimpleOptions);
-                if (simpleConfig == 1) {
-                    preferences |= static_cast<unsigned int>(shredOptions::WipeClusterTips);
-                } else if (simpleConfig == 2) {
-                    simpleNumPass = getResponseInt(
-                            "How many times would you like to overwrite? (3 times is recommended.)");
-                    if (simpleNumPass > 10)
-                        throw std::length_error("Too many passes.");
-                    else if (simpleNumPass < 1) throw std::length_error("Number of passes should be at least 1.");
-                } else if (simpleConfig == 3) {
-                    if (validateYesNo("Wipe cluster tips (Recommended)? (y/n)"))
-                        preferences |= static_cast<unsigned int>(shredOptions::WipeClusterTips);
-                } else throw std::invalid_argument("Invalid option");
+                preferences |= static_cast<unsigned int>(shredOptions::Simple) | wipeTips;
+                int simpleConfig{0};
+
+                do {
+                    simpleConfig = getResponseInt("\n1. Continue\n"
+                                                  "2. Change the number of passes (default is 3)\n"
+                                                  "3. Configure wiping of cluster tips (enabled by default)\n"
+                                                  "4. Abort");
+                    if (simpleConfig == 1) {
+                        break;
+                    } else if (simpleConfig == 2) {
+                        simpleNumPass = getResponseInt(
+                                "How many times would you like to overwrite? (3 times is recommended.)");
+
+                        if (simpleNumPass > 10)
+                            throw std::length_error("Too many passes.");
+                        else if (simpleNumPass < 1) throw std::length_error("Number of passes should be at least 1.");
+
+                    } else if (simpleConfig == 3) {
+                        preferences = (preferences & ~wipeTips) |
+                                      (-validateYesNo("Wipe cluster tips? (Recommended) (y/n):") & wipeTips);
+                    } else if (simpleConfig == 4) {
+                        throw std::runtime_error("Operation aborted.");
+                    } else {
+                        std::cerr << "Invalid option." << std::endl;
+                        continue;
+                    }
+                } while (true);
 
             } else if (alg == 2 || alg == 3) {
                 preferences |= static_cast<unsigned int>(alg == 2 ? shredOptions::Dod5220 : shredOptions::Dod5220_7);
 
-                if (validateYesNo("Wipe cluster tips (Recommended)? (y/n)"))
-                    preferences |= static_cast<unsigned int>(shredOptions::WipeClusterTips);
+                preferences = (preferences & ~wipeTips) |
+                              (-validateYesNo("Wipe cluster tips? (Recommended) (y/n):") & wipeTips);
 
             } else throw std::invalid_argument("Invalid option");
 
@@ -418,14 +431,23 @@ void fileShredder() {
                 if (auto len = path.size(); len > 1 && (path.ends_with('/') || path.ends_with('\\')))
                     path.erase(len - 1);
 
-                if (!fs::exists(path)) {
+                std::error_code ec;
+                fs::file_status fileStatus = fs::status(path, ec);
+                if (ec) {
+                    std::cerr << ec.message() << std::endl;
+                    ec.clear();
+                    continue;
+                }
+                bool isDir{fs::is_directory(fileStatus)};
+
+                if (!fs::exists(fileStatus)) {
                     std::cerr << "'" << path << "' does not exist." << std::endl;
                     continue;
-                } else if (choice == 1 && fs::is_directory(path)) {
+                } else if (choice == 1 && isDir) {
                     std::cout << "'" << path << "' is a directory.\n";
                     std::cout << "Shred all files in '" << path << "' and all its subdirectories? (y/n):" << std::endl;
                     if (!validateYesNo()) continue;
-                } else if (choice == 2 && !fs::is_directory(path)) {
+                } else if (choice == 2 && !isDir) {
                     std::cout << "'" << path << "' is not a directory.\n";
                     if (!validateYesNo("Shred it anyway? (y/n):")) continue;
                 }
@@ -438,11 +460,11 @@ void fileShredder() {
                     continue;
                 }
                 if (validateYesNo(std::format("The {} contents will be lost permanently. Continue? (y/n)",
-                                              choice == 1 ? "file" : "directory's (and all its subdirectories')"))) {
+                                              isDir ? "directory's (and all its subdirectories')" : "file"))) {
 
                     std::cout << "Shredding '" << path << "'..." << std::endl;
                     bool shredded = shredFiles(path, preferences, simpleNumPass);
-                    if (choice == 1)
+                    if (!isDir)
                         std::cout << (shredded ? "Successfully shredded " : "Failed to shred ") << path << std::endl;
                 }
             } catch (const std::exception &err) {
