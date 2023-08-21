@@ -2,4 +2,4 @@
 
 #include <string>
 
-std::size_t findDuplicates(const std::string &directoryPath);
+void duplicatesFinder();

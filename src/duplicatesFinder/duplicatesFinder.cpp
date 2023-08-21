@@ -37,10 +37,6 @@ struct FileInfo {
 std::string calculateBlake2Hash(const std::string &filePath) {
     // TODO: Consider using BLAKE3, which is much faster than BLAKE2 and is highly parallelizable, and is (almost) as secure.
 
-    // The file must exist and be readable
-    if (!isReadable(filePath))
-        throw std::runtime_error("Insufficient permissions to read: " + filePath);
-
     std::ifstream file(filePath, std::ios::binary);
     if (!file)
         throw std::runtime_error("Failed to open: " + filePath + " for hashing.");
@@ -115,9 +111,7 @@ std::string calculateBlake2Hash(const std::string &filePath) {
 #endif
 
     // Since the hash is raw bytes, Base64-encode it for string handling
-    std::string blake2Hash(base64Encode(digest));
-
-    return blake2Hash;
+    return base64Encode(digest);
 }
 
 /**
@@ -126,34 +120,27 @@ std::string calculateBlake2Hash(const std::string &filePath) {
  * @param files a vector to store the information from the files found in the directory.
  */
 void traverseDirectory(const std::string &directoryPath, std::vector<FileInfo> &files) {
-    // Basic checks
-    if (!fs::exists(directoryPath))
-        throw std::runtime_error(std::format("Directory: '{}' does not exist.", directoryPath));
-    else if (!fs::is_directory(directoryPath))
-        throw std::runtime_error(std::format("'{}' is not a directory.", directoryPath));
-    else if (fs::is_empty(directoryPath)) {
-        std::cout << std::format("Directory: '{}' is empty.", directoryPath) << std::endl;
-        return;
-    }
 
     for (const auto &entry: fs::recursive_directory_iterator(directoryPath,
                                                              fs::directory_options::skip_permission_denied)) {
-        // Make sure we can read the entry
-        if (isReadable(entry.path())) [[likely]] {
+        if (entry.exists()) { // skip broken symlinks
+            // Make sure we can read the entry
+            if (isReadable(entry.path())) [[likely]] {
 
-            // process only regular files
-            if (entry.is_regular_file()) [[likely]] {
-                FileInfo fileInfo;
+                // process only regular files
+                if (entry.is_regular_file()) [[likely]] {
+                    FileInfo fileInfo;
 
-                // Update the file details
-                fileInfo.path = entry.path().string();
-                fileInfo.hash = "";  // the hash will be calculated later
-                files.push_back(fileInfo);
+                    // Update the file details
+                    fileInfo.path = entry.path().string();
+                    fileInfo.hash = "";  // the hash will be calculated later
+                    files.emplace_back(fileInfo);
 
-            } else if (!entry.is_directory()) // Neither regular nor a directory
-                std::cerr << std::format("Skipping '{}': Not a regular file.", entry.path().string()) << std::endl;
+                } else if (!entry.is_directory()) // Neither regular nor a directory
+                    std::cerr << std::format("Skipping '{}': Not a regular file.", entry.path().string()) << std::endl;
 
-        } else handleAccessError(entry.path().string());
+            } else handleAccessError(entry.path().string());
+        }
     }
 }
 
@@ -166,7 +153,7 @@ void traverseDirectory(const std::string &directoryPath, std::vector<FileInfo> &
 void calculateHashes(std::vector<FileInfo> &files, std::size_t start, std::size_t end) {
     // Check if the range is valid
     if (start > end || end > files.size())
-        throw std::runtime_error("Invalid range.");
+        throw std::range_error("Invalid range.");
 
     // Calculate hashes for the files in the range
     for (std::size_t i = start; i < end; ++i) {
@@ -180,12 +167,6 @@ void calculateHashes(std::vector<FileInfo> &files, std::size_t start, std::size_
  * @return True if duplicates are found, else False.
  */
 std::size_t findDuplicates(const std::string &directoryPath) {
-    // Check if the path exists and is a directory
-    if (!fs::exists(directoryPath))
-        throw std::runtime_error(std::format("Directory: '{}' does not exist.", directoryPath));
-    else if (!fs::is_directory(directoryPath))
-        throw std::runtime_error(std::format("'{}' is not a directory.", directoryPath));
-
     // Initialize libsodium if not already initialized
     if (sodium_init() == -1)
         throw std::runtime_error("Failed to initialize libsodium.");
@@ -199,7 +180,6 @@ std::size_t findDuplicates(const std::string &directoryPath) {
     // Number of threads to use
     const unsigned int numThreads{std::jthread::hardware_concurrency() ? std::jthread::hardware_concurrency() : 8};
 
-
     // Divide files among threads
     std::vector<std::jthread> threads;
     std::size_t filesPerThread = filesProcessed / numThreads;
@@ -210,7 +190,6 @@ std::size_t findDuplicates(const std::string &directoryPath) {
         threads.emplace_back(calculateHashes, std::ref(files), start, start + filesPerThread);
         start += filesPerThread;
     }
-
     // The last thread may handle slightly more files to account for the division remainder
     threads.emplace_back(calculateHashes, std::ref(files), start, files.size());
 
@@ -218,7 +197,6 @@ std::size_t findDuplicates(const std::string &directoryPath) {
     for (auto &thread: threads) {
         thread.join();
     }
-
     // A hash map to map the files to their corresponding hashes
     std::unordered_map<std::string, std::vector<std::string>> hashMap;
 
@@ -230,7 +208,7 @@ std::size_t findDuplicates(const std::string &directoryPath) {
         hashMap[hash].push_back(filePath);
     }
 
-    std::size_t duplicatesSet = 0, numDuplicates = 0;
+    std::size_t duplicatesSet{0}, numDuplicates{0};
 
     // Display duplicate files
     std::cout << "Duplicates found:" << std::endl;
@@ -251,4 +229,64 @@ std::size_t findDuplicates(const std::string &directoryPath) {
     std::cout << "\nFiles processed: " << filesProcessed << std::endl;
 
     return numDuplicates;
+}
+
+void duplicatesFinder() {
+    while (true) {
+        std::cout << "\n------------------- Duplicates Finder -------------------\n";
+        std::cout << "1. Scan for duplicate files\n2. Exit\n";
+        std::cout << "---------------------------------------------------------" << std::endl;
+
+        int resp = getResponseInt("Enter your choice:");
+
+        if (resp == 1) {
+            try {
+                std::string dirPath = getResponseStr("Enter the path to the directory to scan: ");
+
+                if (auto len = dirPath.size(); len > 1 && (dirPath.ends_with('/') || dirPath.ends_with('\\')))
+                    dirPath.erase(len - 1);
+
+                std::error_code ec;
+                fs::file_status fileStatus = fs::status(dirPath, ec);
+                if (ec) {
+                    std::cerr << "Unable to determine " << dirPath << "'s status: " << ec.message() << std::endl;
+                    ec.clear();
+                    continue;
+                }
+                if (!fs::exists(fileStatus)) {
+                    std::cerr << "'" << dirPath << "' does not exist." << std::endl;
+                    continue;
+                }
+                if (!fs::is_directory(fileStatus)) {
+                    std::cerr << "'" << dirPath << "' is not a directory." << std::endl;
+                    continue;
+                }
+
+                if (fs::is_empty(dirPath, ec)) {
+                    if (ec) ec.clear();
+                    else {
+                        std::cout << "The directory is empty." << std::endl;
+                        continue;
+                    }
+                }
+
+                std::cout << "Scanning " << dirPath << "..." << std::endl;
+                std::size_t duplicateFiles = findDuplicates(dirPath);
+
+                std::cout << "Duplicates "
+                          << (duplicateFiles > 0 ? "found: " + std::to_string(duplicateFiles) : "not found.")
+                          << std::endl;
+
+            } catch (const std::exception &ex) {
+                std::cerr << ex.what() << std::endl;
+                continue;
+            }
+
+        } else if (resp == 2) break;
+        else {
+            std::cerr << "Invalid option!" << std::endl;
+            continue;
+        }
+    }
+
 }
