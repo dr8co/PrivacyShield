@@ -2,7 +2,6 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <cstdlib>
 #include <filesystem>
 #include "privacyTracks.hpp"
 #include "../utils/utils.hpp"
@@ -73,18 +72,21 @@ unsigned int detectBrowsers(const std::string &pathEnv) {
             // Handle errors while reading the directory
             handleFileError(ec, "reading", entry.path());
 
-            // Check for the existence of the browser executable
-            if (auto executable = entry.path().filename().string(); !entry.is_directory() && entry.exists()) {
-                if (executable == "firefox")
-                    detectedBrowsers |= static_cast<unsigned int>(Browser::Firefox);
-                else if (executable == "google-chrome")
-                    detectedBrowsers |= static_cast<unsigned int>(Browser::Chrome);
-                else if (executable == "chromium-browser")
-                    detectedBrowsers |= static_cast<unsigned int>(Browser::Chromium);
-                else if (executable == "opera")
-                    detectedBrowsers |= static_cast<unsigned int>(Browser::Opera);
-                else if (executable == "safari")
-                    detectedBrowsers |= static_cast<unsigned int>(Browser::Safari);
+            // Skip broken symlinks
+            if (fs::exists(entry.status())) {
+                // Check for the existence of the browser executable
+                if (auto executable = entry.path().filename().string(); !entry.is_directory() && entry.exists()) {
+                    if (executable == "firefox")
+                        detectedBrowsers |= static_cast<unsigned int>(Browser::Firefox);
+                    else if (executable == "google-chrome")
+                        detectedBrowsers |= static_cast<unsigned int>(Browser::Chrome);
+                    else if (executable == "chromium-browser")
+                        detectedBrowsers |= static_cast<unsigned int>(Browser::Chromium);
+                    else if (executable == "opera")
+                        detectedBrowsers |= static_cast<unsigned int>(Browser::Opera);
+                    else if (executable == "safari")
+                        detectedBrowsers |= static_cast<unsigned int>(Browser::Safari);
+                }
             }
         }
     }
@@ -98,24 +100,12 @@ unsigned int detectBrowsers(const std::string &pathEnv) {
  * @note Only stable versions of browsers are detected.
  */
 unsigned int detectBrowsers() {
-#if _GNU_SOURCE
-    const char *pathEnv = secure_getenv("PATH");
-    if (pathEnv == nullptr) {
+    if (auto pathEnv = getEnv("PATH"); pathEnv)
+        return detectBrowsers(*pathEnv);
+    else {
         std::cerr << "PATH environment variable not found." << std::endl;
         return 0;
     }
-    return detectBrowsers(std::string(pathEnv));
-#elif __APPLE__ or __unix or __unix__
-    const char* pathEnv = std::getenv("PATH");
-    if (pathEnv == nullptr) {
-        std::cerr << "PATH environment variable not found." << std::endl;
-        return 0;
-    }
-    return detectBrowsers(std::string(pathEnv));
-#else
-    std::cerr << "Unsupported platform." << std::endl;
-    return 0;
-#endif
 }
 
 /**
@@ -123,7 +113,7 @@ unsigned int detectBrowsers() {
  * @param configDir The path to the Firefox config directory.
  * @return true if successful, false otherwise.
  */
-bool clearFirefoxTracks(std::string &configDir) {
+bool clearFirefoxTracks(const std::string &configDir) {
     if (!fs::exists(configDir)) {
         std::cerr << "Firefox config directory not found." << std::endl;
         return false;
@@ -136,8 +126,10 @@ bool clearFirefoxTracks(std::string &configDir) {
     for (const auto &entry: fs::directory_iterator(configDir, fs::directory_options::skip_permission_denied |
                                                               fs::directory_options::follow_directory_symlink, ec)) {
         handleFileError(ec, "reading", configDir);
-        if (entry.is_directory() && entry.path().filename().string().contains(".default"))
-            defaultProfileDirs.emplace_back(entry.path());
+        if (fs::exists(entry.status())) {  // skip broken symlinks
+            if (entry.is_directory() && entry.path().filename().string().contains(".default"))
+                defaultProfileDirs.emplace_back(entry.path());
+        }
     }
 
     // Clear cookies and history for default profiles
@@ -161,9 +153,12 @@ bool clearFirefoxTracks(std::string &configDir) {
     for (const auto &entry: fs::directory_iterator(configDir, fs::directory_options::skip_permission_denied |
                                                               fs::directory_options::follow_directory_symlink, ec)) {
         handleFileError(ec, "reading", configDir);
-        if (entry.is_directory() && !entry.path().filename().string().contains(".default") &&
-            entry.path().filename().string() != "Crash Reports" && entry.path().filename().string() != "Pending Pings")
-            profileDirs.emplace_back(entry.path());
+        if (fs::exists(entry.status())) { // skip broken symlinks
+            if (entry.is_directory() && !entry.path().filename().string().contains(".default") &&
+                entry.path().filename().string() != "Crash Reports" &&
+                entry.path().filename().string() != "Pending Pings")
+                profileDirs.emplace_back(entry.path());
+        }
     }
     int nonDefaultProfiles{0};
     bool alreadyCounted{false};
@@ -176,24 +171,26 @@ bool clearFirefoxTracks(std::string &configDir) {
                                                                     fs::directory_options::follow_directory_symlink,
                                                            ec)) {
                 handleFileError(ec, "reading", profile);
-                if (entry.is_regular_file()) {
-                    if (entry.path().filename() == "cookies.sqlite") {
-                        fs::remove(entry.path(), ec);
-                        if (ec)
+                if (fs::exists(entry.status())) { // Ignore broken symlinks
+                    if (entry.is_regular_file()) {
+                        if (entry.path().filename() == "cookies.sqlite") {
+                            fs::remove(entry.path(), ec);
+                            if (ec)
+                                handleFileError(ec, "deleting", entry.path());
+                            else {
+                                std::cout << "Found " << profile.filename() << std::endl;
+                                ++nonDefaultProfiles;
+                                alreadyCounted = true;
+                            }
+                        }
+                        if (entry.path().filename() == "places.sqlite") {
+                            if (!alreadyCounted) {
+                                std::cout << "Found " << profile.filename() << std::endl;
+                                ++nonDefaultProfiles;
+                            }
+                            fs::remove(entry.path(), ec);
                             handleFileError(ec, "deleting", entry.path());
-                        else {
-                            std::cout << "Found " << profile.filename() << std::endl;
-                            ++nonDefaultProfiles;
-                            alreadyCounted = true;
                         }
-                    }
-                    if (entry.path().filename() == "places.sqlite") {
-                        if (!alreadyCounted) {
-                            std::cout << "Found " << profile.filename() << std::endl;
-                            ++nonDefaultProfiles;
-                        }
-                        fs::remove(entry.path(), ec);
-                        handleFileError(ec, "deleting", entry.path());
                     }
                 }
             }
@@ -222,11 +219,14 @@ bool clearChromiumTracks(const std::string &configDir) {
     // Find the "Default" or "default" profile directory
     fs::path defaultProfileDir;
     for (const auto &entry: fs::directory_iterator(configDir, fs::directory_options::skip_permission_denied |
-                                                                fs::directory_options::follow_directory_symlink, ec)) {
+                                                              fs::directory_options::follow_directory_symlink, ec)) {
         handleFileError(ec, "reading", configDir);
-        if (entry.is_directory() && (entry.path().filename() == "Default" || entry.path().filename() == "default")) {
-            defaultProfileDir = entry.path();
-            break;
+        if (fs::exists(entry.status())) {
+            if (entry.is_directory() &&
+                (entry.path().filename() == "Default" || entry.path().filename() == "default")) {
+                defaultProfileDir = entry.path();
+                break;
+            }
         }
     }
 
@@ -245,10 +245,13 @@ bool clearChromiumTracks(const std::string &configDir) {
     // Find other profile directories
     std::vector<fs::path> profileDirs;
     for (const auto &entry: fs::directory_iterator(configDir, fs::directory_options::skip_permission_denied |
-                                                                fs::directory_options::follow_directory_symlink, ec)) {
+                                                              fs::directory_options::follow_directory_symlink, ec)) {
         handleFileError(ec, "reading", configDir);
-        if (entry.is_directory() && entry.path().filename() != "Default" && entry.path().filename() != "default") {
-            profileDirs.emplace_back(entry.path());
+        if (fs::exists(entry.status())) {
+
+            if (entry.is_directory() && entry.path().filename() != "Default" && entry.path().filename() != "default") {
+                profileDirs.emplace_back(entry.path());
+            }
         }
     }
 
@@ -263,26 +266,28 @@ bool clearChromiumTracks(const std::string &configDir) {
                                                                     fs::directory_options::follow_directory_symlink,
                                                            ec)) {
                 handleFileError(ec, "reading", profile);
-                if (entry.is_regular_file()) {
-                    // Clearing cookies
-                    if (entry.path().filename() == "Cookies") {
-                        fs::remove(entry.path(), ec);
-                        if (ec)
+                if (fs::exists(entry.status())) { // ignore broken symlinks
+                    if (entry.is_regular_file()) {
+                        // Clearing cookies
+                        if (entry.path().filename() == "Cookies") {
+                            fs::remove(entry.path(), ec);
+                            if (ec)
+                                handleFileError(ec, "deleting", entry.path());
+                            else {
+                                std::cout << "Found " << profile.filename() << std::endl;
+                                ++nonDefaultProfiles;
+                                alreadyCounted = true;
+                            }
+                        }
+                        // Clearing history
+                        if (entry.path().filename() == "History") {
+                            if (!alreadyCounted) {
+                                std::cout << "Found " << profile.filename() << std::endl;
+                                ++nonDefaultProfiles;
+                            }
+                            fs::remove(entry.path(), ec);
                             handleFileError(ec, "deleting", entry.path());
-                        else {
-                            std::cout << "Found " << profile.filename() << std::endl;
-                            ++nonDefaultProfiles;
-                            alreadyCounted = true;
                         }
-                    }
-                    // Clearing history
-                    if (entry.path().filename() == "History") {
-                        if (!alreadyCounted) {
-                            std::cout << "Found " << profile.filename() << std::endl;
-                            ++nonDefaultProfiles;
-                        }
-                        fs::remove(entry.path(), ec);
-                        handleFileError(ec, "deleting", entry.path());
                     }
                 }
             }
@@ -343,11 +348,9 @@ bool clearOperaTracks(const std::string &profilePath) {
  */
 bool clearChromiumTracks() {
 #if __linux__ or __linux
-    std::string configDir = getHomeDir() + "/.config/chromium";
-    return clearChromiumTracks(configDir);
+    return clearChromiumTracks(getHomeDir() + "/.config/chromium");
 #elif __APPLE__
-    std::string configDir = getHomeDir() + "/Library/Application Support/Chromium";
-    return clearChromiumTracks(configDir);
+    return clearChromiumTracks(getHomeDir() + "/Library/Application Support/Chromium");
 #else
     std::cout << "This OS is not supported at the moment." << std::endl;
     return false;
@@ -360,11 +363,9 @@ bool clearChromiumTracks() {
  */
 bool clearChromeTracks() {
 #if __linux__ or __linux
-    std::string configDir =  getHomeDir() + "/.config/google-chrome";
-    return clearChromiumTracks(configDir);
+    return clearChromiumTracks(getHomeDir() + "/.config/google-chrome");
 #elif __APPLE__
-    std::string configDir = getHomeDir() + "/Library/Application Support/Google/Chrome";
-    return clearChromiumTracks(configDir);
+    return clearChromiumTracks(getHomeDir() + "/Library/Application Support/Google/Chrome");
 #else
     std::cout << "This OS is not supported at the moment." << std::endl;
     return false;
@@ -377,11 +378,9 @@ bool clearChromeTracks() {
  */
 bool clearOperaTracks() {
 #if __linux__ or __linux
-    std::string profilePath = getHomeDir() + "/.config/opera";
-    return clearOperaTracks(profilePath);
+    return clearOperaTracks(getHomeDir() + "/.config/opera");
 #elif __APPLE__
-    std::string profilePath = getHomeDir() + "/Library/Application Support/com.operasoftware.Opera";
-    return clearOperaTracks(profilePath);
+    return clearOperaTracks(getHomeDir() + "/Library/Application Support/com.operasoftware.Opera");
 #else
     std::cout << "This OS is not supported at the moment." << std::endl;
     return false;
@@ -441,11 +440,9 @@ bool clearSafariTracks() {
  */
 bool clearFirefoxTracks() {
 #if __linux__ or __linux
-    std::string profilePath = getHomeDir() + "/.mozilla/firefox";
-    return clearFirefoxTracks(profilePath);
+    return clearFirefoxTracks(getHomeDir() + "/.mozilla/firefox");
 #elif __APPLE__
-    std::string profilePath = getHomeDir() + "/Library/Application Support/Firefox";
-    return clearFirefoxTracks(profilePath);
+    return clearFirefoxTracks(getHomeDir() + "/Library/Application Support/Firefox");
 #else
     std::cout << "This OS is not supported at the moment." << std::endl;
     return false;
@@ -525,6 +522,9 @@ void clearPrivacyTracks() {
         if (browsers & static_cast<unsigned int>(Browser::Safari))
             std::cout << "Safari" << std::endl;
     }
-    std::cout << (clearTracks(browsers) ? "\nAll tracks cleared successfully." : "\nFailed to clear all tracks.")
+    std::cout << (validateYesNo(
+            "\nAll the cookies and browsing history of the above browsers will be deleted.\nContinue? (y/n):") ?
+                  clearTracks(browsers) ? "\nAll tracks cleared successfully." : "\nFailed to clear all tracks."
+                                                                                                               : "Aborted.")
               << std::endl;
 }
