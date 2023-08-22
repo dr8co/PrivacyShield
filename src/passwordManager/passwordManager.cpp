@@ -14,7 +14,7 @@
 
 namespace fs = std::filesystem;
 using string = std::string;
-const string DefaultPasswordFile = "/to/be/determined/later";
+const string DefaultPasswordFile = "/home/draco/Desktop/dups/passes";
 
 
 /**
@@ -25,6 +25,10 @@ void passwordManager() {
     string encryptionKey, passwordFile{DefaultPasswordFile};
     bool newSetup{false};
 
+    // Reserve 32 bytes for the primary key.
+    encryptionKey.reserve(32);
+    sodium_mlock(encryptionKey.data(), 32 * sizeof(char));
+
     if (!fs::exists(passwordFile) || !fs::is_regular_file(passwordFile)) {
         auto [path, pass] = initialSetup();
 
@@ -34,7 +38,7 @@ void passwordManager() {
             encryptionKey = pass;
 
             // Lock the memory area holding the new password
-            sodium_mlock(encryptionKey.data(), encryptionKey.size());
+            sodium_mlock(encryptionKey.data(), encryptionKey.size() * sizeof(char));
 
             newSetup = true;
         } else {  // user pointed us to an existing password records
@@ -42,8 +46,9 @@ void passwordManager() {
         }
 
     }
-
-    std::vector<passwordRecords> passwords;
+    // Reserve about 96 KB for password records
+    std::vector<passwordRecords> passwords(1024);
+    sodium_mlock(passwords.data(), 1024 * sizeof(passwordRecords));
 
     if (!newSetup) {
         // preprocess the passwordFile
@@ -68,7 +73,7 @@ void passwordManager() {
         }
 
         // Lock the memory area holding the password
-        sodium_mlock(encryptionKey.data(), encryptionKey.size());
+        sodium_mlock(encryptionKey.data(), encryptionKey.size() * sizeof(char));
 
         // Load the saved passwords
         passwords = loadPasswords(passwordFile, encryptionKey);
@@ -236,8 +241,6 @@ void passwordManager() {
         } else if (choice == 7) {
             string query = getResponseStr("Enter the site name: ");
 
-            // TODO: consider case-insensitive querying.
-
             auto matches = passwords | std::ranges::views::filter([&query](const auto &vec) -> bool {
                 return std::get<0, string>(vec).contains(query);
             });
@@ -250,11 +253,8 @@ void passwordManager() {
                 }
             } else {
                 printColor(std::format("No matches found for '{}'.", query), 'r', true);
-                std::vector<string> sites(passwords.size());
-                for (string const &el: passwords | std::ranges::views::elements<0>) {
-                    sites.emplace_back(el);
-                }
-                FuzzyMatcher matcher(sites);
+
+                FuzzyMatcher matcher(passwords | std::ranges::views::elements<0>);
                 auto fuzzyMatched = matcher.fuzzyMatch(query, 2);
                 if (fuzzyMatched.size() == 1) {
                     printColor(std::format("Did you mean '{}'? (y/n) ", fuzzyMatched[0]), 'b', false);
@@ -265,7 +265,7 @@ void passwordManager() {
                         if (it != passwords.end())
                             printDetails(*it);
 
-                    } else printColor("Sorry", 'r', true);
+                    } else printColor("Sorry, '" + query + "' not found.", 'r', true);
                 } else if (!fuzzyMatched.empty()) {
                     printColor("Did you mean one of these?", 'b', true);
                     for (const auto &el: fuzzyMatched) {
@@ -483,6 +483,6 @@ void passwordManager() {
 
 
     // Zeroize the password and unlock the memory area
-    sodium_munlock(encryptionKey.data(), encryptionKey.size());
+    sodium_munlock(encryptionKey.data(), encryptionKey.size() * sizeof(char));
 
 }

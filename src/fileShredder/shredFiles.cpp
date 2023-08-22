@@ -459,6 +459,20 @@ void fileShredder() {
                     std::cerr << "Error: " << ex.what() << std::endl;
                     continue;
                 }
+
+                std::cout << "\nPreferences:\n";
+
+                if (preferences & static_cast<unsigned int>(shredOptions::Simple))
+                    std::cout << "Simple with " << simpleNumPass << " passes." << std::endl;
+                if (preferences & static_cast<unsigned int>(shredOptions::Dod5220))
+                    std::cout << "3-pass DoD"<< std::endl;
+                if (preferences & static_cast<unsigned int>(shredOptions::Dod5220_7))
+                    std::cout << "7-pass DoD"<< std::endl;
+                if (preferences & static_cast<unsigned int>(shredOptions::WipeClusterTips))
+                    std::cout << "Wipe cluster tips too"<< std::endl;
+
+                std::cout << std::endl;
+
                 if (validateYesNo(std::format("The {} contents will be lost permanently. Continue? (y/n)",
                                               isDir ? "directory's (and all its subdirectories')" : "file"))) {
 

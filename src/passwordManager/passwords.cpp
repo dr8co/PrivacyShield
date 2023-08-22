@@ -14,7 +14,6 @@
 #include "passwords.hpp"
 
 namespace fs = std::filesystem;
-// General TODO: strip the trailing path separator '/' (if any) from the paths given by the user
 
 /**
  * @brief Checks the strength of a password.
@@ -23,9 +22,8 @@ namespace fs = std::filesystem;
  */
 bool isPasswordStrong(const std::string &password) noexcept {
     // Check the length
-    if (password.length() < 8) {
+    if (password.length() < 8)
         return false;
-    }
 
     // Check for at least one uppercase letter, one lowercase letter, one digit, and one special character.
     bool hasUppercase = false;
@@ -86,8 +84,7 @@ std::string generatePassword(int length) {
 
         // If the length is >= 8, it is almost impossible that this loop is infinite,
         // but let's handle that ultra-rare situation anyway
-        ++trials;
-    } while (!isPasswordStrong(password) && trials <= maxTrials);
+    } while (!isPasswordStrong(password) && ++trials <= maxTrials);
 
     return password;
 }
@@ -128,7 +125,7 @@ void
 encryptDecryptRange(std::vector<passwordRecords> &passwords, const std::string &key, std::size_t start, std::size_t end,
                     bool encrypt = false) {
     if (start > end || end > passwords.size())
-        throw std::runtime_error("Invalid range.");
+        throw std::range_error("Invalid range.");
 
     for (std::size_t i = start; i < end; ++i) {
         std::get<2>(passwords[i]) = encrypt ? encryptStringWithMoreRounds(std::get<2>(passwords[i]), key)
@@ -183,6 +180,22 @@ encryptDecryptConcurrently(std::vector<passwordRecords> &passwordEntries, const 
     }
 }
 
+inline void checkCommonErrors[[clang::always_inline, gnu::always_inline]](const std::string &path) {
+    std::error_code ec;
+    fs::file_status fileStatus = fs::status(path, ec);
+    if (ec)
+        throw std::runtime_error(std::format("Could not determine {}'s status: {}.", path, ec.message()));
+
+    if (!fs::exists(fileStatus))
+        throw std::runtime_error(std::format("The password file ({}) does not exist.", path));
+
+    if (fs::is_directory(fileStatus))
+        throw std::runtime_error(std::format("The path '{}' is a directory.", path));
+
+    if (!fs::is_regular_file(fileStatus))
+        throw std::runtime_error(std::format("The password file ({}) is not a regular file.", path));
+}
+
 /**
  * @brief Encrypts and then saves passwords to a file.
  * @param passwords a vector of password records.
@@ -192,6 +205,8 @@ encryptDecryptConcurrently(std::vector<passwordRecords> &passwordEntries, const 
  */
 bool savePasswords(std::vector<passwordRecords> &passwords, const std::string &filePath,
                    const std::string &encryptionKey) {
+
+    checkCommonErrors(filePath);
     std::ofstream file(filePath);
     if (!file) {
         std::cerr << std::format("Failed to open the password file ({}) for writing.\n", filePath);
@@ -209,9 +224,9 @@ bool savePasswords(std::vector<passwordRecords> &passwords, const std::string &f
     encryptDecryptConcurrently(passwords, encryptionKey, true, true);
 
     for (const auto &password: passwords) {
-        std::string encryptedSite = std::get<0>(password);
-        std::string encryptedUsername = std::get<1>(password);
-        std::string encryptedPassword = std::get<2>(password);
+        const std::string &encryptedSite = std::get<0>(password);
+        const std::string &encryptedUsername = std::get<1>(password);
+        const std::string &encryptedPassword = std::get<2>(password);
 
         if (encryptedSite.empty() || encryptedUsername.empty() || encryptedPassword.empty())
             return false;
@@ -230,26 +245,29 @@ bool savePasswords(std::vector<passwordRecords> &passwords, const std::string &f
  * @return decrypted password records.
  */
 std::vector<passwordRecords> loadPasswords(const std::string &filePath, const std::string &decryptionKey) {
-    std::vector<passwordRecords> passwords;
+    std::vector<passwordRecords> passwords(1024);
+    sodium_mlock(passwords.data(), 1024 * sizeof(passwordRecords));
 
+    // Check for common errors
+    checkCommonErrors(filePath);
     std::error_code ec;
-    if (!std::filesystem::exists(filePath, ec)) {
-        throw std::runtime_error(std::format("The password file ({}) does not exist.\n", filePath));
-    }
-
-    if (ec) {
-        std::cerr << ec.message() << std::endl;
-    }
+    if (fs::is_empty(filePath, ec))
+        throw std::runtime_error(std::format("The password file ({}) empty.", filePath));
+    if (ec) ec.clear();
 
     std::ifstream file(filePath);
     if (!file)
-        throw std::runtime_error("Failed to open the password file for reading.");
+        throw std::runtime_error(std::format("Failed to open the password file ({}) for reading.", filePath));
 
     std::string line;
+    line.reserve(4096);  // The encoded password records can be so long
+    sodium_mlock(line.data(), 4096 * sizeof(char));
     std::getline(file, line); // Read and discard the first line
     std::getline(file, line); // Read and discard the second line too
 
     while (std::getline(file, line)) {
+        sodium_mlock(line.data(), line.size() * sizeof(char)); // In case the characters read is more than 4096
+
         std::size_t firstDelimiterPos = line.find(':');
         std::size_t secondDelimiterPos = line.find(':', firstDelimiterPos + 1);
 
@@ -260,12 +278,14 @@ std::vector<passwordRecords> loadPasswords(const std::string &filePath, const st
             continue;
         }
 
-        std::string website = line.substr(0, firstDelimiterPos);
-        std::string username = line.substr(firstDelimiterPos + 1, secondDelimiterPos - firstDelimiterPos - 1);
-        std::string password = line.substr(secondDelimiterPos + 1);
+        const std::string &website = line.substr(0, firstDelimiterPos);
+        const std::string &username = line.substr(firstDelimiterPos + 1, secondDelimiterPos - firstDelimiterPos - 1);
+        const std::string &password = line.substr(secondDelimiterPos + 1);
 
         passwords.emplace_back(website, username, password);
     }
+
+    sodium_munlock(line.data(), line.size() * sizeof(char));
 
     // Decrypt all fields with AES
     encryptDecryptConcurrently(passwords, decryptionKey, false, true);
@@ -281,13 +301,13 @@ std::vector<passwordRecords> loadPasswords(const std::string &filePath, const st
  */
 bool changeMasterPassword(std::vector<passwordRecords> &passwordEntries, std::string &primaryPassword) {
     std::string oldPassword = getSensitiveInfo("Enter the current primary password: ");
-    sodium_mlock(oldPassword.data(), oldPassword.size());
+    sodium_mlock(oldPassword.data(), oldPassword.size() * sizeof(char));
 
     std::string masterHash = hashPassword(primaryPassword, crypto_pwhash_OPSLIMIT_INTERACTIVE,
                                           crypto_pwhash_MEMLIMIT_INTERACTIVE);
 
     if (!verifyPassword(oldPassword, masterHash)) {
-        sodium_munlock(oldPassword.data(), oldPassword.size());
+        sodium_munlock(oldPassword.data(), oldPassword.size() * sizeof(char));
         std::cerr << "Password verification failed." << std::endl;
         return false;
     }
@@ -312,28 +332,28 @@ bool changeMasterPassword(std::vector<passwordRecords> &passwordEntries, std::st
         return false;
     }
 
-    sodium_mlock(newPassword.data(), newPassword.size());
+    sodium_mlock(newPassword.data(), newPassword.size() * sizeof(char));
 
     std::string newPassword2 = getSensitiveInfo("Enter the new primary password again: ");
-    sodium_mlock(newPassword2.data(), newPassword2.size());
+    sodium_mlock(newPassword2.data(), newPassword2.size() * sizeof(char));
 
     // Wait for the decryption task to finish execution, to release memory for hashing
     bg.wait();
-    sodium_munlock(oldPassword.data(), oldPassword.size());
+    sodium_munlock(oldPassword.data(), oldPassword.size() * sizeof(char));
 
     // Verify that the new password is correct
     if (!verifyPassword(newPassword2, hashPassword(newPassword, crypto_pwhash_OPSLIMIT_INTERACTIVE,
                                                    crypto_pwhash_MEMLIMIT_INTERACTIVE))) {
-        sodium_munlock(newPassword.data(), newPassword.size());
-        sodium_munlock(newPassword2.data(), newPassword2.size());
+        sodium_munlock(newPassword.data(), newPassword.size() * sizeof(char));
+        sodium_munlock(newPassword2.data(), newPassword2.size() * sizeof(char));
         std::cerr << "Passwords do not match." << std::endl;
 
         return false;
     }
-    sodium_munlock(newPassword2.data(), newPassword2.size());
+    sodium_munlock(newPassword2.data(), newPassword2.size() * sizeof(char));
     primaryPassword = newPassword;
-    sodium_mlock(primaryPassword.data(), primaryPassword.size());
-    sodium_munlock(newPassword.data(), newPassword.size());
+    sodium_mlock(primaryPassword.data(), primaryPassword.size() * sizeof(char));
+    sodium_munlock(newPassword.data(), newPassword.size() * sizeof(char));
 
     // Encrypt the password field with the new key
     encryptDecryptConcurrently(passwordEntries, primaryPassword, true, false);
@@ -359,31 +379,41 @@ std::pair<std::string, std::string> initialSetup() noexcept {
                 "3. Exit.\n"
                 "select 1, 2, or 3: ");
         if (resp == 1) {
-            std::string pass = getSensitiveInfo("Enter a new master password: ");
+            std::string pass;
+            pass.reserve(32);
+            sodium_mlock(pass.data(), 32 * sizeof(char));
+            pass = getSensitiveInfo("Enter a new master password: ");
 
             int count{0};
-            while (!isPasswordStrong(pass) && count < 2) {
-                std::cerr
-                        << "Weak password! Password should have at least 8 characters and include uppercase letters,\n"
-                           "lowercase letters, special characters and digits" << std::endl;
+            while (!isPasswordStrong(pass) && ++count < 3) {
+                std::cerr << (count == 2 ? "Last chance:"
+                                         : "Weak password! Password should have at least 8 characters and include "
+                                           " at least an uppercase letter,\na lowercase letter, a special character"
+                                           "and a digit.") << std::endl;
                 pass = getSensitiveInfo("Please enter a stronger password: ");
-                ++count;
             }
 
-            if (count == 2) {
+            if (!isPasswordStrong(pass)) {
                 std::cerr << "\n3 incorrect password attempts." << std::endl;
                 continue;
             }
+            sodium_mlock(pass.data(), pass.size() * sizeof(char));
 
             std::string hash = hashPassword(pass, crypto_pwhash_OPSLIMIT_INTERACTIVE,
                                             crypto_pwhash_MEMLIMIT_INTERACTIVE);
-            std::string pass2 = getSensitiveInfo("Enter the password again: ");
+            std::string pass2;
+            pass.reserve(pass.size());
+            sodium_mlock(pass2.data(), pass.size() * sizeof(char));
+
+            pass2 = getSensitiveInfo("Enter the password again: ");
 
             if (!verifyPassword(pass2, hash)) {
                 std::cerr << "Password mismatch!" << std::endl;
                 continue;
             }
+            sodium_munlock(pass2.data(), pass.size() * sizeof(char));
 
+            sodium_mlock(ret.second.data(), pass.size() * sizeof(char));
             ret.second = pass;
             break;
         } else if (resp == 2) {
@@ -412,6 +442,7 @@ std::pair<std::string, std::string> initialSetup() noexcept {
  * @return the primary password hash.
  */
 std::string getHash(const std::string &filePath) {
+    checkCommonErrors(filePath);
     if (fs::is_empty(filePath))
         [[unlikely]]
                 throw std::runtime_error(std::format("The password file, '{}', is empty.", filePath));
@@ -460,13 +491,9 @@ void exportCsv(const std::vector<passwordRecords> &records, const std::string &f
             [[unlikely]]
                     throw std::runtime_error(std::format("The destination file ({}) is not a regular file.", filePath));
 
-        std::cerr << "The destination file already exists. Do you want to overwrite it? (y/n): ";
-        std::string resp = getResponseStr();
-
-        if (!validateYesNo())
+        if (!validateYesNo("The destination file already exists. Do you want to overwrite it? (y/n):"))
             return;
-        else
-            fs::remove(filepath);
+        else fs::remove(filepath);
     }
 
     // If the file extension is not .csv or doesn't have an extension, append .csv to it
