@@ -473,19 +473,21 @@ std::string getHash(const std::string &filePath) {
  */
 void exportCsv(const std::vector<passwordRecords> &records, const std::string &filePath) {
     fs::path filepath(filePath);
+    std::error_code ec;
 
     // Check if the file path is valid
     if (!fs::path(filepath).has_filename())
         throw std::invalid_argument(std::format("Invalid file path: {}", filePath));
 
     // Check if the file path is a directory
-    if (fs::is_directory(filepath)) {
+    if (fs::is_directory(filepath, ec)) {
         // If the file path is a directory, append the default file name to it
         filepath /= "credentials.csv";
     }
+    if (ec) ec.clear(); // Don't throw yet, try other checks
 
     // Check if the file already exists
-    if (fs::exists(filepath)) {
+    if (fs::exists(filepath, ec)) {
         // Check if the file is a regular file
         if (!fs::is_regular_file(filepath))
             [[unlikely]]
@@ -493,10 +495,17 @@ void exportCsv(const std::vector<passwordRecords> &records, const std::string &f
 
         if (!validateYesNo("The destination file already exists. Do you want to overwrite it? (y/n):"))
             return;
-        else fs::remove(filepath);
+        else {
+            fs::remove(filepath, ec);
+            if (ec) {
+                std::cerr << "Error removing " << filepath << ": " << ec.message() << std::endl;
+                ec.clear();
+            }
+        }
     }
+    if (ec) ec.clear();
 
-    // If the file extension is not .csv or doesn't have an extension, append .csv to it
+    // If the file extension is not .csv or doesn't have an extension, append .csv to it/replace the extension with .csv
     if (filepath.extension() != ".csv")
         filepath.replace_extension(".csv");
 

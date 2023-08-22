@@ -365,19 +365,12 @@ void passwordManager() {
             printColor(std::format("Imported {} passwords successfully.", uniqueImportedPasswords.size()), 'g', true);
         } else if (choice == 9) {
             string fileName = getResponseStr("Enter the path to save the file (leave blank for default): ");
-            std::vector<passwordRecords> clearPasswords;
+            std::vector<passwordRecords> clearPasswords(passwords.size());
+            sodium_mlock(clearPasswords.data(), passwords.size() * sizeof(passwordRecords));
 
-            // A lambda to decrypt the passwords
-            auto decryptPasswords = [&encryptionKey](const auto &password) -> passwordRecords {
-                return {std::get<0>(password), std::get<1>(password),
-                        decryptStringWithMoreRounds(std::get<2>(password), encryptionKey)};
-            };
-
-            // Decrypt the passwords before exporting
-            std::ranges::transform(passwords, std::back_inserter(clearPasswords), decryptPasswords);
-
-            // Lock the clear passwords vector using sodium_mlock
-            sodium_mlock(clearPasswords.data(), clearPasswords.size() * sizeof(passwordRecords));
+            // Copying then decrypting is more efficient than decrypting then encrypting.
+            clearPasswords = passwords;
+            encryptDecryptConcurrently(clearPasswords, encryptionKey, false, false);
 
             // Export the passwords to a csv file
             fileName.empty() ? exportCsv(clearPasswords) : exportCsv(clearPasswords, fileName);
@@ -393,43 +386,35 @@ void passwordManager() {
                 printColor("No passwords to analyze.", 'r', true);
                 continue;
             }
-            std::vector<passwordRecords> clearPasswords;
+            std::vector<passwordRecords> clearPasswords(passwords.size());
+            sodium_mlock(clearPasswords.data(), passwords.size() * sizeof(passwordRecords));
 
-            // A lambda to decrypt the passwords
-            auto decryptPasswords = [&encryptionKey](const auto &password) -> passwordRecords {
-                return {std::get<0>(password), std::get<1>(password),
-                        decryptStringWithMoreRounds(std::get<2>(password), encryptionKey)};
-            };
+            clearPasswords = passwords;
+            encryptDecryptConcurrently(clearPasswords, encryptionKey, false, false);
 
-            // Decrypt the passwords before analyzing
-            std::ranges::transform(passwords, std::back_inserter(clearPasswords), decryptPasswords);
-
-            // Lock the clear passwords vector using sodium_mlock
-            sodium_mlock(clearPasswords.data(), clearPasswords.size() * sizeof(passwordRecords));
             auto total = clearPasswords.size();
 
             // Analyze the passwords using isPasswordStrong
             std::cout << "Analyzing passwords..." << std::endl;
-            std::vector<passwordRecords> weakPasswords;
+
+            std::vector<passwordRecords> weakPasswords(clearPasswords.size());
+            sodium_mlock(weakPasswords.data(), clearPasswords.size() * sizeof(passwordRecords));
+
             for (const auto &password: clearPasswords) {
-                if (!isPasswordStrong(std::get<2>(password))) {
+                if (!isPasswordStrong(std::get<2>(password)))
                     weakPasswords.emplace_back(password);
-                }
             }
-            // Lock the weak passwords vector using sodium_mlock
-            sodium_mlock(weakPasswords.data(), weakPasswords.size() * sizeof(passwordRecords));
             auto weak = weakPasswords.size();
 
             // Check for reused passwords
             std::unordered_map<string, std::unordered_set<string>> passwordMap;
             // TODO: Reorder logic here
             for (const auto &record: clearPasswords) {
-                string site = std::get<0>(record);
-                string password = std::get<2>(record);
+                const string &site = std::get<0>(record);
+                const string &password = std::get<2>(record);
 
                 passwordMap[password].insert(site);
             }
-
             // Print sites with reused passwords
             for (const auto &entry: passwordMap) {
                 const std::unordered_set<string> &sites = entry.second;
@@ -441,22 +426,24 @@ void passwordManager() {
                     std::cout << std::endl;
                 }
             }
-
-            // Zeroize the clear passwords and unlock the memory area
+            // Zeroize the clear passwords and unlock the memory
             sodium_munlock(clearPasswords.data(), clearPasswords.size() * sizeof(passwordRecords));
 
             // Print the weak passwords
             if (!weakPasswords.empty())[[likely]] {
                 printColor(std::format("Found {} weak passwords.", weak), 'r', true);
-                printColor("----------------------------------------", 'r', true);
+                printColor("---------------------------------------------", 'r', true);
                 for (const auto &password: weakPasswords) {
                     printDetails(password, false);
-                    printColor("----------------------------------------", 'r', true);
+                    printColor("---------------------------------------------", 'r', true);
                 }
                 printColor(std::format("Please change the weak passwords above. "
                                        "\nYou can use the 'generate' command to generate strong passwords."), 'r',
                            true);
             } else printColor("No weak passwords found!", 'g', true);
+
+            // Zeroize the weak passwords and unlock the memory
+            sodium_munlock(weakPasswords.data(), weakPasswords.size() * sizeof(passwordRecords));
 
             // Print the statistics
             std::cout << "\nTotal passwords: " << total << std::endl;
@@ -468,8 +455,6 @@ void passwordManager() {
                                        100), col, true);
             } else printColor("All your passwords are strong. Keep it up!", 'g', true);
 
-            // Zeroize the weak passwords and unlock the memory area
-            sodium_munlock(weakPasswords.data(), weakPasswords.size() * sizeof(passwordRecords));
         } else if (choice == 11) {
             break; //end of 7
         } else {
@@ -482,7 +467,7 @@ void passwordManager() {
     else printColor("Passwords not saved!", 'r', true);
 
 
-    // Zeroize the password and unlock the memory area
+    // Zeroize the password and unlock the memory
     sodium_munlock(encryptionKey.data(), encryptionKey.size() * sizeof(char));
 
 }
