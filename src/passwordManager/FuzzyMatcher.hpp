@@ -4,18 +4,22 @@
 #include <vector>
 
 template<typename T>
-concept StringContainer = std::ranges::input_range<T> &&
-                          std::same_as<std::ranges::range_value_t<T>, std::string>;
+/**
+ * A concept describing a range of strings.
+ * @tparam T string type.
+ */
+concept StringRange = std::ranges::input_range<T> &&
+                      std::same_as<std::ranges::range_value_t<T>, std::string>;
+
+template<StringRange Range>
+
 
 /**
  * @brief A simple case insensitive fuzzy matcher.
  */
 class FuzzyMatcher {
 public:
-    template<StringContainer Container>
-    explicit FuzzyMatcher(const Container &wordList) : stringList({wordList}) {}
-
-//            : stringList(wordList | std::ranges::to<std::vector>()){} // When the feature becomes available in GCC & Clang
+    explicit FuzzyMatcher(const Range &wordList) : stringList{wordList} {}
 
     /**
      * @brief Fuzzy-matches (case insensitive) strings to a pattern.
@@ -23,14 +27,13 @@ public:
      * @param maxDistance the maximum Levenshtein Distance to consider a match.
      * @return a vector of strings matching the pattern.
      */
-    std::vector<std::string> fuzzyMatch(const std::string &pattern, int maxDistance) {
+    std::vector<std::string> fuzzyMatch(const std::string &pattern, const int &maxDistance) {
         std::vector<std::string> matches;
         auto maxSize{pattern.size() + maxDistance + 1};
 
         for (const std::string &str: stringList) {
             if (str.size() <= maxSize) {
-                int distance = levenshteinDistance(pattern, str);
-                if (distance <= maxDistance) {
+                if (levenshteinDistance(pattern, str) <= maxDistance) {
                     matches.emplace_back(str);
                 }
             }
@@ -38,8 +41,9 @@ public:
         return matches;
     }
 
+
 private:
-    std::vector<std::string> stringList;
+    const Range stringList;
 
     /**
      * @brief Calculates the Levenshtein Distance between two strings.
