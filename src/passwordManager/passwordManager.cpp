@@ -47,8 +47,10 @@ void passwordManager() {
 
     }
     // Reserve about 96 KB for password records
-    std::vector<passwordRecords> passwords(1024);
-    sodium_mlock(passwords.data(), 1024 * sizeof(passwordRecords));
+    std::vector<passwordRecords> passwords;
+    passwords.reserve(1024);
+    if (sodium_mlock(passwords.data(), 1024 * sizeof(passwordRecords)) != 0)
+        std::cout << "Sodium mlock failed\n";
 
     if (!newSetup) {
         // preprocess the passwordFile
@@ -69,7 +71,7 @@ void passwordManager() {
 
         // If the user failed to enter the correct password 3 times, exit
         if (attempts == 3) {
-            throw std::invalid_argument("3 incorrect password attempts.");
+            throw std::runtime_error("3 incorrect password attempts.");
         }
 
         // Lock the memory area holding the password
@@ -79,9 +81,10 @@ void passwordManager() {
         passwords = loadPasswords(passwordFile, encryptionKey);
     }
 
-    // A lambda to help sort entries
+    // A comparator for searching and sorting the password records
     auto comparator = [](const auto &tuple1, const auto &tuple2) noexcept -> bool {
-        return std::ranges::lexicographical_compare(std::get<0>(tuple1), std::get<0>(tuple2));
+        return std::ranges::lexicographical_compare(std::get<0>(tuple1) + std::get<1>(tuple1),
+                                                    std::get<0>(tuple2) + std::get<1>(tuple2));
     };
 
     // Initially sort the passwords
@@ -297,10 +300,11 @@ void passwordManager() {
             uniqueImportedPasswords.emplace_back(importedPasswords[0]);
 
             // This approach is faster than using std::ranges::unique, apparently. (the expensive erase() call is avoided)
-            for (size_t i = 1; i < importedPasswords.size(); ++i) {
-                if (std::get<0>(importedPasswords[i]) != std::get<0>(uniqueImportedPasswords.back()) ||
-                    std::get<1>(importedPasswords[i]) != std::get<1>(uniqueImportedPasswords.back())) {
-                    uniqueImportedPasswords.emplace_back(importedPasswords[i]);
+            // It is also faster than std::ranges::unique_copy, at least on my machine
+            for (const auto &password: importedPasswords) {
+                if (std::get<0>(password) != std::get<0>(uniqueImportedPasswords.back()) ||
+                    std::get<1>(password) != std::get<1>(uniqueImportedPasswords.back())) {
+                    uniqueImportedPasswords.emplace_back(password);
                 }
             }
             sodium_mlock(uniqueImportedPasswords.data(), uniqueImportedPasswords.size() * sizeof(passwordRecords));
@@ -365,7 +369,8 @@ void passwordManager() {
             printColor(std::format("Imported {} passwords successfully.", uniqueImportedPasswords.size()), 'g', true);
         } else if (choice == 9) {
             string fileName = getResponseStr("Enter the path to save the file (leave blank for default): ");
-            std::vector<passwordRecords> clearPasswords(passwords.size());
+            std::vector<passwordRecords> clearPasswords;
+            clearPasswords.reserve(passwords.size());
             sodium_mlock(clearPasswords.data(), passwords.size() * sizeof(passwordRecords));
 
             // Copying then decrypting is more efficient than decrypting then encrypting.
@@ -386,7 +391,8 @@ void passwordManager() {
                 printColor("No passwords to analyze.", 'r', true);
                 continue;
             }
-            std::vector<passwordRecords> clearPasswords(passwords.size());
+            std::vector<passwordRecords> clearPasswords;
+            clearPasswords.reserve(passwords.size());
             sodium_mlock(clearPasswords.data(), passwords.size() * sizeof(passwordRecords));
 
             clearPasswords = passwords;
@@ -397,7 +403,8 @@ void passwordManager() {
             // Analyze the passwords using isPasswordStrong
             std::cout << "Analyzing passwords..." << std::endl;
 
-            std::vector<passwordRecords> weakPasswords(clearPasswords.size());
+            std::vector<passwordRecords> weakPasswords;
+            weakPasswords.reserve(clearPasswords.size());
             sodium_mlock(weakPasswords.data(), clearPasswords.size() * sizeof(passwordRecords));
 
             for (const auto &password: clearPasswords) {
@@ -431,7 +438,7 @@ void passwordManager() {
 
             // Print the weak passwords
             if (!weakPasswords.empty())[[likely]] {
-                printColor(std::format("Found {} weak passwords.", weak), 'r', true);
+                printColor(std::format("Found {} weak passwords:", weak), 'r', true);
                 printColor("---------------------------------------------", 'r', true);
                 for (const auto &password: weakPasswords) {
                     printDetails(password, false);

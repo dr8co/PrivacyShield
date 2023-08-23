@@ -180,7 +180,7 @@ encryptDecryptConcurrently(std::vector<passwordRecords> &passwordEntries, const 
     }
 }
 
-inline void checkCommonErrors[[clang::always_inline, gnu::always_inline]](const std::string &path) {
+inline void checkCommonErrors(const std::string &path) {
     std::error_code ec;
     fs::file_status fileStatus = fs::status(path, ec);
     if (ec)
@@ -206,9 +206,10 @@ inline void checkCommonErrors[[clang::always_inline, gnu::always_inline]](const 
 bool savePasswords(std::vector<passwordRecords> &passwords, const std::string &filePath,
                    const std::string &encryptionKey) {
 
-    checkCommonErrors(filePath);
     std::ofstream file(filePath);
     if (!file) {
+        checkCommonErrors(filePath);
+
         std::cerr << std::format("Failed to open the password file ({}) for writing.\n", filePath);
         return false;
     }
@@ -245,7 +246,8 @@ bool savePasswords(std::vector<passwordRecords> &passwords, const std::string &f
  * @return decrypted password records.
  */
 std::vector<passwordRecords> loadPasswords(const std::string &filePath, const std::string &decryptionKey) {
-    std::vector<passwordRecords> passwords(1024);
+    std::vector<passwordRecords> passwords;
+    passwords.reserve(1024);
     sodium_mlock(passwords.data(), 1024 * sizeof(passwordRecords));
 
     // Check for common errors
