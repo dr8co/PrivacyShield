@@ -384,15 +384,15 @@ std::pair<std::string, std::string> initialSetup() noexcept {
             std::string pass;
             pass.reserve(32);
             sodium_mlock(pass.data(), 32 * sizeof(char));
-            pass = getSensitiveInfo("Enter a new master password: ");
+            pass = getSensitiveInfo("Enter a new primary password: ");
 
             int count{0};
             while (!isPasswordStrong(pass) && ++count < 3) {
-                std::cerr << (count == 2 ? "Last chance:"
-                                         : "Weak password! Password should have at least 8 characters and include "
-                                           " at least an uppercase letter,\na lowercase letter, a special character"
-                                           "and a digit.") << std::endl;
-                pass = getSensitiveInfo("Please enter a stronger password: ");
+                bool last {count == 2};
+                printColor(last ? "Last chance: ":
+                        "Weak password! The password must be at least 8 characters long and include \nat least an"
+                        " uppercase character, a lowercase, a punctuator, and a digit.", last? 'r':'y', !last);
+                pass = getSensitiveInfo(last? "" : "Please enter a stronger password: ");
             }
 
             if (!isPasswordStrong(pass)) {

@@ -157,7 +157,7 @@ void passwordManager() {
 
             if (!isPasswordStrong(password)) {
                 printColor(
-                        "Weak password! A password should have at least 8 characters \nand include at least an"
+                        "Weak password! A password should have at least 8 characters and include \nat least an"
                         "uppercase character, a lowercase, a punctuator, and a digit.", 'y', true);
                 printColor("Please consider using a stronger one.", 'r', true);
             }
@@ -261,8 +261,8 @@ void passwordManager() {
 
                 if (!newPassword.empty() && !isPasswordStrong(newPassword)) {
                     printColor(
-                            "Weak password! A password should have at least 8 characters \nand include at least an"
-                            "uppercase character, a lowercase, a punctuator, and a digit.", 'y', true);
+                            "Weak password! A password should have at least 8 characters and include \nat least an"
+                            " uppercase character, a lowercase, a punctuator, and a digit.", 'y', true);
                     printColor("Please consider using a stronger one.", 'r', true);
                 }
 
@@ -348,8 +348,10 @@ void passwordManager() {
 
                 // Fuzzy-match the query against the site names
                 FuzzyMatcher matcher(passwords | std::ranges::views::elements<0>);
-                const auto &fuzzyMatched = matcher.fuzzyMatch(query, 2);
+                auto fuzzyMatched{matcher.fuzzyMatch(query, 2)};
 
+                // TODO: Remove duplicates from the passed wordlist (or from the matcher),
+                //  and handle multiple usernames under a site
                 if (fuzzyMatched.size() == 1) {
                     printColor("Did you mean '", 'c');
                     printColor(fuzzyMatched[0], 'g');
