@@ -221,10 +221,10 @@ void passwordManager() {
                     usernames.emplace_back(std::get<1>(*it));
 
                 if (usernames.size() > 1) {
-                    std::cout << "Many usernames found under the site name: \n";
+                    std::cout << "Found the following usernames for " << std::quoted(site) << ":\n";
                     for (auto &username: usernames)
-                        std::cout << (username.empty() ? "'' [no username, reply with a blank to select]" : username)
-                                  << std::endl;
+                        printColor(username.empty() ? "'' [no username, reply with a blank to select]"
+                                                    : username, 'c', true);
 
                     std::string username = getResponseStr("\nChoose one username to update:");
 
@@ -270,6 +270,9 @@ void passwordManager() {
                 if (updateUsername) std::get<1>(*it) = newUsername;
                 if (!newPassword.empty()) std::get<2>(*it) = encryptStringWithMoreRounds(newPassword, encryptionKey);
 
+                // Entries should always be sorted
+                std::ranges::sort(passwords, comparator);
+
                 if (updateUsername || !newPassword.empty())
                     printColor("Password updated successfully.", 'g', true);
                 else printColor("Password not updated.", 'r', true, std::cerr);
@@ -277,21 +280,50 @@ void passwordManager() {
             } else {
                 printColor("Site not found!", 'r', true);
             }
-        } else if (choice == 5) {
-            // TODO: Update this segment,
-            //  several records can exist under the same site name but with different usernames.
+        } else if (choice == 5) { // similar to update of passwords
             string site = getResponseStr("Enter the site to delete: ");
 
-            auto it = std::ranges::find_if(passwords, [&site](const auto &password) -> bool {
-                return std::get<0>(password) == site;
-            });
+            // Search for the site
+            auto it = std::ranges::lower_bound(passwords, std::tie(site, "", std::ignore), comparator);
 
-            if (it != passwords.end()) {
-                passwords.erase(std::remove(passwords.begin(), passwords.end(), *it), passwords.end());
-                printColor("Password deleted successfully.", 'g', true);
-            } else {
-                printColor("Site not found!", 'r', true);
-            }
+            if (it != passwords.end() && std::get<0>(*it) == site) {
+                std::vector<std::string> usernames;
+                usernames.reserve(10);
+
+                usernames.emplace_back(std::get<1>(*it));
+
+                // Search for other usernames under the same site name
+                while (std::get<0>(*++it) == site)
+                    usernames.emplace_back(std::get<1>(*it));
+
+                if (usernames.size() > 1) {
+                    std::cout << "Found the following usernames for " << std::quoted(site) << ":\n";
+                    for (auto &username: usernames)
+                        printColor(username.empty() ? "'' [no username, reply with a blank to select]"
+                                                    : username, 'c', true);
+
+                    std::string username = getResponseStr("\nEnter the username to delete:");
+
+                    // Update the iterator
+                    it = std::ranges::lower_bound(passwords, std::tie(site, username, std::ignore), comparator);
+                    if (!(it != passwords.end() && std::get<0>(*it) == site && std::get<1>(*it) == username)) {
+                        std::cerr << "No such username as " << std::quoted(username) << " under " << std::quoted(site)
+                                  << std::endl;
+                        continue;
+                    }
+                } else --it; // Return the iterator to the match
+
+                // Delete the entry
+                passwords.erase(std::remove(it, passwords.end(), *it), passwords.end());
+
+                // Make sure the entries are sorted
+                if (!std::ranges::is_sorted(passwords, comparator))
+                    std::ranges::sort(passwords, comparator);
+
+                printColor("Password record deleted successfully.", 'g', true);
+
+            } else printColor("Site not found!", 'r', true, std::cerr);
+
         } else if (choice == 6) {
             if (changeMasterPassword(passwords, encryptionKey))
                 printColor("Master password changed successfully.", 'g', true);
@@ -332,7 +364,6 @@ void passwordManager() {
                 }
             }
         } else if (choice == 8) {
-            // TODO: More concurrency: encrypt/process passwords concurrently
             string fileName = getResponseStr("Enter the path to the csv file: ");
             bool hasHeader = validateYesNo("Does the file have a header? (Skip the first line?) (y/n): ");
 
