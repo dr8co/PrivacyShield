@@ -338,28 +338,43 @@ void passwordManager() {
             if (!matches.empty()) [[likely]] {
                 std::cout << "All the matches:" << std::endl;
 
+                std::cout << "---------------------------------------------\n";
                 for (const auto &el: matches) {
                     printDetails(el);
+                    std::cout << "---------------------------------------------" << std::endl;
                 }
             } else {
-                printColor(std::format("No matches found for '{}'.", query), 'r', true);
+                printColor(std::format("No matches found for '{}'", query), 'r', true);
 
+                // Fuzzy-match the query against the site names
                 FuzzyMatcher matcher(passwords | std::ranges::views::elements<0>);
-                auto fuzzyMatched = matcher.fuzzyMatch(query, 2);
+                const auto &fuzzyMatched = matcher.fuzzyMatch(query, 2);
+
                 if (fuzzyMatched.size() == 1) {
-                    printColor(std::format("Did you mean '{}'? (y/n) ", fuzzyMatched[0]), 'b', false);
+                    printColor("Did you mean '", 'c');
+                    printColor(fuzzyMatched[0], 'g');
+                    printColor("'? (y/n) ", 'c');
+
                     if (validateYesNo()) {
-                        auto it = std::ranges::find_if(passwords, [&fuzzyMatched](const auto &vec) -> bool {
-                            return std::get<0>(vec) == fuzzyMatched[0];
-                        });
-                        if (it != passwords.end())
-                            printDetails(*it);
+                        auto iter = std::ranges::lower_bound(passwords,
+                                                             std::tie(fuzzyMatched[0], std::ignore, std::ignore),
+                                                             [](const auto &lhs, const auto &rhs) noexcept -> bool {
+                                                                 return std::get<0>(lhs) < std::get<0>(rhs);
+                                                             });
+
+                        if (iter != passwords.end() && std::get<0>(*iter) == fuzzyMatched[0]) {
+                            std::cout << "--------------------------------------------" << std::endl;
+                            printDetails(*iter);
+                            std::cout << "--------------------------------------------" << std::endl;
+                        }
 
                     } else printColor("Sorry, '" + query + "' not found.", 'r', true);
-                } else if (!fuzzyMatched.empty()) {
+
+                } else if (!fuzzyMatched.empty()) { /* multiple matches */
                     printColor("Did you mean one of these?", 'b', true);
                     for (const auto &el: fuzzyMatched) {
-                        std::cout << el << std::endl;
+                        printColor(el, 'g', true);
+                        std::cout << "--------------------------------" << std::endl;
                     }
                 }
             }
