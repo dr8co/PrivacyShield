@@ -375,7 +375,7 @@ void passwordManager() {
                     } else printColor("Sorry, '" + query + "' not found.", 'r', true);
 
                 } else if (!fuzzyMatched.empty()) { /* multiple matches */
-                    printColor("Did you mean one of these?", 'b', true);
+                    printColor("Did you mean one of these?:", 'b', true);
                     for (const auto &el: fuzzyMatched) {
                         printColor(el, 'g', true);
                         std::cout << "--------------------------------" << std::endl;
@@ -506,6 +506,7 @@ void passwordManager() {
             // Analyze the passwords
             std::cout << "Analyzing passwords..." << std::endl;
 
+            // Scan for weak passwords
             std::vector<passwordRecords> weakPasswords;
             weakPasswords.reserve(clearPasswords.size());
             sodium_mlock(weakPasswords.data(), clearPasswords.size() * sizeof(passwordRecords));
@@ -514,46 +515,55 @@ void passwordManager() {
                 if (!isPasswordStrong(std::get<2>(password)))
                     weakPasswords.emplace_back(password);
             }
-            auto weak = weakPasswords.size();
 
             // Check for reused passwords
             std::unordered_map<string, std::unordered_set<string>> passwordMap;
-            // TODO: Reorder logic here
             for (const auto &record: clearPasswords) {
                 const string &site = std::get<0>(record);
                 const string &password = std::get<2>(record);
 
                 passwordMap[password].insert(site);
             }
-            // Print sites with reused passwords
-            for (const auto &entry: passwordMap) {
-                const std::unordered_set<string> &sites = entry.second;
-                if (const auto &x = sites.size(); x > 1) {
-                    printColor(std::format("Password '{}' is reused on {} sites:", entry.first, x), 'y', true);
-                    for (const string &site: sites) {
-                        printColor(site + "\n", 'y');
-                    }
-                    std::cout << std::endl;
-                }
-            }
-            // Zeroize the clear passwords and unlock the memory
-            sodium_munlock(clearPasswords.data(), clearPasswords.size() * sizeof(passwordRecords));
-
+            // Print the results.
             // Print the weak passwords
+            auto weak{weakPasswords.size()};
             if (!weakPasswords.empty())[[likely]] {
-                printColor(std::format("Found {} weak passwords:", weak), 'r', true);
+                printColor(std::format("Found {} accounts with weak passwords:", weak), 'r', true);
                 printColor("---------------------------------------------", 'r', true);
                 for (const auto &password: weakPasswords) {
                     printDetails(password, false);
                     printColor("---------------------------------------------", 'r', true);
                 }
                 printColor(std::format("Please change the weak passwords above. "
-                                       "\nYou can use the 'generate' command to generate strong passwords."), 'r',
+                                       "\nYou can use the 'generate' command to generate strong passwords.\n"), 'r',
                            true);
-            } else printColor("No weak passwords found. Keep it up!", 'g', true);
+            } else printColor("No weak passwords found. Keep it up!\n", 'g', true);
 
             // Zeroize the weak passwords and unlock the memory
             sodium_munlock(weakPasswords.data(), weakPasswords.size() * sizeof(passwordRecords));
+
+            // Print sites with reused passwords
+            std::size_t reused{0};
+            for (const auto &entry: passwordMap) {
+                const std::unordered_set<string> &sites = entry.second;
+                if (const auto &x = sites.size(); x > 1) {
+                    printColor(std::format("Password '{}' is reused on {} sites:", entry.first, x), 'y', true);
+                    for (const string &site: sites) {
+                        printColor(site + "\n", 'm');
+                    }
+                    std::cout << std::endl;
+                    ++reused;
+                }
+            }
+            if (reused) {
+                printColor(std::format("{} password{} been reused.", reused,
+                                       reused == 1 ? " has" : "s have"), 'r', true);
+            } else printColor("Nice!! No password reuse detected.", 'g', true);
+
+            printColor(std::format("{} use unique passwords to minimize the impact of their compromise.",
+                                   reused ? "Please" : "Always"), reused ? 'r' : 'c', true);
+
+            sodium_munlock(clearPasswords.data(), clearPasswords.size() * sizeof(passwordRecords));
 
             // Print the statistics
             std::cout << "\nTotal passwords: " << total << std::endl;
