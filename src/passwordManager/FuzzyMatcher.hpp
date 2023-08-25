@@ -11,15 +11,29 @@ template<typename T>
 concept StringRange = std::ranges::input_range<T> &&
                       std::same_as<std::ranges::range_value_t<T>, std::string>;
 
-template<StringRange Range>
-
 
 /**
  * @brief A simple case insensitive fuzzy matcher.
  */
 class FuzzyMatcher {
 public:
-    explicit FuzzyMatcher(const Range &wordList) : stringList{wordList} {}
+    /**
+     * @brief Constructs a FuzzyMatcher object.
+     * @param wordList the list of strings to be matched against a pattern.
+     * @tparam Range a range of strings.
+     * @note The wordList should be sorted, for deduplication to be successful.
+     */
+    template<StringRange Range>
+    explicit FuzzyMatcher(const Range &wordList) {
+        stringList.reserve(std::ranges::distance(wordList));
+
+        // Copy unique entries to the string list vector (wordList is sorted)
+        stringList.emplace_back(*std::ranges::cbegin(wordList));
+        for (const auto &el: wordList) {
+            if (el != stringList.back())
+                stringList.emplace_back(el);
+        }
+    }
 
     /**
      * @brief Fuzzy-matches (case insensitive) strings to a pattern.
@@ -43,7 +57,7 @@ public:
 
 
 private:
-    const Range stringList;
+    std::vector<std::string> stringList;
 
     /**
      * @brief Calculates the Levenshtein Distance between two strings.

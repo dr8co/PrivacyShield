@@ -350,24 +350,26 @@ void passwordManager() {
                 FuzzyMatcher matcher(passwords | std::ranges::views::elements<0>);
                 auto fuzzyMatched{matcher.fuzzyMatch(query, 2)};
 
-                // TODO: Remove duplicates from the passed wordlist (or from the matcher),
-                //  and handle multiple usernames under a site
                 if (fuzzyMatched.size() == 1) {
+                    const auto &match = fuzzyMatched.at(0);
+
                     printColor("Did you mean '", 'c');
-                    printColor(fuzzyMatched[0], 'g');
-                    printColor("'? (y/n) ", 'c');
+                    printColor(match, 'g');
+                    printColor("'? (y/n):", 'c');
 
                     if (validateYesNo()) {
                         auto iter = std::ranges::lower_bound(passwords,
-                                                             std::tie(fuzzyMatched[0], std::ignore, std::ignore),
+                                                             std::tie(match, std::ignore, std::ignore),
                                                              [](const auto &lhs, const auto &rhs) noexcept -> bool {
                                                                  return std::get<0>(lhs) < std::get<0>(rhs);
                                                              });
 
-                        if (iter != passwords.end() && std::get<0>(*iter) == fuzzyMatched[0]) {
+                        if (iter != passwords.end() && std::get<0>(*iter) == match) {
                             std::cout << "--------------------------------------------" << std::endl;
-                            printDetails(*iter);
-                            std::cout << "--------------------------------------------" << std::endl;
+                            do {
+                                printDetails(*iter);
+                                std::cout << "--------------------------------------------" << std::endl;
+                            } while (std::get<0>(*++iter) == match);
                         }
 
                     } else printColor("Sorry, '" + query + "' not found.", 'r', true);
