@@ -9,7 +9,7 @@
 #include <format>
 #include <gcrypt.h>
 #include "../utils/utils.hpp"
-#include "duplicatesFinder.hpp"
+#include "duplicateFinder.hpp"
 
 namespace fs = std::filesystem;
 
@@ -231,11 +231,11 @@ std::size_t findDuplicates(const std::string &directoryPath) {
     return numDuplicates;
 }
 
-void duplicatesFinder() {
+void duplicateFinder() {
     while (true) {
-        std::cout << "\n------------------- Duplicates Finder -------------------\n";
+        std::cout << "\n------------------- Duplicate Finder -------------------\n";
         std::cout << "1. Scan for duplicate files\n2. Exit\n";
-        std::cout << "---------------------------------------------------------" << std::endl;
+        std::cout << "--------------------------------------------------------" << std::endl;
 
         int resp = getResponseInt("Enter your choice:");
 
@@ -278,7 +278,7 @@ void duplicatesFinder() {
                           << std::endl;
 
             } catch (const std::exception &ex) {
-                std::cerr << ex.what() << std::endl;
+                std::cerr << "An error occurred: " << ex.what() << std::endl;
                 continue;
             }
 

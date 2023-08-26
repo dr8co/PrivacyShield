@@ -2,4 +2,4 @@
 
 #include <string>
 
-void duplicatesFinder();
+void duplicateFinder();
