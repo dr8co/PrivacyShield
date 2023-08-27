@@ -22,13 +22,13 @@ bool verifyPassword(const std::string &password, const std::string &storedHash);
 
 void passwordManager();
 
-bool changeMasterPassword(std::vector<passwordRecords> &passwordEntries, std::string &primaryPassword);
+bool changeMasterPassword(std::string &primaryPassword);
 
 std::pair<std::string, std::string> initialSetup() noexcept;
 
 std::string getHash(const std::string &filePath);
 
-std::vector<passwordRecords> importCsv(const std::string &filePath, bool skipFirst);
+std::vector<passwordRecords> importCsv(const std::string &filePath);
 
 void exportCsv(const std::vector<passwordRecords> &records, const std::string &filePath = getHomeDir());
 

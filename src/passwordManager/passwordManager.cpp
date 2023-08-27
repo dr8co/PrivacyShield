@@ -8,7 +8,6 @@
 #include <utility>
 #include <cmath>
 #include <memory>
-#include "../encryption/encryptDecrypt.hpp"
 #include "../utils/utils.hpp"
 #include "passwords.hpp"
 #include "FuzzyMatcher.hpp"
@@ -24,7 +23,7 @@ inline bool comparator(const auto &tuple1, const auto &tuple2) noexcept {
 }
 
 // Lambda to print the entries
-inline void printDetails(const auto &pw, const string &encryptionKey, bool decrypt = true) noexcept {
+inline void printDetails(const auto &pw) noexcept {
     if (const auto &site = std::get<0>(pw); !site.empty()) {
         std::cout << "Site:     ";
         printColor(site, 'c');
@@ -36,13 +35,13 @@ inline void printDetails(const auto &pw, const string &encryptionKey, bool decry
     }
 
     // Highlight a weak password
-    const auto &pass = decrypt ? decryptStringWithMoreRounds(std::get<2>(pw), encryptionKey) : std::get<2>(pw);
+    const auto &pass = std::get<2>(pw);
     std::cout << "\nPassword: ";
     printColor(pass, isPasswordStrong(pass) ? 'g' : 'r', true);
 
 }
 
-inline void addPassword(std::vector<passwordRecords> &passwords, std::string &encryptionKey) {
+inline void addPassword(std::vector<passwordRecords> &passwords) {
     string site = getResponseStr("Enter the site/platform: ");
     string username = getResponseStr("Username (leave blank if N/A): ");
 
@@ -84,10 +83,9 @@ inline void addPassword(std::vector<passwordRecords> &passwords, std::string &en
         printColor("Please consider using a stronger one.", 'r', true);
     }
 
-    string encryptedPassword = encryptStringWithMoreRounds(password, encryptionKey);
     if (update)
-        std::get<2>(*it) = encryptedPassword;
-    else passwords.emplace_back(site, username, encryptedPassword);
+        std::get<2>(*it) = password;
+    else passwords.emplace_back(site, username, password);
 
     printColor(std::format("Password {} successfully.", update ? "updated" : "added"), 'g', true);
 
@@ -97,8 +95,7 @@ inline void addPassword(std::vector<passwordRecords> &passwords, std::string &en
     });
 }
 
-inline void generatePassword(std::vector<passwordRecords> &passwords [[maybe_unused]],
-                             std::string &encryptionKey [[maybe_unused]]) {
+inline void generatePassword(std::vector<passwordRecords> &passwords [[maybe_unused]]) {
     int length = getResponseInt("Enter the length of the password to generate: ");
 
     int tries{0};
@@ -114,7 +111,7 @@ inline void generatePassword(std::vector<passwordRecords> &passwords [[maybe_unu
     std::cout << "Generated password: " << generatePassword(length) << std::endl;
 }
 
-inline void viewAllPasswords(std::vector<passwordRecords> &passwords, std::string &encryptionKey) {
+inline void viewAllPasswords(std::vector<passwordRecords> &passwords) {
     if (passwords.empty()) {
         std::cout << "No password saved yet." << std::endl;
         return;
@@ -127,13 +124,13 @@ inline void viewAllPasswords(std::vector<passwordRecords> &passwords, std::strin
         std::cout << ")\n---------------------------------------------------" << std::endl;
 
         for (const auto &password: passwords) {
-            printDetails(password, encryptionKey);
+            printDetails(password);
             std::cout << "---------------------------------------------------" << std::endl;
         }
     }
 }
 
-inline void updatePassword(std::vector<passwordRecords> &passwords, std::string &encryptionKey) {
+inline void updatePassword(std::vector<passwordRecords> &passwords) {
     string site = getResponseStr("Enter the site to update: ");
 
     // Search for the site
@@ -203,7 +200,7 @@ inline void updatePassword(std::vector<passwordRecords> &passwords, std::string 
 
         // Update the record
         if (updateUsername) std::get<1>(*it) = newUsername;
-        if (!newPassword.empty()) std::get<2>(*it) = encryptStringWithMoreRounds(newPassword, encryptionKey);
+        if (!newPassword.empty()) std::get<2>(*it) = newPassword;
 
         // Entries should always be sorted
         std::ranges::sort(passwords, [](const auto &tuple1, const auto &tuple2) {
@@ -219,7 +216,7 @@ inline void updatePassword(std::vector<passwordRecords> &passwords, std::string 
     }
 }
 
-inline void deletePassword(std::vector<passwordRecords> &passwords, std::string &encryptionKey [[maybe_unused]]) {
+inline void deletePassword(std::vector<passwordRecords> &passwords) {
     string site = getResponseStr("Enter the site to delete: ");
 
     // Search for the site
@@ -274,13 +271,7 @@ inline void deletePassword(std::vector<passwordRecords> &passwords, std::string 
     } else printColor("Site not found!", 'r', true, std::cerr);
 }
 
-inline void changePrimaryKey(std::vector<passwordRecords> &passwords, std::string &encryptionKey) {
-    if (changeMasterPassword(passwords, encryptionKey))
-        printColor("Master password changed successfully.", 'g', true);
-    else printColor("Master password not changed.", 'r', true);
-}
-
-inline void searchPasswords(std::vector<passwordRecords> &passwords, std::string &encryptionKey) {
+inline void searchPasswords(std::vector<passwordRecords> &passwords) {
     string query = getResponseStr("Enter the site name: ");
 
     auto matches = passwords | std::ranges::views::filter([&query](const auto &vec) -> bool {
@@ -292,7 +283,7 @@ inline void searchPasswords(std::vector<passwordRecords> &passwords, std::string
 
         std::cout << "---------------------------------------------\n";
         for (const auto &el: matches) {
-            printDetails(el, encryptionKey);
+            printDetails(el);
             std::cout << "---------------------------------------------" << std::endl;
         }
     } else {
@@ -318,7 +309,7 @@ inline void searchPasswords(std::vector<passwordRecords> &passwords, std::string
                 if (iter != passwords.end() && std::get<0>(*iter) == match) {
                     std::cout << "--------------------------------------------" << std::endl;
                     do {
-                        printDetails(*iter, encryptionKey, false);
+                        printDetails(*iter);
                         std::cout << "--------------------------------------------" << std::endl;
                     } while (std::get<0>(*++iter) == match);
                 }
@@ -336,94 +327,85 @@ inline void searchPasswords(std::vector<passwordRecords> &passwords, std::string
 
 }
 
-inline void importPasswords(std::vector<passwordRecords> &passwords, std::string &encryptionKey) {
+inline void importPasswords(std::vector<passwordRecords> &passwords) {
     string fileName = getResponseStr("Enter the path to the csv file: ");
-    bool hasHeader = validateYesNo("Does the file have a header? (Skip the first line?) (y/n): ");
 
-    std::vector<passwordRecords> importedPasswords{importCsv(fileName, hasHeader)};
-    auto numImported{importedPasswords.size()};
+    std::vector<passwordRecords> imports{importCsv(fileName)};
+    auto numImported{imports.size()};
 
-    sodium_mlock(importedPasswords.data(), numImported * sizeof(passwordRecords));
+    sodium_mlock(imports.data(), numImported * sizeof(passwordRecords));
 
-    if (importedPasswords.empty()) {
+    if (imports.empty()) {
         printColor("No passwords imported.", 'y', true);
         return;
     }
 
     // Sort the imported passwords
-    std::ranges::sort(importedPasswords, [](const auto &tuple1, const auto &tuple2) {
+    std::ranges::sort(imports, [](const auto &tuple1, const auto &tuple2) {
         return comparator(tuple1, tuple2);
     });
 
     // Remove duplicates from the imported passwords
-    std::vector<std::tuple<string, string, string>> uniqueImportedPasswords;
-    uniqueImportedPasswords.reserve(numImported); // Reserve space for efficiency
+    std::vector<std::tuple<string, string, string>> uniques;
+    uniques.reserve(numImported); // Reserve space for efficiency
 
     // Add the first password entry before checking for duplicates
-    uniqueImportedPasswords.emplace_back(importedPasswords[0]);
+    uniques.emplace_back(imports[0]);
 
     // The following approach is significantly faster (for this specific task in this scenario)
     // than using the erase-remove idiom (erase() is expensive).
     // It is also faster than std::ranges::unique_copy, at least on my machine
-    for (auto &password: importedPasswords) {
-        if (std::get<0>(password) != std::get<0>(uniqueImportedPasswords.back()) ||
-            std::get<1>(password) != std::get<1>(uniqueImportedPasswords.back())) {
-            uniqueImportedPasswords.emplace_back(std::move(password));
+    for (auto &password: imports) {
+        if (std::get<0>(password) != std::get<0>(uniques.back()) ||
+            std::get<1>(password) != std::get<1>(uniques.back())) {
+            uniques.emplace_back(std::move(password));
         }
     }
-    sodium_munlock(importedPasswords.data(), numImported * sizeof(passwordRecords));
-    sodium_mlock(uniqueImportedPasswords.data(), uniqueImportedPasswords.size() * sizeof(passwordRecords));
+    sodium_munlock(imports.data(), numImported * sizeof(passwordRecords));
+    sodium_mlock(uniques.data(), uniques.size() * sizeof(passwordRecords));
 
     // Check if the imported passwords already exist in the database
     std::vector<passwordRecords> duplicates;
-    duplicates.reserve(uniqueImportedPasswords.size());
-    for (const auto &importedPassword: uniqueImportedPasswords) {
+    duplicates.reserve(uniques.size());
+    for (const auto &importedPassword: uniques) {
         if (std::ranges::binary_search(passwords, importedPassword, [](const auto &tuple1, const auto &tuple2) {
             return comparator(tuple1, tuple2);
-        })) {
+        }))
             duplicates.emplace_back(importedPassword);
-        }
+
     }
     // If there are duplicates, ask the user if they want to overwrite them
     if (!duplicates.empty()) {
         printColor("Warning: The following passwords already exist in the database:", 'y', true);
         for (const auto &password: duplicates) {
-            printDetails(password, encryptionKey, false);
+            printDetails(password);
         }
         printColor("Do you want to overwrite/update them? (y/n): ", 'b', true);
         if (validateYesNo()) {
             // Remove the duplicates from the existing passwords so that they can be replaced
             passwords.erase(
                     std::remove_if(passwords.begin(), passwords.end(), [&duplicates](const auto &password) -> bool {
-                        return std::ranges::binary_search(duplicates, password,
-                                                          [](const auto &tuple1, const auto &tuple2) {
-                                                              return comparator(tuple1, tuple2);
-                                                          });
+                        return std::ranges::binary_search(duplicates, password, [](const auto &lhs, const auto &rhs) {
+                            return comparator(lhs, rhs);
+                        });
                     }), passwords.end());
         } else {
             printColor("Warning: Duplicate passwords not imported.", 'y', true);
             // Remove the duplicates (already in our database) from the imported passwords
-            uniqueImportedPasswords.erase(std::remove_if(uniqueImportedPasswords.begin(), uniqueImportedPasswords.end(),
-                                                         [&duplicates](const auto &password) {
-                                                             return std::ranges::binary_search(duplicates, password,
-                                                                                               [](const auto &tuple1,
-                                                                                                  const auto &tuple2) {
-                                                                                                   return comparator(
-                                                                                                           tuple1,
-                                                                                                           tuple2);
-                                                                                               });
-                                                         }), uniqueImportedPasswords.end());
+            uniques.erase(std::remove_if(uniques.begin(), uniques.end(), [&duplicates](const auto &password) -> bool {
+                return std::ranges::binary_search(duplicates, password, [](const auto &tuple1, const auto &tuple2) {
+                    return comparator(tuple1, tuple2);
+                });
+            }), uniques.end());
         }
     }
-    // Encrypt the passwords before importing
-    std::cout << "Encrypting the imported passwords..." << std::endl;
-    encryptDecryptConcurrently(uniqueImportedPasswords, encryptionKey, true, false);
 
-    for (auto &el: uniqueImportedPasswords) {
+    // Import the passwords
+    for (auto &el: uniques) {
         passwords.emplace_back(std::move(el));
     }
-    sodium_munlock(uniqueImportedPasswords.data(),
-                   uniqueImportedPasswords.size() * sizeof(passwordRecords));
+
+    sodium_munlock(uniques.data(), uniques.size() * sizeof(passwordRecords));
 
     // Lock the passwords vector using sodium_mlock
     sodium_mlock(passwords.data(), passwords.size() * sizeof(passwordRecords));
@@ -433,62 +415,46 @@ inline void importPasswords(std::vector<passwordRecords> &passwords, std::string
         return comparator(tuple1, tuple2);
     });
 
-    if (auto uniques{uniqueImportedPasswords.size()}; uniques)
-        printColor(std::format("Imported {} passwords successfully.", uniques), 'g', true);
+    if (auto imported{uniques.size()}; imported)
+        printColor(std::format("Imported {} passwords successfully.", imported), 'g', true);
     else printColor("Passwords not imported.", 'r', true);
 }
 
-inline void exportPasswords(std::vector<passwordRecords> &passwords, std::string &encryptionKey) {
+inline void exportPasswords(std::vector<passwordRecords> &passwords) {
     string fileName = getResponseStr("Enter the path to save the file (leave blank for default): ");
-    std::vector<passwordRecords> clearPasswords;
-
-    clearPasswords.reserve(passwords.size());
-    sodium_mlock(clearPasswords.data(), passwords.size() * sizeof(passwordRecords));
-
-    // Copying then decrypting is more efficient than decrypting then encrypting
-    clearPasswords = passwords;
-    encryptDecryptConcurrently(clearPasswords, encryptionKey, false, false);
 
     // Export the passwords to a csv file
-    fileName.empty() ? exportCsv(clearPasswords) : exportCsv(clearPasswords, fileName);
-
-    // Zeroize the clear passwords and unlock the memory area
-    sodium_munlock(clearPasswords.data(), clearPasswords.size() * sizeof(passwordRecords));
+    fileName.empty() ? exportCsv(passwords) : exportCsv(passwords, fileName);
 
     // Warn the user about the security risk
     printColor("WARNING: The exported file contains all your passwords in plain text."
                "\nPlease delete it securely after use.", 'r', true);
 }
 
-inline void analyzePasswords(std::vector<passwordRecords> &passwords, std::string &encryptionKey) {
+inline void analyzePasswords(std::vector<passwordRecords> &passwords) {
     if (passwords.empty()) {
         printColor("No passwords to analyze.", 'r', true);
         return;
     }
-    std::vector<passwordRecords> clearPasswords{passwords};
-    sodium_mlock(clearPasswords.data(), passwords.size() * sizeof(passwordRecords));
 
-    std::cout << "Decrypting passwords..." << std::endl;
-    encryptDecryptConcurrently(clearPasswords, encryptionKey, false, false);
-
-    auto total = clearPasswords.size();
+    auto total = passwords.size();
 
     // Analyze the passwords
     std::cout << "Analyzing passwords..." << std::endl;
 
     // Scan for weak passwords
     std::vector<passwordRecords> weakPasswords;
-    weakPasswords.reserve(clearPasswords.size());
-    sodium_mlock(weakPasswords.data(), clearPasswords.size() * sizeof(passwordRecords));
+    weakPasswords.reserve(passwords.size());
+    sodium_mlock(weakPasswords.data(), passwords.size() * sizeof(passwordRecords));
 
-    for (const auto &password: clearPasswords) {
+    for (const auto &password: passwords) {
         if (!isPasswordStrong(std::get<2>(password)))
             weakPasswords.emplace_back(password);
     }
 
     // Check for reused passwords
     std::unordered_map<string, std::unordered_set<string>> passwordMap;
-    for (const auto &record: clearPasswords) {
+    for (const auto &record: passwords) {
         const string &site = std::get<0>(record);
         const string &password = std::get<2>(record);
 
@@ -501,7 +467,7 @@ inline void analyzePasswords(std::vector<passwordRecords> &passwords, std::strin
         printColor(std::format("Found {} accounts with weak passwords:", weak), 'r', true);
         printColor("---------------------------------------------", 'r', true);
         for (const auto &password: weakPasswords) {
-            printDetails(password, encryptionKey, false);
+            printDetails(password);
             printColor("---------------------------------------------", 'r', true);
         }
         printColor(std::format("Please change the weak passwords above. "
@@ -518,9 +484,9 @@ inline void analyzePasswords(std::vector<passwordRecords> &passwords, std::strin
         const std::unordered_set<string> &sites = entry.second;
         if (const auto &x = sites.size(); x > 1) {
             printColor(std::format("Password '{}' is reused on {} sites:", entry.first, x), 'y', true);
-            for (const string &site: sites) {
+            for (const string &site: sites)
                 printColor(site + "\n", 'm');
-            }
+
             std::cout << std::endl;
             ++reused;
         }
@@ -532,8 +498,6 @@ inline void analyzePasswords(std::vector<passwordRecords> &passwords, std::strin
 
     printColor(std::format("{} use unique passwords to minimize the impact of their compromise.",
                            reused ? "Please" : "Always"), reused ? 'r' : 'c', true);
-
-    sodium_munlock(clearPasswords.data(), clearPasswords.size() * sizeof(passwordRecords));
 
     // Print the statistics
     std::cout << "\nTotal passwords: " << total << std::endl;
@@ -602,6 +566,7 @@ void passwordManager() {
         sodium_mlock(encryptionKey.data(), encryptionKey.size() * sizeof(char));
 
         // Load the saved passwords
+        printColor("Please wait for your passwords to be decrypted...", 'c', true);
         passwords = loadPasswords(passwordFile, encryptionKey);
     }
 
@@ -610,13 +575,12 @@ void passwordManager() {
         return comparator(tuple1, tuple2);
     });
 
-    std::unordered_map<int, void (*)(std::vector<passwordRecords> &, std::string &)> choices = {
+    std::unordered_map<int, void (*)(std::vector<passwordRecords> &)> choices = {
             {1,  addPassword},
             {2,  generatePassword},
             {3,  viewAllPasswords},
             {4,  updatePassword},
             {5,  deletePassword},
-            {6,  changePrimaryKey},
             {7,  searchPasswords},
             {8,  importPasswords},
             {9,  exportPasswords},
@@ -643,11 +607,14 @@ void passwordManager() {
         auto iter = choices.find(choice);
 
         if (iter != choices.end())
-            iter->second(passwords, encryptionKey);
-        else if (choice == 11)
+            iter->second(passwords);
+        else if (choice == 6) {
+            if (changeMasterPassword(encryptionKey))
+                printColor("Master password changed successfully.", 'g', true);
+            else printColor("Master password not changed.", 'r', true);
+        } else if (choice == 11)
             break;
         else std::cout << "Invalid choice!" << std::endl;
-
     }
 
     std::cout << "saving passwords.." << std::endl;
