@@ -20,8 +20,6 @@ unsigned int {
         Safari   = 1 << 4
 };
 
-// TODO: Add support for snap/flatpak-installed browsers on Linux
-
 /**
  * @brief A convenience function for handling errors during file operations.
  * @param ec the error code associated with the error.

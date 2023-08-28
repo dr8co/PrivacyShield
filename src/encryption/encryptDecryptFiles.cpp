@@ -4,7 +4,7 @@
 #include <openssl/kdf.h>
 #include <openssl/core_names.h>
 #include <openssl/rand.h>
-#include <sodium/utils.h>
+#include <sodium.h>
 #include <format>
 #include <filesystem>
 #include <mutex>
@@ -31,8 +31,7 @@ std::vector<unsigned char> generateSalt(int saltSize) {
     std::mutex m;  // Not sure if RAND_bytes is thread-safe
     std::vector<unsigned char> salt(saltSize);
     if (std::scoped_lock<std::mutex> lock(m); RAND_bytes(salt.data(), saltSize) != 1) {
-        // TODO: Try Gcrypt's (or Sodium's) random facilities upon the failure of OpenSSL's
-        throw std::runtime_error("Failed to generate salt/iv.");
+        randombytes_buf(salt.data(), salt.size());  // Use Sodium's random generator as a backup
     }
     return salt;
 }

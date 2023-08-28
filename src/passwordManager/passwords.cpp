@@ -269,8 +269,6 @@ std::vector<passwordRecords> loadPasswords(const std::string &filePath, const st
         std::size_t firstDelimiterPos = line.find(':');
         std::size_t secondDelimiterPos = line.find(':', firstDelimiterPos + 1);
 
-        // TODO: Limit how many characters are read for security reasons.
-
         if (firstDelimiterPos == std::string::npos || secondDelimiterPos == std::string::npos) {
             std::cerr << std::format("Invalid password entry: {}\n", line);
             continue;
@@ -555,8 +553,6 @@ std::vector<passwordRecords> importCsv(const std::string &filePath) {
     while (std::getline(file, line)) {
         std::istringstream iss(line);
         std::vector<std::string> tokens;
-
-        // TODO: Limit how many characters of an entry is read for security reasons
 
         while (std::getline(iss, value, ','))
             tokens.emplace_back(value);

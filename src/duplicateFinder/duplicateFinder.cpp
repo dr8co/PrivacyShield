@@ -178,7 +178,8 @@ std::size_t findDuplicates(const std::string &directoryPath) {
     if (filesProcessed < 1) return 0;
 
     // Number of threads to use
-    const unsigned int numThreads{std::jthread::hardware_concurrency() ? std::jthread::hardware_concurrency() : 8};
+    unsigned int n{std::jthread::hardware_concurrency()};
+    const unsigned int numThreads{n ? n : 8}; // Use 8 threads if hardware_concurrency() fails
 
     // Divide files among threads
     std::vector<std::jthread> threads;
@@ -231,6 +232,9 @@ std::size_t findDuplicates(const std::string &directoryPath) {
     return numDuplicates;
 }
 
+/**
+ * @brief A simple duplicate file detective.
+ */
 void duplicateFinder() {
     while (true) {
         std::cout << "\n------------------- Duplicate Finder -------------------\n";
