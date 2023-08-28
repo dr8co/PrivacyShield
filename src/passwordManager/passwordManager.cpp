@@ -588,18 +588,18 @@ void passwordManager() {
     };
 
     while (true) {
-        std::cout << "-----------------------------------" << std::endl;
-        std::cout << "1. Add new Password" << std::endl;
-        std::cout << "2. Generate Password" << std::endl;
-        std::cout << "3. View All Passwords" << std::endl;
-        std::cout << "4. Update Password" << std::endl;
-        std::cout << "5. Delete Password" << std::endl;
-        std::cout << "6. Change the master Password" << std::endl;
-        std::cout << "7. Search passwords" << std::endl;
-        std::cout << "8. Import passwords" << std::endl;
-        std::cout << "9. Export passwords" << std::endl;
-        std::cout << "10. Analyze passwords" << std::endl;
-        std::cout << "11. Save and Exit" << std::endl;
+        std::cout << "-----------------------------------\n";
+        std::cout << "1. Add new Password\n";
+        std::cout << "2. Generate Password\n";
+        std::cout << "3. View All Passwords\n";
+        std::cout << "4. Update Password\n";
+        std::cout << "5. Delete Password\n";
+        std::cout << "6. Change the master Password\n";
+        std::cout << "7. Search passwords\n";
+        std::cout << "8. Import passwords\n";
+        std::cout << "9. Export passwords\n";
+        std::cout << "10. Analyze passwords\n";
+        std::cout << "11. Save and Exit\n";
         std::cout << "-----------------------------------" << std::endl;
 
         int choice = getResponseInt("Enter your choice: ");
