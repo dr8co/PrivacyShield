@@ -2,6 +2,8 @@
 #include <gcrypt.h>
 #include <unordered_map>
 #include <format>
+#include <functional>
+#include <unistd.h>
 #include "encryption/encryptDecrypt.hpp"
 #include "duplicateFinder/duplicateFinder.hpp"
 #include "fileShredder/shredFiles.hpp"
@@ -12,6 +14,13 @@ constexpr const char *const MINIMUM_LIBGCRYPT_VERSION = "1.10.0";
 
 
 int main(int argc, char **argv) {
+    // The program should be launched in interactive mode
+    if (!isatty(STDIN_FILENO)) {
+        if (errno == ENOTTY) {
+            printColor(std::format("{} is meant to be run interactively.", argv[0]), 'r', true, std::cerr);
+            return 1;
+        }
+    }
 
     // No arguments required
     if (argc > 1) {
@@ -23,8 +32,8 @@ int main(int argc, char **argv) {
     try {
         // Initialize Gcrypt
         if (!gcry_check_version(MINIMUM_LIBGCRYPT_VERSION)) {
-            throw std::runtime_error(std::format("libgcrypt is too old (need {}, have {})", MINIMUM_LIBGCRYPT_VERSION,
-                                                 gcry_check_version(nullptr)));
+            throw std::runtime_error(std::format("libgcrypt is too old (need {}, have {}).",
+                                                 MINIMUM_LIBGCRYPT_VERSION, gcry_check_version(nullptr)));
         }
 
         gcry_control(GCRYCTL_SUSPEND_SECMEM_WARN); // Postpone warning messages from the secure memory subsystem
@@ -43,7 +52,7 @@ int main(int argc, char **argv) {
             throw std::runtime_error("Failed to initialize libsodium.");
 
         // All the available tools
-        std::unordered_map<int, void (*)()> apps = {
+        std::unordered_map<int, std::function<void(void)>> apps = {
                 {1, passwordManager},
                 {2, encryptDecrypt},
                 {3, fileShredder},
@@ -72,11 +81,15 @@ int main(int argc, char **argv) {
                     break;
                 else printColor("Invalid choice!", 'r', true, std::cerr);
 
+            } catch (const std::bad_function_call &bc) { // In case the std::function objects are called inappropriately
+                std::cerr << "Bad function call: " << bc.what() << std::endl;
+                continue;
+
             } catch (const std::exception &ex) {
                 std::cerr << "Error: " << ex.what() << std::endl;
                 continue;
 
-            } catch (...) {
+            } catch (...) { // All other exceptions, if any
                 std::cerr << "An error occurred." << std::endl;
                 continue;
             }
