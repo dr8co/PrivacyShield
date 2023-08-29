@@ -6,8 +6,8 @@
 #include <unordered_map>
 #include <filesystem>
 #include <sodium.h>
+#include <blake3.h>
 #include <format>
-#include <gcrypt.h>
 #include "../utils/utils.hpp"
 #include "duplicateFinder.hpp"
 
@@ -24,94 +24,72 @@ struct FileInfo {
     std::string hash; // Blake2b hash of the file.
 };
 
+
 /**
- * @brief Calculates the BLAKE2 hash of a file.
- * On 64-bit architectures, the 512-bit BLAKE2b hash is calculated,
- * while the 256-bit BLAKE2s is calculated on 32-bit and other architectures.
- * The reason is that BLAKE2s hash algorithm is optimized
- * for 32-bit (and smaller) architectures.
+ * @brief Calculates the 256-bit BLAKE3 hash of a file.
  *
  * @param filePath path to the file.
- * @return a string of the hash of the file.
+ * @return Base64-encoded hash of the file.
  */
-std::string calculateBlake2Hash(const std::string &filePath) {
-    // TODO: Consider using BLAKE3, which is much faster than BLAKE2 and is highly parallelizable, and is (almost) as secure.
-
+std::string calculateBlake3(const std::string &filePath) {
+    // Open the file
     std::ifstream file(filePath, std::ios::binary);
     if (!file)
-        throw std::runtime_error("Failed to open: " + filePath + " for hashing.");
+        throw std::runtime_error(std::format("Failed to open '{}' for hashing.", filePath));
 
+    // Initialize the BLAKE3 hasher
+    blake3_hasher hasher;
+    blake3_hasher_init(&hasher);
+
+    // Update the hasher with the file contents in chunks of 4 kB
     std::vector<char> buffer(CHUNK_SIZE);
+    while (file.read(buffer.data(), CHUNK_SIZE))
+        blake3_hasher_update(&hasher, buffer.data(), CHUNK_SIZE);
 
-#if __x86_64 or __x86_64__ or __amd64 or __amd64__ or _M_X64 or _M_AMD64 or __LP64__ // 64-bit system: use BLAKE2b
-
-    crypto_generichash_blake2b_state state;
-
-    // Initialize the hashing process with the state, and set the output length to 512 bits (64 bytes)
-    if (crypto_generichash_blake2b_init(&state, nullptr, 0, crypto_generichash_BYTES_MAX) != 0)
-        throw std::runtime_error("Failed to initialize Blake2b hashing.");
-
-    // Hash the file in chunks of 4 kB
-    while (file.read(buffer.data(), CHUNK_SIZE)) {
-        if (crypto_generichash_blake2b_update(&state,
-                                              reinterpret_cast<const unsigned char *>(buffer.data()),
-                                              CHUNK_SIZE) != 0)
-            throw std::runtime_error("Failed to calculate Blake2b hash.");
-    }
-
-    // Hash the last chunk of data
+    // Update the hasher with the last chunk of data
     std::size_t remainingBytes = file.gcount();
-    if (crypto_generichash_blake2b_update(&state,
-                                          reinterpret_cast<const unsigned char *>(buffer.data()),
-                                          remainingBytes) != 0)
-        throw std::runtime_error("Failed to calculate Blake2b hash.");
+    blake3_hasher_update(&hasher, buffer.data(), remainingBytes);
 
     // Finalize the hash calculation
-    std::vector<unsigned char> digest(crypto_generichash_BYTES_MAX);
-    if (crypto_generichash_blake2b_final(&state, digest.data(), crypto_generichash_BYTES_MAX) != 0)
-        throw std::runtime_error("Failed to finalize Blake2b hash calculation.");
+    std::vector<unsigned char> digest(BLAKE3_OUT_LEN);
+    blake3_hasher_finalize(&hasher, digest.data(), BLAKE3_OUT_LEN);
 
-    file.close();
-
-#else   // 32-bit (or smaller) system: use BLAKE2s
-
-    gcry_error_t err;
-    gcry_md_algos algo = GCRY_MD_BLAKE2S_256; // 256-bit Blake 2s hash algorithm
-
-    // Create the hash context handle
-    gcry_md_hd_t handle;
-
-    std::size_t mdLength = gcry_md_get_algo_dlen(algo);
-
-    // Create a message digest object for the algorithm
-    err = gcry_md_open(&handle, algo, 0);
-    if (err)
-        throw std::runtime_error("Failed to create digest handle: " + std::string(gcry_strerror(err)));
-
-    // Calculate the hash in chunks
-    while (file.read(buffer.data(), CHUNK_SIZE)) {
-        gcry_md_write(handle, buffer.data(), CHUNK_SIZE);
-    }
-    // update the hash with the last chunk of data
-    std::size_t remainingBytes = file.gcount();
-    gcry_md_write(handle, buffer.data(), remainingBytes);
-
-    file.close(); // We're done with the file
-
-    // Finalize the message digest calculation and read the digest
-    std::vector<unsigned char> digest(mdLength);
-    unsigned char *tmp = gcry_md_read(handle, algo);
-
-    // Base64-encode the hash, so it can be easily handled as a string
-    digest.assign(tmp, tmp + mdLength);
-
-    // Release all the resources associated with the hash context
-    gcry_md_close(handle);
-
-#endif
-
-    // Since the hash is raw bytes, Base64-encode it for string handling
     return base64Encode(digest);
+}
+
+/**
+ * @brief handles file i/o errors during low-level file operations.
+ * @param filename path to the file on which an error occurred.
+ */
+inline void handleAccessError(const std::string &filename) {
+    std::string errMsg;
+    switch (errno) {
+        case EACCES:        // Permission denied
+            errMsg = "You do not have permission to access this item";
+            break;
+        case EEXIST:        // File exists
+            errMsg = "already exists";
+            break;
+        case EISDIR:        // Is a directory
+            errMsg = "is a directory";
+            break;
+        case ELOOP:         // Too many symbolic links encountered
+            errMsg = "is a loop";
+            break;
+        case ENAMETOOLONG:  // The filename is too long
+            errMsg = "the path is too long";
+            break;
+        case ENOENT:        // No such file or directory
+            errMsg = "path does not exist";
+            break;
+        case EROFS:         // Read-only file system
+            errMsg = "the file system is read-only";
+            break;
+        default:            // Success (most likely)
+            return;
+    }
+
+    printColor(std::format("Skipping '{}': {}.", filename, errMsg), 'r', true, std::cerr);
 }
 
 /**
@@ -156,9 +134,8 @@ void calculateHashes(std::vector<FileInfo> &files, std::size_t start, std::size_
         throw std::range_error("Invalid range.");
 
     // Calculate hashes for the files in the range
-    for (std::size_t i = start; i < end; ++i) {
-        files[i].hash = calculateBlake2Hash(files[i].path);
-    }
+    for (std::size_t i = start; i < end; ++i)
+        files[i].hash = calculateBlake3(files[i].path);
 }
 
 /**
@@ -220,7 +197,9 @@ std::size_t findDuplicates(const std::string &directoryPath) {
             ++duplicatesSet;
 
             // Show the duplicates in their sets
-            std::cout << "Duplicate files set " << duplicatesSet << ":" << std::endl;
+            printColor("Duplicate files set ", 'c');
+            printColor(duplicatesSet, 'g');
+            printColor(":", 'c', true);
             for (const std::string &filePath: duplicates) {
                 std::cout << "  " << filePath << std::endl;
                 ++numDuplicates;

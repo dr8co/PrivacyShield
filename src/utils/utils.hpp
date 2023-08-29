@@ -58,8 +58,6 @@ int getResponseInt(const std::string &prompt = "");
 
 std::string getResponseStr(const std::string &prompt = "");
 
-void handleAccessError(const std::string &filename);
-
 bool isWritable(const std::string &filename);
 
 bool isReadable(const std::string &filename);
@@ -71,8 +69,6 @@ bool copyFilePermissions(const std::string &srcFile, const std::string &destFile
 std::string getSensitiveInfo(const std::string &prompt = "");
 
 bool validateYesNo(const std::string &prompt = "");
-
-//void printColor(const PrintableToStream auto &text, const char &color = 'w', const bool &printNewLine = false, std::ostream &os=std::cout);
 
 std::string getHomeDir() noexcept;
 

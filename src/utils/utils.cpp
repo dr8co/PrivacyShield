@@ -188,38 +188,6 @@ bool isReadable(const std::string &filename) {
 }
 
 /**
- * @brief handles file i/o errors during low-level file operations.
- * @param filename path to the file on which an error occurred.
- */
-void handleAccessError(const std::string &filename) {
-    switch (errno) {
-        case EACCES:        // Permission denied
-            std::cerr << "Error: '" << filename << "': You do not have permission to access this file." << std::endl;
-            break;
-        case EEXIST:        // File exists
-            std::cerr << "Error: '" << filename << "' already exists." << std::endl;
-            break;
-        case EISDIR:        // Is a directory
-            std::cerr << "Error: '" << filename << "' is a directory." << std::endl;
-            break;
-        case ELOOP:         // Too many symbolic links encountered
-            std::cerr << "Error: '" << filename << "' is a loop." << std::endl;
-            break;
-        case ENAMETOOLONG:  // The filename is too long
-            std::cerr << "Error: '" << filename << "' is too long." << std::endl;
-            break;
-        case ENOENT:        // No such file or directory
-            std::cerr << "Error: '" << filename << "' does not exist." << std::endl;
-            break;
-        case EROFS:         // Read-only file system
-            std::cerr << "Error: '" << filename << "' is read-only." << std::endl;
-            break;
-        default:            // Success (most likely)
-            return;
-    }
-}
-
-/**
  * @brief Checks the available space on disk.
  * @param path The path to check.
  * @return The available space in bytes.
