@@ -203,9 +203,14 @@ inline void checkCommonErrors(const std::string &path) {
 bool savePasswords(std::vector<passwordRecords> &passwords, const std::string &filePath,
                    const std::string &encryptionKey) {
 
-    std::ofstream file(filePath);
+    std::ofstream file(filePath, std::ios::trunc);
     if (!file) {
-        checkCommonErrors(filePath);
+        try {
+            checkCommonErrors(filePath);
+        } catch (const std::exception &ex) {
+            std::cerr << ex.what() << std::endl;
+
+        } catch (...) {}
 
         std::cerr << std::format("Failed to open the password file ({}) for writing.\n", filePath);
         return false;

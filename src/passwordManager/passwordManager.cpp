@@ -7,14 +7,13 @@
 #include <unordered_set>
 #include <utility>
 #include <cmath>
-#include <memory>
 #include "../utils/utils.hpp"
 #include "passwords.hpp"
 #include "FuzzyMatcher.hpp"
 
 namespace fs = std::filesystem;
 using string = std::string;
-const string DefaultPasswordFile = "/home/draco/Desktop/dups/passes";
+const string DefaultPasswordFile = getHomeDir() + "/.privacyShield/passwords";
 
 // A comparator for searching and sorting the password records, based on the site and username entries
 inline bool comparator(const auto &tuple1, const auto &tuple2) noexcept {
@@ -538,6 +537,9 @@ void passwordManager() {
             passwordFile = path;
         }
     }
+    // Don't read the file if it is empty
+    if (fs::is_empty(passwordFile)) newSetup = true;
+
     // Reserve about 96 KB for password records
     std::vector<passwordRecords> passwords;
     passwords.reserve(1024);
@@ -602,24 +604,43 @@ void passwordManager() {
         std::cout << "11. Save and Exit\n";
         std::cout << "-----------------------------------" << std::endl;
 
-        int choice = getResponseInt("Enter your choice: ");
+        try {
+            int choice = getResponseInt("Enter your choice: ");
 
-        auto iter = choices.find(choice);
+            auto iter = choices.find(choice);
 
-        if (iter != choices.end())
-            iter->second(passwords);
-        else if (choice == 6) {
-            if (changeMasterPassword(encryptionKey))
-                printColor("Master password changed successfully.", 'g', true);
-            else printColor("Master password not changed.", 'r', true);
-        } else if (choice == 11)
-            break;
-        else std::cout << "Invalid choice!" << std::endl;
+            if (iter != choices.end())
+                iter->second(passwords);
+            else if (choice == 6) {
+                if (changeMasterPassword(encryptionKey))
+                    printColor("Master password changed successfully.", 'g', true);
+                else printColor("Master password not changed.", 'r', true);
+            } else if (choice == 11)
+                break;
+            else std::cout << "Invalid choice!" << std::endl;
+
+        } catch (const std::exception &ex) {
+            printColor(ex.what(), 'r', true, std::cerr);
+            continue;
+
+        } catch (...) { // All other errors
+            throw std::runtime_error("An error occurred.");
+        }
     }
 
     std::cout << "saving passwords.." << std::endl;
 
-    if (savePasswords(passwords, passwordFile, encryptionKey))
+    if (!fs::exists(DefaultPasswordFile)) {
+        std::error_code ec;
+        if (auto home{getHomeDir()}; fs::exists(home))
+            fs::create_directory(home + "/.privacyShield", home, ec);
+        if (ec) {
+            printColor(std::format("Failed to create '{}': ", DefaultPasswordFile), 'y', false, std::cerr);
+            printColor(ec.message(), 'r', true, std::cerr);
+        }
+    }
+
+    if (savePasswords(passwords, DefaultPasswordFile, encryptionKey))
         printColor("Passwords saved successfully", 'g', true);
     else printColor("Passwords not saved!", 'r', true, std::cerr);
 
