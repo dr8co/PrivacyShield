@@ -78,8 +78,8 @@ const struct {
 
 namespace fs = std::filesystem;
 
-inline void checkInputFile(fs::path &inFile, const int &mode) {
-    if (mode != static_cast<int>(OperationMode::Encryption) && mode != static_cast<int>(OperationMode::Decryption))
+inline void checkInputFile(fs::path &inFile, const OperationMode &mode) {
+    if (mode != OperationMode::Encryption && mode != OperationMode::Decryption)
         throw std::invalid_argument("Invalid mode of operation.");
 
     // Ensure the input file exists and is not a directory
@@ -90,7 +90,7 @@ inline void checkInputFile(fs::path &inFile, const int &mode) {
 
     // Check if the input file is a regular file and ask for confirmation if it is not
     if (!fs::is_regular_file(inFile)) {
-        if (mode == static_cast<int>(OperationMode::Encryption)) { // Encryption
+        if (mode == OperationMode::Encryption) { // Encryption
             std::cout << inFile.string() << " is not a regular file. \nDo you want to continue? (y/n): ";
             if (!validateYesNo())
                 throw std::runtime_error(std::format("{} is not a regular file.", inFile.string()));
@@ -104,13 +104,13 @@ inline void checkInputFile(fs::path &inFile, const int &mode) {
 }
 
 
-inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const int &mode) {
-    if (mode != static_cast<int>(OperationMode::Encryption) && mode != static_cast<int>(OperationMode::Decryption))
+inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const OperationMode &mode) {
+    if (mode != OperationMode::Encryption && mode != OperationMode::Decryption)
         throw std::invalid_argument("Invalid mode of operation.");
 
     // Determine if the output file is a directory, and give it an appropriate name if so
     if (fs::is_directory(outFile)) {
-        if (mode == static_cast<int>(OperationMode::Encryption)) {
+        if (mode == OperationMode::Encryption) {
             outFile /= inFile.filename();
             outFile += ".enc";
         } else if (inFile.extension() == ".enc") // Decryption: strip the '.enc' extension
@@ -123,9 +123,9 @@ inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const int
         outFile = inFile;
         if (inFile.extension() == ".enc")
             outFile.replace_extension("");
-        else if (mode == static_cast<int>(OperationMode::Encryption))
+        else if (mode == OperationMode::Encryption)
             outFile += ".enc";
-        else if (mode == static_cast<int>(OperationMode::Decryption)) {
+        else if (mode == OperationMode::Decryption) {
             outFile.replace_extension("");
             outFile += "_decrypted";
             outFile += inFile.extension();
@@ -165,9 +165,9 @@ inline void copyLastWrite(const std::string &srcFile, const std::string &destFil
 }
 
 void fileEncryptionDecryption(const std::string &inputFileName, const std::string &outputFileName,
-                              const std::string &password, unsigned int algo, int mode) {
+                              const std::string &password, unsigned int algo, OperationMode mode) {
     // The mode must be valid: must be either encryption or decryption
-    if (mode != static_cast<int>(OperationMode::Encryption) && mode != static_cast<int>(OperationMode::Decryption)) {
+    if (mode != OperationMode::Encryption && mode != OperationMode::Decryption) {
         std::cout << "Invalid mode of operation." << std::endl;
         return;
     }
@@ -175,7 +175,7 @@ void fileEncryptionDecryption(const std::string &inputFileName, const std::strin
     try {
         /** Encrypts/decrypts a file based on the passed mode and algorithm. */
         auto encryptDecrypt = [&](const std::string &algorithm) -> void {
-            if (mode == static_cast<int>(OperationMode::Encryption))  // Encryption
+            if (mode == OperationMode::Encryption) // Encryption
                 encryptFile(inputFileName, outputFileName, password, algorithm);
             else   // Decryption
                 decryptFile(inputFileName, outputFileName, password, algorithm);
@@ -183,7 +183,7 @@ void fileEncryptionDecryption(const std::string &inputFileName, const std::strin
 
         /** Encrypts/decrypts a file using a cipher with more rounds. */
         auto encryptDecryptMoreRounds = [&](const gcry_cipher_algos &algo) -> void {
-            if (mode == static_cast<int>(OperationMode::Encryption))  // Encryption
+            if (mode == OperationMode::Encryption)  // Encryption
                 encryptFileWithMoreRounds(inputFileName, outputFileName, password, algo);
             else   // Decryption
                 decryptFileWithMoreRounds(inputFileName, outputFileName, password, algo);
@@ -202,7 +202,7 @@ void fileEncryptionDecryption(const std::string &inputFileName, const std::strin
             encryptDecryptMoreRounds(AlgoSelection.Twofish);
 
         // If we reach here, the operation was successful
-        auto pre = mode == static_cast<int>(OperationMode::Encryption) ? "En" : "De";
+        auto pre = mode == OperationMode::Encryption ? "En" : "De";
         std::cout << std::format("{}cryption completed successfully. \n{}crypted file saved at '{}'", pre, pre,
                                  outputFileName) << std::endl;
 
@@ -259,21 +259,21 @@ void encryptDecrypt() {
 
                 // Remove the trailing directory separator
                 // ('\\' is considered as well in case the program is to be extended to Windows)
-                if (inputFile.ends_with('/') || inputFile.ends_with('\\'))
+                if (inputFile.ends_with('/') || inputFile.ends_with('\\') && inputFile.size() > 1)
                     inputFile.erase(inputFile.size() - 1);
 
                 fs::path inputPath(inputFile);
-                checkInputFile(inputPath, choice);
+                checkInputFile(inputPath, static_cast<const OperationMode>(choice));
 
                 std::cout << "Enter the path to save the " << pre_l
                           << "crypted file \n(or leave it blank to save it in the same directory): " << std::endl;
                 std::string outputFile = getResponseStr();
 
-                if (outputFile.ends_with('/') || outputFile.ends_with('\\'))
+                if (outputFile.ends_with('/') || outputFile.ends_with('\\') && outputFile.size() > 1)
                     outputFile.erase(outputFile.size() - 1);
 
                 fs::path outputPath(outputFile);
-                checkOutputFile(inputPath, outputPath, choice);
+                checkOutputFile(inputPath, outputPath, static_cast<const OperationMode>(choice));
 
                 std::cout << "Choose a cipher (All are 256-bit): " << std::endl;
                 std::cout << "1. Advanced Encryption Standard (AES)" << std::endl;
@@ -284,7 +284,7 @@ void encryptDecrypt() {
                 std::cout << "Leave blank to use the default (AES)" << std::endl;
 
                 int algo = getResponseInt();
-                if (algo < 1 || algo > 5) {
+                if (algo < 0 || algo > 5) { // 0 is default (AES)
                     std::cout << "Invalid choice!" << std::endl;
                     continue;
                 }
@@ -315,12 +315,13 @@ void encryptDecrypt() {
                           << "..." << std::endl;
 
                 fileEncryptionDecryption(inputPath.string(), outputPath.string(), password,
-                                         static_cast<int>(cipher), choice);
+                                         static_cast<int>(cipher), static_cast<OperationMode>(choice));
                 std::cout << std::endl;
-
                 sodium_munlock(password.data(), password.size());
+
             } catch (std::exception &ex) {
                 std::cerr << "Error: " << ex.what() << std::endl;
+                std::cout << std::endl;
                 continue;
             }
 
