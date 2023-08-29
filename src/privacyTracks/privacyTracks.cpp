@@ -499,8 +499,9 @@ bool clearTracks(unsigned int browsers) {
  * @note Only works for standard installations of the browsers.
  */
 void clearPrivacyTracks() {
-    unsigned int browsers = detectBrowsers();
     std::cout << "Scanning your system for browsers..." << std::endl;
+
+    unsigned int browsers = detectBrowsers();
     if (browsers == 0) {
         std::cout << "No supported browsers found." << std::endl;
         return;
