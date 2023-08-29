@@ -181,6 +181,11 @@ void simpleShred(const std::string &filename, const int &nPasses = 3, bool wipeC
     if (!file)
         throw std::runtime_error("\nFailed to open file: " + filename);
 
+    std::error_code ec;
+    // Read last write time
+    auto initTime = fs::last_write_time(filename, ec);
+    if (ec) ec.clear();
+
     // Get the file size
     file.seekp(0, std::ios::end);
     std::streamoff fileSize = file.tellp();
@@ -191,6 +196,10 @@ void simpleShred(const std::string &filename, const int &nPasses = 3, bool wipeC
 
     file.close();
     if (wipeClusterTip) wipeClusterTips(filename);
+
+    // Restore last write time
+    fs::last_write_time(filename, initTime, ec);
+    if (ec) ec.clear();
 
     // Rename and remove the file
     renameAndRemove(filename, 3);
@@ -205,6 +214,11 @@ void dod5220Shred(const std::string &filename, const int &nPasses = 3, bool wipe
     std::ofstream file(filename, std::ios::binary | std::ios::in);
     if (!file)
         throw std::runtime_error("\nFailed to open file: " + filename);
+
+    std::error_code ec;
+    // Read last write time
+    auto initTime = fs::last_write_time(filename, ec);
+    if (ec) ec.clear();
 
     // Get the file size
     file.seekp(0, std::ios::end);
@@ -236,6 +250,10 @@ void dod5220Shred(const std::string &filename, const int &nPasses = 3, bool wipe
 
     if (file.is_open()) file.close();
     if (wipeClusterTip) wipeClusterTips(filename);
+
+    // Restore last write time
+    fs::last_write_time(filename, initTime, ec);
+    if (ec) ec.clear();
 
     // Rename and remove the file
     renameAndRemove(filename, 3);
