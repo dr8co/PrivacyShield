@@ -259,21 +259,21 @@ void encryptDecrypt() {
 
                 // Remove the trailing directory separator
                 // ('\\' is considered as well in case the program is to be extended to Windows)
-                if (inputFile.ends_with('/') || inputFile.ends_with('\\') && inputFile.size() > 1)
+                if ((inputFile.ends_with('/') || inputFile.ends_with('\\')) && inputFile.size() > 1)
                     inputFile.erase(inputFile.size() - 1);
 
                 fs::path inputPath(inputFile);
-                checkInputFile(inputPath, static_cast<const OperationMode>(choice));
+                checkInputFile(inputPath, static_cast<OperationMode>(choice));
 
                 std::cout << "Enter the path to save the " << pre_l
                           << "crypted file \n(or leave it blank to save it in the same directory): " << std::endl;
                 std::string outputFile = getResponseStr();
 
-                if (outputFile.ends_with('/') || outputFile.ends_with('\\') && outputFile.size() > 1)
+                if ((outputFile.ends_with('/') || outputFile.ends_with('\\')) && outputFile.size() > 1)
                     outputFile.erase(outputFile.size() - 1);
 
                 fs::path outputPath(outputFile);
-                checkOutputFile(inputPath, outputPath, static_cast<const OperationMode>(choice));
+                checkOutputFile(inputPath, outputPath, static_cast<OperationMode>(choice));
 
                 std::cout << "Choose a cipher (All are 256-bit): " << std::endl;
                 std::cout << "1. Advanced Encryption Standard (AES)" << std::endl;
