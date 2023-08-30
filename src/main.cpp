@@ -4,6 +4,7 @@
 #include <format>
 #include <functional>
 #include <unistd.h>
+#include <sys/resource.h>
 #include "encryption/encryptDecrypt.hpp"
 #include "duplicateFinder/duplicateFinder.hpp"
 #include "fileShredder/shredFiles.hpp"
@@ -14,6 +15,13 @@ constexpr const char *const MINIMUM_LIBGCRYPT_VERSION = "1.10.0";
 
 
 int main(int argc, char **argv) {
+    // Disable core dumping for security reasons
+    rlimit coreLimit{0, 0};
+    if (setrlimit(RLIMIT_CORE, &coreLimit) != 0) {
+        printColor("Failed to disable core dumps.", 'r', true, std::cerr);
+        return 1;
+    }
+
     // The program should be launched in interactive mode
     if (!isatty(STDIN_FILENO)) {
         if (errno == ENOTTY) {
