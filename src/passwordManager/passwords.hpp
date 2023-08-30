@@ -29,7 +29,7 @@ std::string getHash(const std::string &filePath);
 
 privacy::vector<passwordRecords> importCsv(const std::string &filePath);
 
-void exportCsv(const privacy::vector<passwordRecords> &records, const std::string &filePath = getHomeDir());
+bool exportCsv(const privacy::vector<passwordRecords> &records, const std::string &filePath = getHomeDir());
 
 void
 encryptDecryptConcurrently(privacy::vector<passwordRecords> &passwordEntries, const std::string &key,

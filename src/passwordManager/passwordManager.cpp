@@ -454,14 +454,21 @@ inline void importPasswords(privacy::vector<passwordRecords> &passwords) {
 }
 
 inline void exportPasswords(privacy::vector<passwordRecords> &passwords) {
+    if (passwords.empty()) [[unlikely]] {
+        printColor("No passwords saved yet.", 'r', true, std::cerr);
+        return;
+    }
     string fileName = getResponseStr("Enter the path to save the file (leave blank for default): ");
 
     // Export the passwords to a csv file
-    fileName.empty() ? exportCsv(passwords) : exportCsv(passwords, fileName);
+    bool exported = fileName.empty() ? exportCsv(passwords) : exportCsv(passwords, fileName);
 
-    // Warn the user about the security risk
-    printColor("WARNING: The exported file contains all your passwords in plain text."
-               "\nPlease delete it securely after use.", 'r', true);
+    if (exported)
+        [[likely]]
+                // Warn the user about the security risk
+                printColor("WARNING: The exported file contains all your passwords in plain text."
+                           "\nPlease delete it securely after use.", 'r', true);
+    else printColor("Passwords not exported.", 'r', true, std::cerr);
 }
 
 inline void analyzePasswords(privacy::vector<passwordRecords> &passwords) {
