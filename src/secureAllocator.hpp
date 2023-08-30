@@ -17,7 +17,7 @@ namespace privacy {
         Allocator() = default;
 
         // Assignment operator
-        Allocator& operator=(const Allocator&) noexcept = default;
+//        Allocator& operator=(const Allocator&) noexcept = default;
 
         // Copy constructor
         template<class U>
@@ -28,7 +28,7 @@ namespace privacy {
                 throw std::bad_array_new_length();
 
             if (auto p = static_cast<T *>(::operator new(n * sizeof(T)))) {
-                sodium_mlock(p, n * sizeof(T));
+                sodium_mlock(p, n * sizeof(T)); // Lock the allocated memory
                 return p;
             }
 
@@ -36,7 +36,7 @@ namespace privacy {
         }
 
         [[maybe_unused]] constexpr void deallocate(T *p, std::size_t n) noexcept {
-            sodium_munlock(p, n * sizeof(T));
+            sodium_munlock(p, n * sizeof(T));  // Unlock and zeroize memory
             ::operator delete(p);
         }
     };

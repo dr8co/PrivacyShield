@@ -35,25 +35,22 @@ std::string encryptString(const std::string &plaintext, const std::string &passw
     const int keySize = EVP_CIPHER_get_key_length(cipher.getCipher());
 
     // Generate the salt, and the initialization vector (IV)
-    std::vector<unsigned char> salt = generateSalt(SALT_SIZE);
-    std::vector<unsigned char> iv = generateSalt(ivSize);
+    privacy::vector<unsigned char> salt = generateSalt(SALT_SIZE);
+    privacy::vector<unsigned char> iv = generateSalt(ivSize);
 
     // Derive the encryption key using the generated salt
-    std::vector<unsigned char> key = deriveKey(password, salt, keySize);
-
-    // Secure the key from being swapped to the disk
-    sodium_mlock(key.data(), key.size());
+    privacy::vector<unsigned char> key = deriveKey(password, salt, keySize);
 
     int block_size = EVP_CIPHER_get_block_size(cipher.getCipher());
-    std::vector<unsigned char> ciphertext(plaintext.size() + block_size);
+    privacy::vector<unsigned char> ciphertext(plaintext.size() + block_size);
     int ciphertextLength = 0;
 
     // Initialize the encryption operation
     if (EVP_EncryptInit_ex2(cipher.getCtx(), cipher.getCipher(), key.data(), iv.data(), nullptr) != 1)
         throw std::runtime_error("Failed to initialize encryption.");
 
-    // The key is no longer needed: unlock its memory and zeroize the contents
-    sodium_munlock(key.data(), key.size());
+    // The key is no longer needed: zeroize its contents
+    sodium_memzero(key.data(), key.size());
 
     // Encrypt the plaintext into the ciphertext
     if (EVP_EncryptUpdate(cipher.getCtx(), ciphertext.data(), &ciphertextLength,
@@ -70,7 +67,7 @@ std::string encryptString(const std::string &plaintext, const std::string &passw
     ciphertext.resize(ciphertextLength); // Important!
 
     // Export the salt, iv, and the ciphertext
-    std::vector<unsigned char> result;
+    privacy::vector<unsigned char> result;
     result.reserve(salt.size() + iv.size() + ciphertext.size()); // pre-allocate memory to improve performance
 
     // Construct result = salt + iv + ciphertext in that order
@@ -105,9 +102,9 @@ std::string decryptString(const std::string &encodedCiphertext, const std::strin
     const int ivSize = EVP_CIPHER_get_iv_length(cipher.getCipher());
     const int keySize = EVP_CIPHER_get_key_length(cipher.getCipher());
 
-    std::vector<unsigned char> salt(SALT_SIZE);
-    std::vector<unsigned char> iv(ivSize);
-    std::vector<unsigned char> encryptedText;
+    privacy::vector<unsigned char> salt(SALT_SIZE);
+    privacy::vector<unsigned char> iv(ivSize);
+    privacy::vector<unsigned char> encryptedText;
 
     // Base64 decode the encoded ciphertext
     std::vector<unsigned char> ciphertext = base64Decode(encodedCiphertext);
@@ -122,21 +119,18 @@ std::string decryptString(const std::string &encodedCiphertext, const std::strin
         throw std::runtime_error("invalid ciphertext.");
 
     // Derive the decryption key from the password, and the salt
-    std::vector<unsigned char> key = deriveKey(password, salt, keySize);
-
-    // Secure the key from being swapped to the disk
-    sodium_mlock(key.data(), key.size());
+    privacy::vector<unsigned char> key = deriveKey(password, salt, keySize);
 
     int block_size = EVP_CIPHER_get_block_size(cipher.getCipher());
-    std::vector<unsigned char> plaintext(encryptedText.size() + block_size);
+    privacy::vector<unsigned char> plaintext(encryptedText.size() + block_size);
     int plaintextLength = 0;
 
     // Initialize the decryption operation
     if (EVP_DecryptInit_ex2(cipher.getCtx(), cipher.getCipher(), key.data(), iv.data(), nullptr) != 1)
         throw std::runtime_error("Failed to initialize decryption.");
 
-    // The key is no longer needed: unlock its memory and zeroize the contents
-    sodium_munlock(key.data(), key.size());
+    // The key is no longer needed: zeroize it
+    sodium_memzero(key.data(), key.size());
 
     // Decrypt the ciphertext into the plaintext
     if (EVP_DecryptUpdate(cipher.getCtx(), plaintext.data(), &plaintextLength,
@@ -194,14 +188,11 @@ encryptStringWithMoreRounds(const std::string &plaintext, const std::string &pas
     if (ctrSize == 0) ctrSize = 16;  // Default the counter size to 128 bits if we can't get the block length
 
     // Generate a random salt, and a random counter
-    std::vector<unsigned char> salt = generateSalt(SALT_SIZE);
-    std::vector<unsigned char> ctr = generateSalt(static_cast<int>(ctrSize));
+    privacy::vector<unsigned char> salt = generateSalt(SALT_SIZE);
+    privacy::vector<unsigned char> ctr = generateSalt(static_cast<int>(ctrSize));
 
     // Derive the key
-    std::vector<unsigned char> key = deriveKey(password, salt, static_cast<int>(keySize));
-
-    // Lock the memory holding the key to avoid swapping it to the disk
-    sodium_mlock(key.data(), key.size());
+    privacy::vector<unsigned char> key = deriveKey(password, salt, static_cast<int>(keySize));
 
     // Set the key
     err = gcry_cipher_setkey(cipherHandle, key.data(), key.size());
@@ -209,7 +200,7 @@ encryptStringWithMoreRounds(const std::string &plaintext, const std::string &pas
         throwSafeError(err, "Failed to set the encryption key");
 
     // Zeroize the key, we don't need it anymore
-    sodium_munlock(key.data(), key.size());
+    sodium_memzero(key.data(), key.size());
 
     // Set the counter
     err = gcry_cipher_setctr(cipherHandle, ctr.data(), ctr.size());
@@ -217,7 +208,7 @@ encryptStringWithMoreRounds(const std::string &plaintext, const std::string &pas
         throwSafeError(err, "Failed to set the encryption counter");
 
     // Encrypt the plaintext
-    std::vector<unsigned char> ciphertext(plaintext.size());
+    privacy::vector<unsigned char> ciphertext(plaintext.size());
     err = gcry_cipher_encrypt(cipherHandle, ciphertext.data(), ciphertext.size(), plaintext.data(), plaintext.size());
     if (err)
         throwSafeError(err, "Failed to encrypt data");
@@ -226,7 +217,7 @@ encryptStringWithMoreRounds(const std::string &plaintext, const std::string &pas
     gcry_cipher_close(cipherHandle);
 
     // Export the salt, ctr, and the ciphertext
-    std::vector<unsigned char> result;
+    privacy::vector<unsigned char> result;
     result.reserve(salt.size() + ctr.size() + ciphertext.size());
 
     // Construct result = salt + ctr + ciphertext in that order
@@ -255,9 +246,9 @@ decryptStringWithMoreRounds(const std::string &encodedCiphertext, const std::str
     if (keySize == 0) keySize = KEY_SIZE_256;
     if (ctrSize == 0) ctrSize = 16;  // Default the counter size to 128 bits if we can't get the block length
 
-    std::vector<unsigned char> salt(SALT_SIZE);
-    std::vector<unsigned char> ctr(ctrSize);
-    std::vector<unsigned char> encryptedText;
+    privacy::vector<unsigned char> salt(SALT_SIZE);
+    privacy::vector<unsigned char> ctr(ctrSize);
+    privacy::vector<unsigned char> encryptedText;
 
     // Base64-decode the encoded ciphertext
     std::vector<unsigned char> ciphertext = base64Decode(encodedCiphertext);
@@ -273,9 +264,8 @@ decryptStringWithMoreRounds(const std::string &encodedCiphertext, const std::str
 
     std::size_t encryptedTextSize = encryptedText.size();
 
-    // Derive the key and lock the memory
-    std::vector<unsigned char> key = deriveKey(password, salt, static_cast<int>(keySize));
-    sodium_mlock(key.data(), key.size());
+    // Derive the key
+    privacy::vector<unsigned char> key = deriveKey(password, salt, static_cast<int>(keySize));
 
     // Set up the decryption context
     gcry_error_t err;
@@ -289,8 +279,8 @@ decryptStringWithMoreRounds(const std::string &encodedCiphertext, const std::str
     if (err)
         throwSafeError(err, "Failed to set the decryption key");
 
-    // Key is not needed anymore, zeroize it and unlock it
-    sodium_munlock(key.data(), key.size());
+    // Key is not needed anymore, zeroize it
+    sodium_memzero(key.data(), key.size());
 
     // Set the counter in the decryption context
     err = gcry_cipher_setctr(cipherHandle, ctr.data(), ctr.size());
@@ -298,7 +288,7 @@ decryptStringWithMoreRounds(const std::string &encodedCiphertext, const std::str
         throwSafeError(err, "Failed to set the decryption counter");
 
     // Decrypt the ciphertext
-    std::vector<unsigned char> plaintext(encryptedTextSize);
+    privacy::vector<unsigned char> plaintext(encryptedTextSize);
     err = gcry_cipher_decrypt(cipherHandle, plaintext.data(), plaintext.size(), encryptedText.data(),
                               encryptedTextSize);
     if (err)

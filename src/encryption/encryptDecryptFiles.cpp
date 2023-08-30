@@ -27,9 +27,9 @@ constexpr unsigned int PBKDF2_ITERATIONS = 100'000; // Iterations for PBKDF2 key
  * @param saltSize number of bytes of salt to generate.
  * @return the generated salt as a vector.
  */
-std::vector<unsigned char> generateSalt(int saltSize) {
+privacy::vector<unsigned char> generateSalt(int saltSize) {
     std::mutex m;  // Not sure if RAND_bytes is thread-safe
-    std::vector<unsigned char> salt(saltSize);
+    privacy::vector<unsigned char> salt(saltSize);
     if (std::scoped_lock<std::mutex> lock(m); RAND_bytes(salt.data(), saltSize) != 1) {
         randombytes_buf(salt.data(), salt.size());  // Use Sodium's random generator as a backup
     }
@@ -47,8 +47,8 @@ std::vector<unsigned char> generateSalt(int saltSize) {
  * @details BLAKE2b512 is used as the hash function for PBKDF2
  * and the number of iterations is set to 100,000.
  */
-std::vector<unsigned char>
-deriveKey(const std::string &password, const std::vector<unsigned char> &salt, const int &keySize) {
+privacy::vector<unsigned char>
+deriveKey(const std::string &password, const privacy::vector<unsigned char> &salt, const int &keySize) {
     // A validation check
     if (keySize > MAX_KEY_SIZE || keySize < 1)
         throw std::length_error("Invalid Key size.");
@@ -93,7 +93,7 @@ deriveKey(const std::string &password, const std::vector<unsigned char> &salt, c
     /************** end of parameters construction *************/
 
     // Derive the key using the parameters
-    std::vector<unsigned char> key(keySize);
+    privacy::vector<unsigned char> key(keySize);
     if (EVP_KDF_derive(kdfCtx, key.data(), key.size(), params) != 1)
         throw std::runtime_error("Failed to derive key.");
 
@@ -141,21 +141,18 @@ void encryptFile(const std::string &inputFile, const std::string &outputFile, co
     const int keySize = EVP_CIPHER_get_key_length(cipher.getCipher());
 
     // Generate the salt, and the initialization vector (IV)
-    std::vector<unsigned char> salt = generateSalt(SALT_SIZE);
-    std::vector<unsigned char> iv = generateSalt(ivSize);
+    privacy::vector<unsigned char> salt = generateSalt(SALT_SIZE);
+    privacy::vector<unsigned char> iv = generateSalt(ivSize);
 
     // Derive the encryption key
-    std::vector<unsigned char> key = deriveKey(password, salt, keySize);
-
-    // Lock the memory holding the key to avoid swapping it to the disk
-    sodium_mlock(key.data(), key.size());
+    privacy::vector<unsigned char> key = deriveKey(password, salt, keySize);
 
     // Initialize the encryption operation
     if (EVP_EncryptInit_ex2(cipher.getCtx(), cipher.getCipher(), key.data(), iv.data(), nullptr) != 1)
         throw std::runtime_error("Failed to initialize encryption.");
 
-    // The key is no longer needed: unlock the memory and zeroize the key contents
-    sodium_munlock(key.data(), key.size());
+    // The key is no longer needed: zeroize its contents
+    sodium_memzero(key.data(), key.size());
 
     // Set automatic padding handling
     EVP_CIPHER_CTX_set_padding(cipher.getCtx(), EVP_PADDING_PKCS7);
@@ -228,8 +225,8 @@ void decryptFile(const std::string &inputFile, const std::string &outputFile, co
     const int ivSize = EVP_CIPHER_get_iv_length(cipher.getCipher());
     const int keySize = EVP_CIPHER_get_key_length(cipher.getCipher());
 
-    std::vector<unsigned char> salt(SALT_SIZE);
-    std::vector<unsigned char> iv(ivSize);
+    privacy::vector<unsigned char> salt(SALT_SIZE);
+    privacy::vector<unsigned char> iv(ivSize);
 
     std::size_t saltBytesRead, ivBytesRead;
 
@@ -245,24 +242,21 @@ void decryptFile(const std::string &inputFile, const std::string &outputFile, co
         throw std::length_error("Invalid ciphertext.");
 
     // Derive the decryption key
-    std::vector<unsigned char> key = deriveKey(password, salt, keySize);
-
-    // Lock the memory holding the key to avoid swapping it to the disk
-    sodium_mlock(key.data(), key.size());
+    privacy::vector<unsigned char> key = deriveKey(password, salt, keySize);
 
     // Initialize the decryption operation
     if (EVP_DecryptInit_ex2(cipher.getCtx(), cipher.getCipher(), key.data(), iv.data(), nullptr) != 1)
         throw std::runtime_error("Failed to initialize decryption.");
 
-    // The key is no longer needed: unlock the memory and zeroize the key contents
-    sodium_munlock(key.data(), key.size());
+    // The key is no longer needed, zeroize the key contents
+    sodium_memzero(key.data(), key.size());
 
     // Set automatic padding handling
     EVP_CIPHER_CTX_set_padding(cipher.getCtx(), EVP_PADDING_PKCS7);
 
     // Decrypt the file
-    std::vector<unsigned char> inBuf(CHUNK_SIZE);
-    std::vector<unsigned char> outBuf(CHUNK_SIZE + EVP_MAX_BLOCK_LENGTH);
+    privacy::vector<unsigned char> inBuf(CHUNK_SIZE);
+    privacy::vector<unsigned char> outBuf(CHUNK_SIZE + EVP_MAX_BLOCK_LENGTH);
     int bytesRead, bytesWritten;
 
     while (true) {
@@ -337,14 +331,11 @@ encryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
     if (ctrSize == 0) ctrSize = 16;  // Default the counter size to 128 bits if we can't get the block length
 
     // Generate a random salt, and a random counter
-    std::vector<unsigned char> salt = generateSalt(SALT_SIZE);
-    std::vector<unsigned char> ctr = generateSalt(static_cast<int>(ctrSize));
+    privacy::vector<unsigned char> salt = generateSalt(SALT_SIZE);
+    privacy::vector<unsigned char> ctr = generateSalt(static_cast<int>(ctrSize));
 
     // Derive the key
-    std::vector<unsigned char> key = deriveKey(password, salt, static_cast<int>(keySize));
-
-    // Lock the memory holding the key to avoid swapping it to the disk
-    sodium_mlock(key.data(), key.size());
+    privacy::vector<unsigned char> key = deriveKey(password, salt, static_cast<int>(keySize));
 
     // Set the key
     err = gcry_cipher_setkey(cipherHandle, key.data(), key.size());
@@ -352,7 +343,7 @@ encryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
         throwSafeError(err, "Failed to set the encryption key");
 
     // Zeroize the key, we don't need it anymore
-    sodium_munlock(key.data(), key.size());
+    sodium_memzero(key.data(), key.size());
 
     // Set the counter
     err = gcry_cipher_setctr(cipherHandle, ctr.data(), ctr.size());
@@ -364,7 +355,7 @@ encryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
     outputFile.write(reinterpret_cast<const char *>(ctr.data()), static_cast<std::streamsize>(ctr.size()));
 
     // Encrypt the file in chunks
-    std::vector<unsigned char> buffer(CHUNK_SIZE);
+    privacy::vector<unsigned char> buffer(CHUNK_SIZE);
     while (!inputFile.eof()) {
         inputFile.read(reinterpret_cast<char *>(buffer.data()), CHUNK_SIZE);
         const auto bytesRead = inputFile.gcount();
@@ -407,8 +398,8 @@ decryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
     if (keySize == 0) keySize = KEY_SIZE_256;
     if (ctrSize == 0) ctrSize = 16;
 
-    std::vector<unsigned char> salt(SALT_SIZE);
-    std::vector<unsigned char> ctr(ctrSize);
+    privacy::vector<unsigned char> salt(SALT_SIZE);
+    privacy::vector<unsigned char> ctr(ctrSize);
     std::size_t saltBytesRead, ctrBytesRead;
 
     // Read the salt, and the counter from the input file
@@ -422,9 +413,8 @@ decryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
     if (saltBytesRead < SALT_SIZE or ctrBytesRead < ctrSize)
         throw std::length_error("Invalid ciphertext.");
 
-    // Derive the key and lock the memory
-    std::vector<unsigned char> key = deriveKey(password, salt, static_cast<int>(keySize));
-    sodium_mlock(key.data(), key.size());
+    // Derive the key
+    privacy::vector<unsigned char> key = deriveKey(password, salt, static_cast<int>(keySize));
 
     // Set up the decryption context
     gcry_error_t err;
@@ -438,8 +428,8 @@ decryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
     if (err)
         throwSafeError(err, "Failed to set the decryption key");
 
-    // Key is not needed anymore, zeroize it and unlock it
-    sodium_munlock(key.data(), key.size());
+    // Key is not needed anymore, zeroize it
+    sodium_memzero(key.data(), key.size());
 
     // Set the counter
     err = gcry_cipher_setctr(cipherHandle, ctr.data(), ctr.size());
@@ -447,7 +437,7 @@ decryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
         throwSafeError(err, "Failed to set the decryption counter");
 
     // Decrypt the file in chunks
-    std::vector<unsigned char> buffer(CHUNK_SIZE);
+    privacy::vector<unsigned char> buffer(CHUNK_SIZE);
     while (!inputFile.eof()) {
         inputFile.read(reinterpret_cast<char *>(buffer.data()), CHUNK_SIZE);
         const auto bytesRead = inputFile.gcount();

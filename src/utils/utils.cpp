@@ -1,10 +1,6 @@
 #include <charconv>
-#include <vector>
 #include <readline/readline.h>
-#include <openssl/buffer.h>
-#include <openssl/evp.h>
 #include <unistd.h>
-#include <iostream>
 #include "utils.hpp"
 #include <filesystem>
 #include <utility>
@@ -12,38 +8,6 @@
 #include <optional>
 
 namespace fs = std::filesystem;
-
-
-/**
- * @brief Performs Base64 encoding of binary data into a string.
- * @param input a vector of the binary data to be encoded.
- * @return Base64-encoded string.
- */
-std::string base64Encode(const std::vector<unsigned char> &input) {
-    BIO *bio, *b64;
-    BUF_MEM *bufferPtr;
-
-    b64 = BIO_new(BIO_f_base64());
-    BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
-
-    bio = BIO_new(BIO_s_mem());
-
-    if (b64 == nullptr || bio == nullptr)
-        throw std::bad_alloc();  // Memory allocation failed
-
-    b64 = BIO_push(b64, bio);
-
-    if (BIO_write(b64, input.data(), static_cast<int>(input.size())) < 0)
-        throw std::runtime_error("BIO_write() failed.");
-
-    BIO_flush(b64);
-    BIO_get_mem_ptr(b64, &bufferPtr);
-
-    std::string encodedData(bufferPtr->data, bufferPtr->length);
-    BIO_free_all(b64);
-
-    return encodedData;
-}
 
 /**
  * @brief Performs Base64 decoding of a string into binary data.
