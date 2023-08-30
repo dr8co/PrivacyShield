@@ -39,7 +39,7 @@ inline constexpr void printPasswordDetails(const auto &pw) noexcept {
 
 }
 
-inline void addPassword(std::vector<passwordRecords> &passwords) {
+inline void addPassword(privacy::vector<passwordRecords> &passwords) {
     string site = getResponseStr("Enter the site/platform: ");
     string username = getResponseStr("Username (leave blank if N/A): ");
 
@@ -93,7 +93,7 @@ inline void addPassword(std::vector<passwordRecords> &passwords) {
     });
 }
 
-inline void generatePassword(std::vector<passwordRecords> &passwords [[maybe_unused]]) {
+inline void generatePassword(privacy::vector<passwordRecords> &passwords [[maybe_unused]]) {
     int length = getResponseInt("Enter the length of the password to generate: ");
 
     int tries{0};
@@ -109,7 +109,7 @@ inline void generatePassword(std::vector<passwordRecords> &passwords [[maybe_unu
     std::cout << "Generated password: " << generatePassword(length) << std::endl;
 }
 
-inline void viewAllPasswords(std::vector<passwordRecords> &passwords) {
+inline void viewAllPasswords(privacy::vector<passwordRecords> &passwords) {
     if (passwords.empty()) {
         std::cout << "No password saved yet." << std::endl;
         return;
@@ -128,7 +128,7 @@ inline void viewAllPasswords(std::vector<passwordRecords> &passwords) {
     }
 }
 
-inline void checkFuzzyMatches(auto &iter, std::vector<passwordRecords> &records, std::string &query) {
+inline void checkFuzzyMatches(auto &iter, privacy::vector<passwordRecords> &records, std::string &query) {
     // Fuzzy-match the query against the site names
     FuzzyMatcher matcher(records | std::ranges::views::elements<0>);
     auto fuzzyMatched{matcher.fuzzyMatch(query, 2)};
@@ -158,7 +158,7 @@ inline void checkFuzzyMatches(auto &iter, std::vector<passwordRecords> &records,
     }
 }
 
-inline void updatePassword(std::vector<passwordRecords> &passwords) {
+inline void updatePassword(privacy::vector<passwordRecords> &passwords) {
     string site = getResponseStr("Enter the site to update: ");
 
     // Search for the site
@@ -171,7 +171,7 @@ inline void updatePassword(std::vector<passwordRecords> &passwords) {
         checkFuzzyMatches(it, passwords, site);
 
     if (it != passwords.end() && std::get<0>(*it) == site) { /* site found */
-        std::vector<std::string> usernames;
+        privacy::vector<std::string> usernames;
         usernames.reserve(10);  // 10 accounts for a site is a generous estimate
 
         usernames.emplace_back(std::get<1>(*it));
@@ -249,7 +249,7 @@ inline void updatePassword(std::vector<passwordRecords> &passwords) {
     }
 }
 
-inline void deletePassword(std::vector<passwordRecords> &passwords) { // Similar to updating a password
+inline void deletePassword(privacy::vector<passwordRecords> &passwords) { // Similar to updating a password
     string site = getResponseStr("Enter the site to delete: ");
 
     // Search for the site
@@ -262,7 +262,7 @@ inline void deletePassword(std::vector<passwordRecords> &passwords) { // Similar
         checkFuzzyMatches(it, passwords, site);
 
     if (it != passwords.end() && std::get<0>(*it) == site) {
-        std::vector<std::string> usernames;
+        privacy::vector<std::string> usernames;
         usernames.reserve(10);
 
         usernames.emplace_back(std::get<1>(*it));
@@ -311,7 +311,7 @@ inline void deletePassword(std::vector<passwordRecords> &passwords) { // Similar
     }
 }
 
-inline void searchPasswords(std::vector<passwordRecords> &passwords) {
+inline void searchPasswords(privacy::vector<passwordRecords> &passwords) {
     string query = getResponseStr("Enter the site name: ");
 
     auto matches = passwords | std::ranges::views::filter([&query](const auto &vec) -> bool {
@@ -367,13 +367,11 @@ inline void searchPasswords(std::vector<passwordRecords> &passwords) {
 
 }
 
-inline void importPasswords(std::vector<passwordRecords> &passwords) {
+inline void importPasswords(privacy::vector<passwordRecords> &passwords) {
     string fileName = getResponseStr("Enter the path to the csv file: ");
 
-    std::vector<passwordRecords> imports{importCsv(fileName)};
+    privacy::vector<passwordRecords> imports{importCsv(fileName)};
     auto numImported{imports.size()};
-
-    sodium_mlock(imports.data(), numImported * sizeof(passwordRecords));
 
     if (imports.empty()) {
         printColor("No passwords imported.", 'y', true);
@@ -386,7 +384,7 @@ inline void importPasswords(std::vector<passwordRecords> &passwords) {
     });
 
     // Remove duplicates from the imported passwords
-    std::vector<std::tuple<string, string, string>> uniques;
+    privacy::vector<std::tuple<string, string, string>> uniques;
     uniques.reserve(numImported); // Reserve space for efficiency
 
     // Add the first password entry before checking for duplicates
@@ -401,11 +399,9 @@ inline void importPasswords(std::vector<passwordRecords> &passwords) {
             uniques.emplace_back(std::move(password));
         }
     }
-    sodium_munlock(imports.data(), numImported * sizeof(passwordRecords));
-    sodium_mlock(uniques.data(), uniques.size() * sizeof(passwordRecords));
 
     // Check if the imported passwords already exist in the database
-    std::vector<passwordRecords> duplicates;
+    privacy::vector<passwordRecords> duplicates;
     duplicates.reserve(uniques.size());
     for (const auto &importedPassword: uniques) {
         if (std::ranges::binary_search(passwords, importedPassword, [](const auto &tuple1, const auto &tuple2) {
@@ -447,11 +443,6 @@ inline void importPasswords(std::vector<passwordRecords> &passwords) {
         passwords.emplace_back(std::move(el));
     }
 
-    sodium_munlock(uniques.data(), uniques.size() * sizeof(passwordRecords));
-
-    // Lock the passwords vector using sodium_mlock
-    sodium_mlock(passwords.data(), passwords.size() * sizeof(passwordRecords));
-
     // Sort the password vector
     std::ranges::sort(passwords, [](const auto &tuple1, const auto &tuple2) {
         return comparator(tuple1, tuple2);
@@ -462,7 +453,7 @@ inline void importPasswords(std::vector<passwordRecords> &passwords) {
     else printColor("Passwords not imported.", 'r', true);
 }
 
-inline void exportPasswords(std::vector<passwordRecords> &passwords) {
+inline void exportPasswords(privacy::vector<passwordRecords> &passwords) {
     string fileName = getResponseStr("Enter the path to save the file (leave blank for default): ");
 
     // Export the passwords to a csv file
@@ -473,7 +464,7 @@ inline void exportPasswords(std::vector<passwordRecords> &passwords) {
                "\nPlease delete it securely after use.", 'r', true);
 }
 
-inline void analyzePasswords(std::vector<passwordRecords> &passwords) {
+inline void analyzePasswords(privacy::vector<passwordRecords> &passwords) {
     if (passwords.empty()) {
         printColor("No passwords to analyze.", 'r', true);
         return;
@@ -485,9 +476,8 @@ inline void analyzePasswords(std::vector<passwordRecords> &passwords) {
     std::cout << "Analyzing passwords..." << std::endl;
 
     // Scan for weak passwords
-    std::vector<passwordRecords> weakPasswords;
+    privacy::vector<passwordRecords> weakPasswords;
     weakPasswords.reserve(passwords.size());
-    sodium_mlock(weakPasswords.data(), passwords.size() * sizeof(passwordRecords));
 
     for (const auto &password: passwords) {
         if (!isPasswordStrong(std::get<2>(password)))
@@ -516,9 +506,6 @@ inline void analyzePasswords(std::vector<passwordRecords> &passwords) {
                                "\nYou can use the 'generate' command to generate strong passwords.\n"), 'r',
                    true);
     } else printColor("No weak passwords found. Keep it up!\n", 'g', true);
-
-    // Zeroize the weak passwords and unlock the memory
-    sodium_munlock(weakPasswords.data(), weakPasswords.size() * sizeof(passwordRecords));
 
     // Print sites with reused passwords
     std::size_t reused{0};
@@ -580,10 +567,7 @@ void passwordManager() {
         }
     }
 
-    // Reserve about 96 KB for password records
-    std::vector<passwordRecords> passwords;
-    passwords.reserve(1024);
-    sodium_mlock(passwords.data(), 1024 * sizeof(passwordRecords));
+    privacy::vector<passwordRecords> passwords;
 
     if (!newSetup) {
         // preprocess the passwordFile
@@ -617,7 +601,7 @@ void passwordManager() {
         return comparator(tuple1, tuple2);
     });
 
-    std::unordered_map<int, void (*)(std::vector<passwordRecords> &)> choices = {
+    std::unordered_map<int, void (*)(privacy::vector<passwordRecords> &)> choices = {
             {1,  addPassword},
             {2,  generatePassword},
             {3,  viewAllPasswords},
@@ -684,6 +668,6 @@ void passwordManager() {
         printColor("Passwords saved successfully", 'g', true);
     else printColor("Passwords not saved!", 'r', true, std::cerr);
 
-    // Zeroize the password and unlock the memory
-    sodium_munlock(encryptionKey.data(), encryptionKey.size() * sizeof(char));
+    // Zeroize the encryption key and unlock the memory
+    sodium_mlock(encryptionKey.data(), encryptionKey.size() * sizeof(char));
 }

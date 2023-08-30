@@ -1,14 +1,13 @@
 #pragma once
 
-#include <string>
-#include <sodium.h>
 #include "../utils/utils.hpp"
+#include "../secureAllocator.hpp"
 
 using passwordRecords = std::tuple<std::string, std::string, std::string>;
 
-std::vector<passwordRecords> loadPasswords(const std::string &filePath, const std::string &decryptionKey);
+privacy::vector<passwordRecords> loadPasswords(const std::string &filePath, const std::string &decryptionKey);
 
-bool savePasswords(std::vector<passwordRecords> &passwords, const std::string &filePath,
+bool savePasswords(privacy::vector<passwordRecords> &passwords, const std::string &filePath,
                    const std::string &encryptionKey);
 
 std::string hashPassword(const std::string &password, const std::size_t &opsLimit = crypto_pwhash_OPSLIMIT_SENSITIVE,
@@ -28,10 +27,10 @@ std::pair<std::string, std::string> initialSetup() noexcept;
 
 std::string getHash(const std::string &filePath);
 
-std::vector<passwordRecords> importCsv(const std::string &filePath);
+privacy::vector<passwordRecords> importCsv(const std::string &filePath);
 
-void exportCsv(const std::vector<passwordRecords> &records, const std::string &filePath = getHomeDir());
+void exportCsv(const privacy::vector<passwordRecords> &records, const std::string &filePath = getHomeDir());
 
 void
-encryptDecryptConcurrently(std::vector<passwordRecords> &passwordEntries, const std::string &key,
+encryptDecryptConcurrently(privacy::vector<passwordRecords> &passwordEntries, const std::string &key,
                            bool encrypt = true, bool allFields = false);

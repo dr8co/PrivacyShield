@@ -119,7 +119,8 @@ bool verifyPassword(const std::string &password, const std::string &storedHash) 
 }
 
 void
-encryptDecryptRange(std::vector<passwordRecords> &passwords, const std::string &key, std::size_t start, std::size_t end,
+encryptDecryptRange(privacy::vector<passwordRecords> &passwords, const std::string &key, std::size_t start,
+                    std::size_t end,
                     bool encrypt = false) {
     if (start > end || end > passwords.size())
         throw std::range_error("Invalid range.");
@@ -131,7 +132,7 @@ encryptDecryptRange(std::vector<passwordRecords> &passwords, const std::string &
 }
 
 void
-encryptDecryptRangeAllFields(std::vector<passwordRecords> &passwords, const std::string &key, std::size_t start,
+encryptDecryptRangeAllFields(privacy::vector<passwordRecords> &passwords, const std::string &key, std::size_t start,
                              std::size_t end, bool encrypt = false) {
     if (start > end || end > passwords.size())
         throw std::runtime_error("Invalid range.");
@@ -149,7 +150,7 @@ encryptDecryptRangeAllFields(std::vector<passwordRecords> &passwords, const std:
 }
 
 void
-encryptDecryptConcurrently(std::vector<passwordRecords> &passwordEntries, const std::string &key, bool encrypt,
+encryptDecryptConcurrently(privacy::vector<passwordRecords> &passwordEntries, const std::string &key, bool encrypt,
                            bool allFields) {
     std::size_t numPasswords = passwordEntries.size();
     const unsigned int numThreads{std::jthread::hardware_concurrency() ? std::jthread::hardware_concurrency() : 8};
@@ -200,7 +201,7 @@ inline void checkCommonErrors(const std::string &path) {
  * @param encryptionKey the key/password to encrypt the passwords in the process.
  * @return True, if successful.
  */
-bool savePasswords(std::vector<passwordRecords> &passwords, const std::string &filePath,
+bool savePasswords(privacy::vector<passwordRecords> &passwords, const std::string &filePath,
                    const std::string &encryptionKey) {
 
     std::ofstream file(filePath, std::ios::trunc);
@@ -246,8 +247,8 @@ bool savePasswords(std::vector<passwordRecords> &passwords, const std::string &f
  * @param decryptionKey the key/password to decrypt the passwords.
  * @return decrypted password records.
  */
-std::vector<passwordRecords> loadPasswords(const std::string &filePath, const std::string &decryptionKey) {
-    std::vector<passwordRecords> passwords;
+privacy::vector<passwordRecords> loadPasswords(const std::string &filePath, const std::string &decryptionKey) {
+    privacy::vector<passwordRecords> passwords;
     passwords.reserve(1024);
     sodium_mlock(passwords.data(), 1024 * sizeof(passwordRecords));
 
@@ -461,7 +462,7 @@ std::string getHash(const std::string &filePath) {
  * @param records the password records to export.
  * @param filePath the file to export to.
  */
-void exportCsv(const std::vector<passwordRecords> &records, const std::string &filePath) {
+void exportCsv(const privacy::vector<passwordRecords> &records, const std::string &filePath) {
     fs::path filepath(filePath);
     std::error_code ec;
 
@@ -539,8 +540,8 @@ inline void trim(std::string &str) {
  * The password entry cannot be empty, and either site or username can be empty, but not both.
  * Non-compliant rows will be ignored entirely.
  */
-std::vector<passwordRecords> importCsv(const std::string &filePath) {
-    std::vector<passwordRecords> passwords;
+privacy::vector<passwordRecords> importCsv(const std::string &filePath) {
+    privacy::vector<passwordRecords> passwords;
 
     checkCommonErrors(filePath);
 
@@ -557,7 +558,7 @@ std::vector<passwordRecords> importCsv(const std::string &filePath) {
 
     while (std::getline(file, line)) {
         std::istringstream iss(line);
-        std::vector<std::string> tokens;
+        privacy::vector<std::string> tokens;
 
         while (std::getline(iss, value, ','))
             tokens.emplace_back(value);
