@@ -177,7 +177,7 @@ inline void updatePassword(privacy::vector<passwordRecords> &passwords) {
         usernames.emplace_back(std::get<1>(*it));
 
         // Search for other usernames under the same site name
-        while (std::get<0>(*++it) == site)
+        while (++it != passwords.end() && std::get<0>(*it) == site)
             usernames.emplace_back(std::get<1>(*it));
 
         if (usernames.size() > 1) {
@@ -268,7 +268,7 @@ inline void deletePassword(privacy::vector<passwordRecords> &passwords) { // Sim
         usernames.emplace_back(std::get<1>(*it));
 
         // Search for other usernames under the same site name
-        while (std::get<0>(*++it) == site)
+        while (++it != passwords.end() && std::get<0>(*it) == site)
             usernames.emplace_back(std::get<1>(*it));
 
         if (usernames.size() > 1) {
