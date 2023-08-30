@@ -17,9 +17,9 @@ namespace privacy {
         Allocator() = default;
 
         // Assignment operator
-//        Allocator& operator=(const Allocator&) noexcept = default;
+        Allocator& operator=(const Allocator&) noexcept = default;
 
-        // Copy constructors
+        // Copy constructor
         template<class U>
         constexpr explicit Allocator(const Allocator<U> &) noexcept {}
 
