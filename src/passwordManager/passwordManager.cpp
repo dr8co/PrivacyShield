@@ -14,8 +14,22 @@ namespace fs = std::filesystem;
 using string = std::string;
 const string DefaultPasswordFile = getHomeDir() + "/.privacyShield/passwords";
 
-// A comparator for searching and sorting the password records, based on the site and username entries
-inline bool comparator(const auto &tuple1, const auto &tuple2) noexcept {
+/**
+ * @brief A binary predicate for searching, sorting, and deduplication of the password records,
+ * based on the site and username members of a password tuple.
+ * @param tuple1 a password record tuple.
+ * @param tuple2 another record to be compared with tuple1.
+ * @return true if tuple1 is less than (i.e. is ordered before) tuple2, else false.
+ */
+inline bool comparator
+// Avoid a gcc compiler error on ignored scoped attribute directives (-Werror=attributes is enabled in debug config),
+// while still encouraging both Clang and GCC compilers to inline the function.
+#if __clang__  // __clang__ is checked first since Clang might also define __GNUC__, but GCC never defines __clang__.
+[[clang::always_inline]]
+#elif __GNUC__
+[[gnu::always_inline]]
+#endif
+        (const auto &tuple1, const auto &tuple2) noexcept {
     return std::tie(std::get<0>(tuple1), std::get<1>(tuple1)) <=>
            std::tie(std::get<0>(tuple2), std::get<1>(tuple2)) < nullptr;
 }
@@ -169,58 +183,53 @@ inline void updatePassword(privacy::vector<passwordRecords> &passwords) {
     if (it == passwords.end() || std::get<0>(*it) != site)
         checkFuzzyMatches(it, passwords, site);
 
-    if (it != passwords.end() && std::get<0>(*it) == site) { /* site found */
-        privacy::vector<std::string> usernames;
-        usernames.reserve(10);  // 10 accounts for a site is a generous estimate
+    // Extract all the accounts under the site
+    auto matches = std::ranges::equal_range(it, passwords.end(), std::tie(site),
+                                            [](const auto &tuple, const auto &str) {
+                                                return std::get<0>(tuple) < std::get<0>(str);
+                                            });
 
-        usernames.emplace_back(std::get<1>(*it));
-
-        // Search for other usernames under the same site name
-        while (++it != passwords.end() && std::get<0>(*it) == site)
-            usernames.emplace_back(std::get<1>(*it));
-
-        if (usernames.size() > 1) {
+    if (!matches.empty()) { // site found
+        if (matches.size() > 1) {
             std::cout << "Found the following usernames for " << std::quoted(site) << ":\n";
-            for (auto &username: usernames)
-                printColor(username.empty() ? "'' [no username, reply with a blank to select]"
-                                            : username, 'c', true);
+            for (auto &match: matches)
+                printColor(std::get<1>(match).empty() ? "'' [no username, reply with a blank to select]"
+                                                      : std::get<1>(match), 'c', true);
 
-            std::string username = getResponseStr("\nChoose one username to update:");
+            std::string username = getResponseStr("\nEnter one of the above usernames to update:");
 
-            // Update the iterator
-            it = std::ranges::lower_bound(passwords, std::tie(site, username, std::ignore),
+            // Update the iterator to the desired username
+            it = std::ranges::lower_bound(matches, std::tie(site, username, std::ignore),
                                           [](const auto &tuple1, const auto &tuple2) {
                                               return comparator(tuple1, tuple2);
                                           });
-            if (!(it != passwords.end() && std::get<0>(*it) == site && std::get<1>(*it) == username)) {
+            // Exit if the entered username is incorrect
+            if (it == matches.end() || std::get<1>(*it) != username) {
                 std::cerr << "No such username as " << std::quoted(username) << " under " << std::quoted(site)
                           << std::endl;
                 return;
             }
-        } else --it; // Return the iterator to the lone match
+        } else it = matches.begin(); // there is only a single match anyway
 
+        // Update the required fields
         string newUsername;
         bool updateUsername{validateYesNo("Do you want to change the username? (y/n):")};
         if (updateUsername) {
             newUsername = getResponseStr("Enter the new username (Leave blank to delete the current one):");
 
-            bool abortUpdate{false};
-
             // If the entered username exists, ignore the update
-            for (const auto &el: usernames) {
-                if (newUsername == el) {
+            for (const auto &match: matches) {
+                if (newUsername == std::get<1>(match)) {
                     std::cerr << "Username already exists for this site. Try again later." << std::endl;
 
-                    // Abort the update operation in the outer loop after breaking out of this
-                    abortUpdate = true;
-                    break;
+                    return;
                 }
             }
-            if (abortUpdate) return;
         }
 
         string newPassword = getSensitiveInfo("Enter the new password (Leave blank to keep the current one): ");
 
+        // Warn if the password is weak
         if (!newPassword.empty() && !isPasswordStrong(newPassword)) {
             printColor(
                     "Weak password! A password should have at least 8 characters and include \nat least an"
@@ -232,14 +241,14 @@ inline void updatePassword(privacy::vector<passwordRecords> &passwords) {
         if (updateUsername) std::get<1>(*it) = newUsername;
         if (!newPassword.empty()) std::get<2>(*it) = newPassword;
 
-        // Entries should always be sorted
-        std::ranges::sort(passwords, [](const auto &tuple1, const auto &tuple2) {
-            return comparator(tuple1, tuple2);
-        });
+        if (updateUsername || !newPassword.empty()) {
+            // Entries should always be sorted
+            std::ranges::sort(passwords, [](const auto &tuple1, const auto &tuple2) {
+                return comparator(tuple1, tuple2);
+            });
 
-        if (updateUsername || !newPassword.empty())
             printColor("Password updated successfully.", 'g', true);
-        else printColor("Password not updated.", 'r', true, std::cerr);
+        } else printColor("Password not updated.", 'r', true, std::cerr);
 
     } else {
         printColor("'", 'r', false, std::cerr);
@@ -260,35 +269,32 @@ inline void deletePassword(privacy::vector<passwordRecords> &passwords) { // Sim
     if (it == passwords.end() || std::get<0>(*it) != site)
         checkFuzzyMatches(it, passwords, site);
 
-    if (it != passwords.end() && std::get<0>(*it) == site) {
-        privacy::vector<std::string> usernames;
-        usernames.reserve(10);
+    // Extract all the accounts under the site
+    auto matches = std::ranges::equal_range(it, passwords.end(), std::tie(site),
+                                            [](const auto &tuple, const auto &str) {
+                                                return std::get<0>(tuple) < std::get<0>(str);
+                                            });
 
-        usernames.emplace_back(std::get<1>(*it));
-
-        // Search for other usernames under the same site name
-        while (++it != passwords.end() && std::get<0>(*it) == site)
-            usernames.emplace_back(std::get<1>(*it));
-
-        if (usernames.size() > 1) {
+    if (!matches.empty()) { // site found
+        if (matches.size() > 1) {
             std::cout << "Found the following usernames for " << std::quoted(site) << ":\n";
-            for (auto &username: usernames)
-                printColor(username.empty() ? "'' [no username, reply with a blank to select]"
-                                            : username, 'c', true);
+            for (auto &match: matches)
+                printColor(std::get<1>(match).empty() ? "'' [no username, reply with a blank to select]"
+                                                      : std::get<1>(match), 'c', true);
 
-            std::string username = getResponseStr("\nEnter the username to delete:");
+            std::string username = getResponseStr("\nEnter one of the above usernames to delete:");
 
             // Update the iterator
-            it = std::ranges::lower_bound(passwords, std::tie(site, username, std::ignore),
+            it = std::ranges::lower_bound(matches, std::tie(site, username, std::ignore),
                                           [](const auto &tuple1, const auto &tuple2) {
                                               return comparator(tuple1, tuple2);
                                           });
-            if (!(it != passwords.end() && std::get<0>(*it) == site && std::get<1>(*it) == username)) {
+            if (it == matches.end() || std::get<1>(*it) != username) {
                 std::cerr << "No such username as " << std::quoted(username) << " under " << std::quoted(site)
                           << std::endl;
                 return;
             }
-        } else --it; // Return the iterator to the match
+        } else it = matches.begin();
 
         // Delete the entry
         passwords.erase(std::remove(it, passwords.end(), *it), passwords.end());
