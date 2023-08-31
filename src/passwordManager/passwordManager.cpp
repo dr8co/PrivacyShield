@@ -17,9 +17,9 @@ const string DefaultPasswordFile = getHomeDir() + "/.privacyShield/passwords";
 /**
  * @brief A binary predicate for searching, sorting, and deduplication of the password records,
  * based on the site and username members of a password tuple.
- * @param tuple1 a password record tuple.
- * @param tuple2 another record to be compared with tuple1.
- * @return true if tuple1 is less than (i.e. is ordered before) tuple2, else false.
+ * @param lhs a password record tuple.
+ * @param rhs another record to be compared with lhs.
+ * @return true if lhs is less than (i.e. is ordered before) rhs, else false.
  */
 inline bool comparator
 // Avoid a gcc compiler error on ignored scoped attribute directives (-Werror=attributes is enabled in debug config),
@@ -29,9 +29,9 @@ inline bool comparator
 #elif __GNUC__
 [[gnu::always_inline]]
 #endif
-        (const auto &tuple1, const auto &tuple2) noexcept {
-    return std::tie(std::get<0>(tuple1), std::get<1>(tuple1)) <=>
-           std::tie(std::get<0>(tuple2), std::get<1>(tuple2)) < nullptr;
+        (const auto &lhs, const auto &rhs) noexcept {
+    return std::tie(std::get<0>(lhs), std::get<1>(lhs)) <=>
+           std::tie(std::get<0>(rhs), std::get<1>(rhs)) < nullptr;
 }
 
 inline constexpr void printPasswordDetails(const auto &pw) noexcept {
@@ -86,7 +86,7 @@ inline void addPassword(privacy::vector<passwordRecords> &passwords) {
         printColor("Password can't be empty. Try again later.", 'r', true);
         return;
     }
-
+    // Always warn on weak passwords
     if (!isPasswordStrong(password)) {
         printColor(
                 "Weak password! A password should have at least 8 characters and include \nat least an"
@@ -159,10 +159,10 @@ inline void checkFuzzyMatches(auto &iter, privacy::vector<passwordRecords> &reco
                                             [](const auto &lhs, const auto &rhs) noexcept -> bool {
                                                 return comparator(lhs, rhs);
                                             });
-            query = std::string{match};
+            query = std::string{match}; // string constructed because 'match' is a reference and 'query' outlives it.
         }
 
-    } else if (!fuzzyMatched.empty()) { /* multiple matches */
+    } else if (!fuzzyMatched.empty()) { // multiple matches
         printColor("Did you mean one of these?:", 'b', true);
         for (const auto &el: fuzzyMatched) {
             printColor(el, 'g', true);
@@ -185,8 +185,9 @@ inline void updatePassword(privacy::vector<passwordRecords> &passwords) {
 
     // Extract all the accounts under the site
     auto matches = std::ranges::equal_range(it, passwords.end(), std::tie(site),
-                                            [](const auto &tuple, const auto &str) {
-                                                return std::get<0>(tuple) < std::get<0>(str);
+                                            [](const auto &lhs, const auto &rhs) {
+                                                // this is consistent with the comparator() used to find the lower bound
+                                                return std::get<0>(lhs) < std::get<0>(rhs);
                                             });
 
     if (!matches.empty()) { // site found
@@ -271,8 +272,8 @@ inline void deletePassword(privacy::vector<passwordRecords> &passwords) { // Sim
 
     // Extract all the accounts under the site
     auto matches = std::ranges::equal_range(it, passwords.end(), std::tie(site),
-                                            [](const auto &tuple, const auto &str) {
-                                                return std::get<0>(tuple) < std::get<0>(str);
+                                            [](const auto &lhs, const auto &rhs) {
+                                                return std::get<0>(lhs) < std::get<0>(rhs);
                                             });
 
     if (!matches.empty()) { // site found
