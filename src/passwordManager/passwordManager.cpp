@@ -35,18 +35,18 @@ inline bool comparator
 }
 
 inline constexpr void printPasswordDetails(const auto &pw) noexcept {
-    if (const auto &site = std::get<0>(pw); !site.empty()) {
+    const auto &[site, username, pass]{pw};
+    if (!site.empty()) {
         std::cout << "Site:     ";
         printColor(site, 'c');
     }
 
-    if (const auto &username = std::get<1>(pw); !username.empty()) {
+    if (!username.empty()) {
         std::cout << "\nUsername: ";
         printColor(username, 'b');
     }
 
     // Highlight a weak password
-    const auto &pass = std::get<2>(pw);
     std::cout << "\nPassword: ";
     printColor(pass, isPasswordStrong(pass) ? 'g' : 'r', true);
 
@@ -193,9 +193,9 @@ inline void updatePassword(privacy::vector<passwordRecords> &passwords) {
     if (!matches.empty()) { // site found
         if (matches.size() > 1) {
             std::cout << "Found the following usernames for " << std::quoted(site) << ":\n";
-            for (auto &match: matches)
-                printColor(std::get<1>(match).empty() ? "'' [no username, reply with a blank to select]"
-                                                      : std::get<1>(match), 'c', true);
+            for (const auto &[_, username, pass]: matches)
+                printColor(username.empty() ? "'' [no username, reply with a blank to select]"
+                                            : username, 'c', true);
 
             std::string username = getResponseStr("\nEnter one of the above usernames to update:");
 
@@ -279,9 +279,9 @@ inline void deletePassword(privacy::vector<passwordRecords> &passwords) { // Sim
     if (!matches.empty()) { // site found
         if (matches.size() > 1) {
             std::cout << "Found the following usernames for " << std::quoted(site) << ":\n";
-            for (auto &match: matches)
-                printColor(std::get<1>(match).empty() ? "'' [no username, reply with a blank to select]"
-                                                      : std::get<1>(match), 'c', true);
+            for (const auto &[_, username, pass]: matches)
+                printColor(username.empty() ? "'' [no username, reply with a blank to select]"
+                                            : username, 'c', true);
 
             std::string username = getResponseStr("\nEnter one of the above usernames to delete:");
 
@@ -347,17 +347,17 @@ inline void searchPasswords(privacy::vector<passwordRecords> &passwords) {
             printColor("'? (y/n):", 'c');
 
             if (validateYesNo()) {
-                auto iter = std::ranges::lower_bound(passwords, std::tie(match, std::ignore, std::ignore),
-                                                     [](const auto &lhs, const auto &rhs) noexcept -> bool {
-                                                         return std::get<0>(lhs) < std::get<0>(rhs);
-                                                     });
-
-                if (iter != passwords.end() && std::get<0>(*iter) == match) {
-                    std::cout << "--------------------------------------------" << std::endl;
-                    do {
-                        printPasswordDetails(*iter);
-                        std::cout << "--------------------------------------------" << std::endl;
-                    } while (std::get<0>(*++iter) == match);
+                auto matched = std::ranges::equal_range(passwords, std::tie(match),
+                                                        [](const auto &lhs, const auto &rhs) noexcept -> bool {
+                                                            return std::get<0>(lhs) < std::get<0>(rhs);
+                                                        });
+                // print all the records under the match
+                if (!matched.empty()) [[likely]] {
+                    std::cout << "-------------------------------------------------" << std::endl;
+                    for (const auto &pass: matched) {
+                        printPasswordDetails(pass);
+                        std::cout << "-------------------------------------------------" << std::endl;
+                    }
                 }
 
             } else printColor("Sorry, '" + query + "' not found.", 'r', true);
