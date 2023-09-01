@@ -377,7 +377,6 @@ inline void importPasswords(privacy::vector<passwordRecords> &passwords) {
     string fileName = getResponseStr("Enter the path to the csv file: ");
 
     privacy::vector<passwordRecords> imports{importCsv(fileName)};
-    auto numImported{imports.size()};
 
     if (imports.empty()) {
         printColor("No passwords imported.", 'y', true);
@@ -389,33 +388,27 @@ inline void importPasswords(privacy::vector<passwordRecords> &passwords) {
         return comparator(tuple1, tuple2);
     });
 
-    // Remove duplicates from the imported passwords
-    privacy::vector<std::tuple<string, string, string>> uniques;
-    uniques.reserve(numImported); // Reserve space for efficiency
+    // Remove duplicates from the imported passwords using erase-remove idiom
+    auto dups = std::ranges::unique(imports, [](const auto &lhs, const auto &rhs) noexcept -> bool {
+        // the binary predicate should check equivalence, not order
+        return std::tie(std::get<0>(lhs), std::get<1>(lhs)) == std::tie(std::get<0>(rhs), std::get<1>(rhs));
+    });
+    imports.erase(dups.begin(), dups.end());
 
-    // Add the first password entry before checking for duplicates
-    uniques.emplace_back(imports[0]);
-
-    // The following approach is significantly faster (for this specific task in this scenario)
-    // than using the erase-remove idiom (erase() is expensive).
-    // It is also faster than std::ranges::unique_copy, at least on my machine
-    for (auto &password: imports) {
-        if (std::get<0>(password) != std::get<0>(uniques.back()) ||
-            std::get<1>(password) != std::get<1>(uniques.back())) {
-            uniques.emplace_back(std::move(password));
-        }
-    }
-
-    // Check if the imported passwords already exist in the database
+    // Check if the imported passwords already exist in the database by constructing their set intersection
     privacy::vector<passwordRecords> duplicates;
-    duplicates.reserve(uniques.size());
-    for (const auto &importedPassword: uniques) {
-        if (std::ranges::binary_search(passwords, importedPassword, [](const auto &tuple1, const auto &tuple2) {
-            return comparator(tuple1, tuple2);
-        }))
-            duplicates.emplace_back(importedPassword);
+    duplicates.reserve(imports.size());
 
-    }
+    std::ranges::set_intersection(imports, passwords, std::back_inserter(duplicates),
+                                  [](const auto &pw1, const auto &pw2) {
+                                      return comparator(pw1, pw2);
+                                  });
+
+    privacy::vector<passwordRecords> recordsUnion;
+    recordsUnion.reserve(passwords.size() + imports.size());
+
+    bool overwrite{true};
+
     // If there are duplicates, ask the user if they want to overwrite them
     if (!duplicates.empty()) {
         printColor("Warning: The following passwords already exist in the database:", 'y', true);
@@ -424,37 +417,40 @@ inline void importPasswords(privacy::vector<passwordRecords> &passwords) {
             printColor("-------------------------------------------------", 'm', true);
         }
         printColor("Do you want to overwrite/update them? (y/n): ", 'b');
-        if (validateYesNo()) {
-            // Remove the duplicates from the existing passwords so that they can be replaced
-            passwords.erase(
-                    std::remove_if(passwords.begin(), passwords.end(), [&duplicates](const auto &password) -> bool {
-                        return std::ranges::binary_search(duplicates, password, [](const auto &lhs, const auto &rhs) {
-                            return comparator(lhs, rhs);
-                        });
-                    }), passwords.end());
-        } else {
-            printColor("Warning: Duplicate passwords will not be imported.", 'y', true);
-
-            // Remove the duplicates (already in our database) from the imported passwords
-            uniques.erase(std::remove_if(uniques.begin(), uniques.end(), [&duplicates](const auto &password) -> bool {
-                return std::ranges::binary_search(duplicates, password, [](const auto &tuple1, const auto &tuple2) {
-                    return comparator(tuple1, tuple2);
-                });
-            }), uniques.end());
-        }
+        overwrite = validateYesNo();
     }
 
-    // Import the passwords
-    for (auto &el: uniques) {
-        passwords.emplace_back(std::move(el));
+    std::size_t initSize{passwords.size()};
+
+    if (overwrite) {
+        // According to an unofficial language reference, cppreference.com, TODO: Add the link.
+        // If some element is found m times in the first range and n times in the second,
+        // then all m elements will be copied from the first range to result, preserving order,
+        // and then exactly max(n-m, 0) elements will be copied from the second range to result,
+        // also preserving order.
+        // So, if a record exists in both 'imports' and 'passwords' (it is guaranteed here that such a record
+        // can be found only once in each range, as both have been deduplicated),
+        // then with 'imports' as the first argument, only 'imports'' version will be copied to the result.
+        std::ranges::set_union(imports, passwords, std::back_inserter(recordsUnion),
+                               [](const auto &pw1, const auto &pw2) {
+                                   return comparator(pw1, pw2);
+                               });
+    } else {
+        printColor("Warning: Duplicate passwords will not be imported.", 'y', true);
+
+        // 'passwords' now come before 'imports,' in accordance with the discussion in the previous branch.
+        std::ranges::set_union(passwords, imports, std::back_inserter(recordsUnion),
+                               [](const auto &pw1, const auto &pw2) {
+                                   return comparator(pw1, pw2);
+                               });
     }
 
-    // Sort the password vector
-    std::ranges::sort(passwords, [](const auto &tuple1, const auto &tuple2) {
-        return comparator(tuple1, tuple2);
-    });
+    // Reassign the records
+    passwords.assign(recordsUnion.begin(), recordsUnion.end());
 
-    if (auto imported{uniques.size()}; imported)
+    auto imported = overwrite ? imports.size() : passwords.size() - initSize;
+
+    if (std::cmp_greater(imported, 0))
         printColor(std::format("Imported {} passwords successfully.", imported), 'g', true);
     else printColor("Passwords not imported.", 'r', true);
 }
