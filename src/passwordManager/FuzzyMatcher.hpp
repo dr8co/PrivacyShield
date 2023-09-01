@@ -29,10 +29,10 @@ public:
 
         // Copy unique entries to the string list vector (wordList is sorted)
         stringList.emplace_back(*std::ranges::cbegin(wordList));
-        for (const auto &el: wordList) {
+        for (const auto &el: wordList)
             if (el != stringList.back())
                 stringList.emplace_back(el);
-        }
+
     }
 
     /**
@@ -44,14 +44,14 @@ public:
     std::vector<std::string> fuzzyMatch(const std::string &pattern, const int &maxDistance) {
         std::vector<std::string> matches;
         auto maxSize{pattern.size() + maxDistance + 1};
+        auto minSize{pattern.size() - (maxDistance + 1)};
 
-        for (const std::string &str: stringList) {
-            if (str.size() <= maxSize) {
-                if (levenshteinDistance(pattern, str) <= maxDistance) {
-                    matches.emplace_back(str);
-                }
-            }
-        }
+        for (const std::string &str: stringList)
+            if (auto size{str.size()}; size <= maxSize && size >= minSize &&
+                                       levenshteinDistance(pattern, str) <= maxDistance)
+                matches.emplace_back(str);
+
+
         return matches;
     }
 
