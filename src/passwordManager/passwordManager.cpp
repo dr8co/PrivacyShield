@@ -42,7 +42,7 @@ inline bool comparator
 inline constexpr void printPasswordDetails(const auto &pw) noexcept {
     const auto &[site, username, pass]{pw};
     if (!site.empty()) { // Skip blank entries
-        std::cout << "Site:     ";
+        std::cout << "Site/app: ";
         printColor(site, 'c');
     }
 
@@ -58,9 +58,9 @@ inline constexpr void printPasswordDetails(const auto &pw) noexcept {
 
 /// @brief Add new password records.
 inline void addPassword(privacy::vector<passwordRecords> &passwords) {
-    string site = getResponseStr("Enter the name of the site/platform: ");
+    string site = getResponseStr("Enter the name of the site/app: ");
     if (site.empty()) {
-        printColor("The site/platform name cannot be blank.", 'r', true, std::cerr);
+        printColor("The site/app name cannot be blank.", 'r', true, std::cerr);
         return;
     }
     string username = getResponseStr("Username (leave blank if N/A): ");
@@ -196,9 +196,9 @@ inline void updatePassword(privacy::vector<passwordRecords> &passwords) {
         return;
     }
 
-    string site = getResponseStr("Enter the name of the site/platform to update: ");
+    string site = getResponseStr("Enter the name of the site/app to update: ");
     if (site.empty()) {
-        printColor("The site/platform name cannot be blank.", 'r', true, std::cerr);
+        printColor("The site/app name cannot be blank.", 'r', true, std::cerr);
         return;
     }
 
@@ -296,9 +296,9 @@ inline void deletePassword(privacy::vector<passwordRecords> &passwords) { // Sim
         return;
     }
 
-    string site = getResponseStr("Enter the name of the site/platform to delete: ");
+    string site = getResponseStr("Enter the name of the site/app to delete: ");
     if (site.empty()) {
-        printColor("The site/platform name cannot be blank.", 'r', true, std::cerr);
+        printColor("The site/app name cannot be blank.", 'r', true, std::cerr);
         return;
     }
 
@@ -368,7 +368,7 @@ inline void searchPasswords(privacy::vector<passwordRecords> &passwords) {
         return;
     }
 
-    string query = getResponseStr("Enter the name of the site/platform: ");
+    string query = getResponseStr("Enter the name of the site/app: ");
     if (query.empty()) {
         printColor("The search query cannot be blank.", 'r', true, std::cerr);
         return;
