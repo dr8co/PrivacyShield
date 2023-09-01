@@ -1,3 +1,4 @@
+#include <csignal>
 #include <sodium.h>
 #include <gcrypt.h>
 #include <unordered_map>
@@ -15,13 +16,6 @@ constexpr const char *const MINIMUM_LIBGCRYPT_VERSION = "1.10.0";
 
 
 int main(int argc, char **argv) {
-    // Disable core dumping for security reasons
-    rlimit coreLimit{0, 0};
-    if (setrlimit(RLIMIT_CORE, &coreLimit) != 0) {
-        printColor("Failed to disable core dumps.", 'r', true, std::cerr);
-        return 1;
-    }
-
     // The program should be launched in interactive mode
     if (!isatty(STDIN_FILENO)) {
         if (errno == ENOTTY) {
@@ -29,12 +23,36 @@ int main(int argc, char **argv) {
             return 1;
         }
     }
+    // Disable core dumping for security reasons
+    rlimit coreLimit{0, 0};
+    if (setrlimit(RLIMIT_CORE, &coreLimit) != 0) {
+        printColor("Failed to disable core dumps.", 'r', true, std::cerr);
+        return 1;
+    }
 
     // No arguments required
     if (argc > 1) {
         printColor("Ignoring extra arguments: ", 'y');
         for (int i = 1; i < argc; printColor(std::format("{} ", argv[i++]), 'r')) {}
         std::cout << std::endl;
+    }
+
+    // Handle keyboard interrupt (Ctrl+C) signals from the user
+    struct sigaction act{};
+    act.sa_handler = [](int num[[maybe_unused]]) -> void {
+        printColor("Keyboard interrupt detected. Unsaved data might be lost if you quit now."
+                   "\nDo you still want to quit? (y/n):", 'r');
+        if (validateYesNo()) std::exit(1);
+    };
+
+    // Block all other signals while the signal handler is running
+    sigfillset(&act.sa_mask);
+    act.sa_flags = SA_RESTART; // Restart system calls if interrupted by the handler
+
+    // Set the handler for SIGINT
+    if (sigaction(SIGINT, &act, nullptr) == -1) {
+        perror("sigaction");
+        return 1;
     }
 
     try {
