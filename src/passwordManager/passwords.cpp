@@ -252,7 +252,6 @@ bool savePasswords(privacy::vector<passwordRecords> &passwords, const std::strin
 privacy::vector<passwordRecords> loadPasswords(const std::string &filePath, const std::string &decryptionKey) {
     privacy::vector<passwordRecords> passwords;
     passwords.reserve(1024);
-    sodium_mlock(passwords.data(), 1024 * sizeof(passwordRecords));
 
     // Check for common errors
     checkCommonErrors(filePath);
@@ -264,7 +263,6 @@ privacy::vector<passwordRecords> loadPasswords(const std::string &filePath, cons
     std::ifstream file(filePath);
     if (!file)
         throw std::runtime_error(std::format("Failed to open the password file ({}) for reading.", filePath));
-
     std::string line;
     line.reserve(4096);  // The encoded password records can be so long
     sodium_mlock(line.data(), 4096 * sizeof(char));
