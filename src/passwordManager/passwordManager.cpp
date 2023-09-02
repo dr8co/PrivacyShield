@@ -98,7 +98,7 @@ inline void addPassword(privacy::vector<passwordRecords> &passwords) {
     // Always warn on weak passwords
     if (!isPasswordStrong(password)) {
         printColor(
-                "Weak password! A password should have at least 8 characters and include \nat least an"
+                "Weak password! A password should have at least 8 characters and include \nat least an "
                 "uppercase character, a lowercase, a punctuator, and a digit.", 'y', true);
         printColor("Please consider using a stronger one.", 'r', true);
     }
@@ -556,7 +556,7 @@ inline void analyzePasswords(privacy::vector<passwordRecords> &passwords) {
     }
 
     // Check for reused passwords
-    std::unordered_map<string, std::unordered_set<string>> passwordMap;
+    std::unordered_map <string, std::unordered_set<string>> passwordMap;
     for (const auto &record: constPasswordsRef) {
         const string &site = std::get<0>(record);
         const string &password = std::get<2>(record);
@@ -567,7 +567,7 @@ inline void analyzePasswords(privacy::vector<passwordRecords> &passwords) {
     // Print the weak passwords
     auto weak{weakPasswords.size()};
     if (!weakPasswords.empty())[[likely]] {
-        printColor(std::format("Found {} accounts with weak passwords:", weak), 'r', true);
+        printColor(std::format("Found {} account{} with weak passwords:", weak, weak == 1 ? "" : "s"), 'r', true);
         printColor("------------------------------------------------------", 'r', true);
         for (const auto &password: weakPasswords) {
             printPasswordDetails(password);
@@ -581,7 +581,7 @@ inline void analyzePasswords(privacy::vector<passwordRecords> &passwords) {
     // Print sites with reused passwords
     std::size_t reused{0};
     for (const auto &entry: passwordMap) {
-        const std::unordered_set<string> &sites = entry.second;
+        const std::unordered_set <string> &sites = entry.second;
         if (const auto &x = sites.size(); x > 1) {
             printColor(std::format("Password '{}' is reused on {} sites:", entry.first, x), 'y', true);
             for (const string &site: sites)
@@ -674,15 +674,15 @@ void passwordManager() {
     });
 
     std::unordered_map<int, void (*)(privacy::vector<passwordRecords> &)> choices = {
-            {1,  addPassword},
-            {2,  generatePassword},
-            {3,  viewAllPasswords},
-            {4,  updatePassword},
-            {5,  deletePassword},
-            {7,  searchPasswords},
-            {8,  importPasswords},
-            {9,  exportPasswords},
-            {10, analyzePasswords},
+            {1, addPassword},
+            {2, updatePassword},
+            {3, deletePassword},
+            {4, viewAllPasswords},
+            {5, searchPasswords},
+            {6, generatePassword},
+            {7, analyzePasswords},
+            {8, importPasswords},
+            {9, exportPasswords}
     };
 
     constexpr auto colors = "rgbymcw";
@@ -693,16 +693,16 @@ void passwordManager() {
     while (true) {
         auto color = colors[dist(gen)];
         printColor("-------------------------------------------", color, true);
-        std::cout << "1. Add new Password\n";
-        std::cout << "2. Generate Password\n";
-        std::cout << "3. View All Passwords\n";
-        std::cout << "4. Update Password\n";
-        std::cout << "5. Delete Password\n";
-        std::cout << "6. Change the master Password\n";
-        std::cout << "7. Search passwords\n";
+        std::cout << "1. Add new password\n";
+        std::cout << "2. Update password\n";
+        std::cout << "3. Delete password\n";
+        std::cout << "4. View all passwords\n";
+        std::cout << "5. Search passwords\n";
+        std::cout << "6. Generate Password\n";
+        std::cout << "7. Analyze passwords\n";
         std::cout << "8. Import passwords\n";
         std::cout << "9. Export passwords\n";
-        std::cout << "10. Analyze passwords\n";
+        std::cout << "10. Change the primary Password\n";
         std::cout << "11. Save and Exit\n";
         printColor("-------------------------------------------", color, true);
 
@@ -713,7 +713,7 @@ void passwordManager() {
 
             if (iter != choices.end())
                 iter->second(passwords);
-            else if (choice == 6) {
+            else if (choice == 10) {
                 if (changeMasterPassword(encryptionKey))
                     printColor("Master password changed successfully.", 'g', true);
                 else printColor("Master password not changed.", 'r', true, std::cerr);
