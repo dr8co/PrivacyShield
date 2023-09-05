@@ -482,7 +482,7 @@ inline void importPasswords(privacy::vector<passwordRecords> &passwords) {
     std::size_t initSize{passwords.size()};
 
     if (overwrite) {
-        // According to an unofficial language reference, cppreference.com, TODO: Add the link.
+        // According to an unofficial language reference, https://en.cppreference.com/w/cpp/algorithm/ranges/set_union,
         // If some element is found m times in the first range and n times in the second,
         // then all m elements will be copied from the first range to result, preserving order,
         // and then exactly max(n-m, 0) elements will be copied from the second range to result,

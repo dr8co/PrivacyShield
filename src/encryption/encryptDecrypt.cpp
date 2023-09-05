@@ -21,6 +21,7 @@ concept Num = std::integral<T> && std::convertible_to<T, std::uintmax_t> &&
 
 /**
  * @brief A class to make file sizes more readable.
+ * @details Adapted from https://en.cppreference.com/w/cpp/filesystem/file_size
  */
 class FormatFileSize {
 public:
