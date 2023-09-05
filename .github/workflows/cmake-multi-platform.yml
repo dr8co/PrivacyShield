@@ -45,8 +45,10 @@ jobs:
       - name: Install Dependencies
         if: matrix.os == 'ubuntu-latest'
         run: |
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/ppa -y
           sudo apt update
-          sudo apt install build-essential cmake ninja gcc llvm libgcrypt openssl@3 readline libsodium
+          sudo apt install cmake ninja-build gcc-13 clang-17 lldb-17 lld-17 libc++-17-dev libc++abi-17-dev libomp-17-dev libgcrypt20 openssl libreadline8 libsodium23 libsodium-dev
 
       - name: Build BLAKE3
         run: |
