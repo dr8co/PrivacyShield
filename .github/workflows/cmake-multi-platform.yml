@@ -53,6 +53,7 @@ jobs:
         run: |
           git clone https://github.com/BLAKE3-team/BLAKE3.git
           cd BLAKE3/c
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
           cmake -B build -G Ninja
           sudo cmake --build build --config Release --target install
 

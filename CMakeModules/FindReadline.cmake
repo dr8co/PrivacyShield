@@ -17,19 +17,11 @@ if (APPLE)
     if (READLINE_LIBRARY)
         get_filename_component(READLINE_INCLUDE_DIR "${READLINE_LIBRARY}" DIRECTORY)
 
-        # Extract the version number from the library filename
-        file(REGEX MATCH "libreadline\\.([0-9]+)\\.dylib" READLINE_VERSION_MATCH "${READLINE_LIBRARY}")
+        # Create an imported target for the readline library
+        add_library(Readline::Readline INTERFACE IMPORTED)
 
-        if (READLINE_VERSION_MATCH)
-            # Extracted version number
-            set(READLINE_VERSION "${CMAKE_MATCH_1}")
-        endif ()
-
-        # Set the location and include directories of the readline library
-        set_target_properties(Readline::Readline PROPERTIES
-                INTERFACE_INCLUDE_DIRECTORIES "${READLINE_INCLUDE_DIR}"
-                IMPORTED_LOCATION "${READLINE_LIBRARY}"
-        )
+        # Set the include directories for the imported target
+        target_include_directories(Readline::Readline INTERFACE "${READLINE_INCLUDE_DIR}")
 
     else ()
         message(FATAL_ERROR "Readline library not found.")
@@ -75,9 +67,7 @@ endif ()
 # Print Readline information
 message(STATUS "Found Readline ${READLINE_VERSION}")
 message(STATUS "Readline include directories: ${READLINE_INCLUDE_DIR}")
-if (APPLE)
-    message(STATUS "Readline libraries: ${READLINE_LIBRARY}")
-else ()
+if (NOT APPLE)
     message(STATUS "Readline libraries: ${READLINE_LIBRARIES}")
 endif ()
 
