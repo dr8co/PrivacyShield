@@ -37,17 +37,27 @@ jobs:
     steps:
       # Install the latest homebrew on both macOS and Linux,
       - name: Install Homebrew
+        if: matrix.os == 'macos-latest'
         run: |
-          echo $SHELL
           /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          eval $(/opt/homebrew/bin/brew shellenv)
           brew update
+          brew upgrade
+
+      # Install the latest homebrew on Linux
+      - name: Install Homebrew
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          eval $(/home/linuxbrew/.linuxbrew/bin/brew shellenv)
+          brew update
+          brew upgrade
 
       # Install dependencies: cmake, ninja, gcc, clang (llvm), libgcrypt, openssl, readline, and libsodium
       - name: Install Dependencies
         run: |
           brew install cmake ninja gcc llvm libgcrypt openssl@3 readline libsodium
           echo 'export PATH="/usr/local/opt/llvm/bin:$PATH"' >> ~/.zshrc
-          echo 'export LDFLAGS="-L/usr/local/opt/llvm/lib/c++ -Wl,-rpath,/usr/local/opt/llvm/lib/c++"' >> ~/.zshrc
       
       - name: Build BLAKE3
         run: |
