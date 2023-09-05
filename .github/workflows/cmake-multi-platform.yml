@@ -71,14 +71,14 @@ jobs:
       - name: Set compiler environment variables
         if: matrix.os == 'ubuntu-latest' && matrix.c_compiler == 'gcc'
         run: |
-          export CC=gcc
-          export CXX=g++
+          export CC=gcc-13
+          export CXX=g++-13
 
       - name: Set compiler environment variables
         if: matrix.os == 'ubuntu-latest' && matrix.c_compiler == 'clang'
         run: |
-          export CC=clang
-          export CXX=clang++
+          export CC=clang-17
+          export CXX=clang++-17
 
       - name: Set compiler environment variables
         if: matrix.os == 'macos-13' && matrix.c_compiler == 'gcc'
