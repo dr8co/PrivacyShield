@@ -1,4 +1,4 @@
-name: CMake Build on Linux and macOS
+name: CMake Build
 
 on:
   push:
@@ -36,15 +36,18 @@ jobs:
 
     steps:
       # Install the latest homebrew on both macOS and Linux,
-      # Then install dependencies: cmake, ninja, gcc, clang (llvm), libgcrypt, openssl, readline, and libsodium
       - name: Install Homebrew
         run: |
+          echo $SHELL
           /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
           brew update
 
+      # Install dependencies: cmake, ninja, gcc, clang (llvm), libgcrypt, openssl, readline, and libsodium
       - name: Install Dependencies
         run: |
           brew install cmake ninja gcc llvm libgcrypt openssl@3 readline libsodium
+          echo 'export PATH="/usr/local/opt/llvm/bin:$PATH"' >> ~/.zshrc
+          echo 'export LDFLAGS="-L/usr/local/opt/llvm/lib/c++ -Wl,-rpath,/usr/local/opt/llvm/lib/c++"' >> ~/.zshrc
       
       - name: Build BLAKE3
         run: |
@@ -58,15 +61,12 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Set reusable strings
-        # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
         id: strings
         shell: bash
         run: |
           echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
 
       - name: Configure CMake
-        # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-        # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
         run: >
           cmake -B ${{ steps.strings.outputs.build-output-dir }}
           -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
@@ -75,11 +75,9 @@ jobs:
           -S ${{ github.workspace }}
 
       - name: Build
-        # Build your program with the given configuration. Note that --config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
         run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
 
       - name: Test
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
         # Execute tests defined by the CMake configuration. Note that --build-config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
-        # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
         run: ctest --build-config ${{ matrix.build_type }}
