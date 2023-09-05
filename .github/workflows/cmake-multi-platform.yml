@@ -17,7 +17,6 @@ jobs:
         os: [ ubuntu-latest, macos-13 ]
         build_type: [ Release ]
         c_compiler: [ gcc, clang ]
-        cpp_compiler: [ g++, clang++ ]
         include:
           - os: macos-13
             c_compiler: clang
@@ -36,34 +35,18 @@ jobs:
             cpp_compiler: clang++
 
     steps:
-      # Install the latest homebrew on macOS
-      - name: Install Homebrew
-        if: matrix.os == 'macos-13'
-        run: |
-          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-          echo 'eval "$(/usr/local/bin/brew shellenv)"' >> /Users/runner/.bash_profile
-          eval "$(/usr/local/bin/brew shellenv)"
-          brew update
-
-      # Install the latest homebrew on Linux
-      - name: Install Homebrew
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-          echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> /home/runner/.bash_profile
-          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-          brew update
-
       # Install dependencies: cmake, ninja, gcc, clang (llvm), libgcrypt, openssl, readline, and libsodium
       - name: Install Dependencies
         if: matrix.os == 'macos-13'
         run: |
+          brew update
           brew install cmake ninja gcc llvm libgcrypt openssl@3 readline libsodium
 
       - name: Install Dependencies
         if: matrix.os == 'ubuntu-latest'
         run: |
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          brew update
           brew install cmake ninja gcc llvm libgcrypt openssl@3 readline libsodium
 
       - name: Build BLAKE3
