@@ -45,15 +45,13 @@ jobs:
       - name: Install Dependencies
         if: matrix.os == 'ubuntu-latest'
         run: |
-          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-          brew update
-          brew install cmake ninja gcc llvm libgcrypt openssl@3 readline libsodium
+          sudo apt update
+          sudo apt install build-essential cmake ninja gcc llvm libgcrypt openssl@3 readline libsodium
 
       - name: Build BLAKE3
         run: |
           git clone https://github.com/BLAKE3-team/BLAKE3.git
           cd BLAKE3/c
-          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
           cmake -B build -G Ninja
           sudo cmake --build build --config Release --target install
 
