@@ -5,6 +5,17 @@ project(privacyShield
         DESCRIPTION "A suite of tools for privacy and security"
         LANGUAGES CXX)
 
+# If we are not on unix, we cannot build
+if(NOT UNIX)
+    message(FATAL_ERROR "This project can only be built on unix-like systems")
+endif()
+
+# If the user does not specify a build type, default to Release
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
+# Set the path to additional CMake modules
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
 
 # C++23 is required for this project
