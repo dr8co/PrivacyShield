@@ -12,8 +12,12 @@
 
 # Find the pkg-config package for Readline
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(READLINE REQUIRED readline)
 
+if (APPLE)
+    find_library(READLINE_LIBRARY NAMES readline)
+else ()
+    pkg_check_modules(READLINE REQUIRED readline)
+endif ()
 # Set the Readline variables
 set(READLINE_FOUND TRUE)
 set(READLINE_INCLUDE_DIR ${READLINE_INCLUDE_DIRS})
