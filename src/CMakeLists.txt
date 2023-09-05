@@ -22,7 +22,7 @@ add_executable(privacyShield
 
 target_link_libraries(privacyShield
         OpenSSL::Crypto
-        Readline::readline
+        Readline::Readline
         Sodium::sodium
-        gcrypt
-        blake3)
+        Gcrypt::Gcrypt
+        BLAKE3::blake3)
