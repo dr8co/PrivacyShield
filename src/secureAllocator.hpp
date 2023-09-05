@@ -9,15 +9,23 @@
 namespace privacy {
 
     template<typename T>
+    /**
+     * @brief Custom allocator for STL containers, which locks and zeroizes memory.
+     * @details Adapted from https://en.cppreference.com/w/cpp/named_req/Allocator
+     */
     struct Allocator {
     public:
 
         [[maybe_unused]] typedef T value_type;
 
-        Allocator() = default;
+        // Default constructor
+        constexpr Allocator() noexcept = default;
 
         // Assignment operator
-//        Allocator& operator=(const Allocator&) noexcept = default;
+        constexpr Allocator &operator=(const Allocator &) noexcept = default;
+
+        // Destructor
+        ~Allocator() noexcept = default;
 
         // Copy constructor
         template<class U>
@@ -41,9 +49,49 @@ namespace privacy {
         }
     };
 
-    typedef std::basic_string<char, std::char_traits<char>, Allocator<char> > string;
+    // Equality operators
+    template<class T, class U>
+    [[maybe_unused]] constexpr bool operator==(const Allocator<T> &, const Allocator<U> &) noexcept {
+        return true;
+    }
+
+    // Inequality operators
+    template<class T, class U>
+    [[maybe_unused]] constexpr bool operator!=(const Allocator<T> &, const Allocator<U> &) noexcept {
+        return false;
+    }
+
+    // Override string and vector types to use our allocator
+    using string = std::basic_string<char, std::char_traits<char>, Allocator<char> >;
 
     template<typename T>
     using vector = std::vector<T, Allocator<T>>;
+
+    // Assignment between our custom string types
+    [[maybe_unused]] constexpr string &assign(string &lhs, const string &rhs) {
+        lhs.assign(rhs.begin(), rhs.end());
+        return lhs;
+    }
+
+    // Assignment between our custom vector types
+    template<typename T>
+    [[maybe_unused]] constexpr vector<T> &assign(vector<T> &lhs, const vector<T> &rhs) {
+        lhs.assign(rhs.begin(), rhs.end());
+        return lhs;
+    }
+
+    // Assignment between our custom string type and std::string
+    [[maybe_unused]] constexpr std::string &assign(std::string &lhs, const string &rhs) {
+        lhs.assign(rhs.begin(), rhs.end());
+        return lhs;
+    }
+
+    // Assignment between our custom vector type and std::vector
+    template<typename T>
+    [[maybe_unused]] constexpr std::vector<T> &assign(std::vector<T> &lhs, const vector<T> &rhs) {
+        lhs.assign(rhs.begin(), rhs.end());
+        return lhs;
+    }
+
 
 }  // namespace privacy
