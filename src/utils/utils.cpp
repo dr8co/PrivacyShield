@@ -66,7 +66,6 @@ std::string getResponseStr(const std::string &prompt) {
     std::cout << prompt << std::endl;
     char *tmp = readline("> ");
     auto str = std::string{tmp};
-
     // Trim leading and trailing spaces
     trimSpace(str);
 
@@ -165,14 +164,13 @@ std::uintmax_t getAvailableSpace(const std::string &path) noexcept {
     fs::path filePath(path);
 
     std::error_code ec; // For ignoring errors to avoid throwing
-    fs::space_info space{};
 
     // Find an existing component of the path
     while ((!fs::exists(filePath, ec)) && filePath.has_parent_path())
         filePath = filePath.parent_path();
     if (ec) ec.clear();
 
-    space = fs::space(filePath, ec);
+    const auto space = fs::space(filePath, ec);
 
     // -1 should be returned if an error occurs, but it wraps on some systems,
     // or maybe just mine.

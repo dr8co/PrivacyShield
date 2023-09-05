@@ -553,7 +553,6 @@ privacy::vector<passwordRecords> importCsv(const std::string &filePath) {
     privacy::vector<passwordRecords> passwords;
 
     checkCommonErrors(filePath);
-
     bool hasHeader = validateYesNo("Does the file have a header? (Skip the first line?) (y/n): ");
 
     std::ifstream file(filePath);
@@ -561,7 +560,6 @@ privacy::vector<passwordRecords> importCsv(const std::string &filePath) {
         throw std::runtime_error(std::format("Failed to open the file ({}) for reading.", filePath));
 
     std::string line, value;
-
     if (hasHeader)
         std::getline(file, line); // Read and discard the first line
 
