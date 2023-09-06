@@ -14,6 +14,7 @@
 if (APPLE)
     find_library(READLINE_LIBRARY NAMES readline
             PATHS /usr/local/opt/readline/lib /usr/local/lib /opt/local/lib /usr/lib
+            NO_DEFAULT_PATH
     )
 
     if (READLINE_LIBRARY)
