@@ -1,6 +1,6 @@
 # Privacy Shield
 
-```C++
+```text
     ....      ..                     .       _                                            
   +^""888h. ~"888h                  @88>    u                                  ..         
  8X.  ?8888X  8888f     .u    .     %8P    88Nu.   u.                         @L          
@@ -135,8 +135,10 @@ The default is 3 overwrites.
 The file shredder supports the following overwriting methods:
 
 * **Random Bytes** - Overwrites the file with random bytes.
-* **3-Pass DOD 5220.22-M** - Overwrites the file with random bytes, then with the complement of random bytes, and finally with random bytes again.
+* **3-Pass DOD 5220.22-M** - Overwrites the file with a random byte, then with the complement of the random byte, and finally with random bytes.
 * **7-Pass DOD 5220.22-M** - 3-Pass DOD 5220.22-M twice, with a random overwrite in between.
+
+The default overwriting method is a 3-pass overwrite with random bytes.
 
 The random bytes are generated using the `Mersenne Twister` algorithm,
 seeded with random bytes from the `OS entropy pool`
