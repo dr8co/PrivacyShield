@@ -71,7 +71,7 @@ jobs:
           git clone https://github.com/BLAKE3-team/BLAKE3.git
           cd BLAKE3/c
           cmake -B build -G Ninja
-          sudo cmake --build build --config Release --target install
+          sudo cmake --build build --config Release --target install -j 4
 
 
       - uses: actions/checkout@v3
@@ -88,10 +88,10 @@ jobs:
           -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
           -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-          -S ${{ github.workspace }}
+          -S ${{ github.workspace }} -G Ninja
 
       - name: Build
-        run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+        run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }} -j 4
 
       - name: Test
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
