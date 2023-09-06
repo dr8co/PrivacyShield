@@ -63,9 +63,7 @@ jobs:
         run: |
           git clone https://github.com/BLAKE3-team/BLAKE3.git
           cd BLAKE3/c
-          cmake -B build \
-          -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }} \
-          -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} -G Ninja
+          cmake -B build -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} -G Ninja
           sudo cmake --build build --config Release --target install -j 4
 
 
