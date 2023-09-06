@@ -19,18 +19,6 @@ jobs:
         c_compiler: [ gcc, clang ]
         include:
           - os: macos-13
-            c_compiler: clang
-            cpp_compiler: /usr/local/opt/llvm/bin/clang++
-            env:
-              - CXXFLAGS="-stdlib=libc++"
-              - LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib"
-              - CPPFLAGS="-I/usr/local/opt/llvm/include"
-              - LD_LIBRARY_PATH="/usr/local/opt/llvm/lib"
-              - DYLD_LIBRARY_PATH="/usr/local/opt/llvm/lib"
-              - AR="/usr/local/opt/llvm/bin/llvm-ar"
-              - LD="/usr/local/opt/llvm/bin/llvm-ld"
-
-          - os: macos-13
             c_compiler: gcc
             cpp_compiler: g++-13
             env:
@@ -38,10 +26,6 @@ jobs:
               - CPPFLAGS="-I/usr/local/opt/llvm/include"
               - LD_LIBRARY_PATH="/usr/local/opt/llvm/lib"
               - DYLD_LIBRARY_PATH="/usr/local/opt/llvm/lib"
-              # change where cmake looks for readline
-              - CMAKE_PREFIX_PATH="/usr/local/opt/readline"
-              - CMAKE_INCLUDE_PATH="/usr/local/opt/readline/include"
-              - CMAKE_LIBRARY_PATH="/usr/local/opt/readline/lib"
 
           - os: ubuntu-latest
             c_compiler: gcc
@@ -50,6 +34,12 @@ jobs:
           - os: ubuntu-latest
             c_compiler: clang
             cpp_compiler: clang++-17
+            
+        # Don't include the following configurations in the matrix
+        exclude:
+          - os: macos-13
+            c_compiler: clang
+            cpp_compiler: clang++
 
     steps:
       # Install dependencies: cmake, ninja, gcc, clang (llvm), libgcrypt, openssl, readline, and libsodium
