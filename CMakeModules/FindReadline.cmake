@@ -12,7 +12,8 @@
 
 # On Apple systems, a pkg-config file is not provided for Readline, so we find it manually
 if (APPLE)
-    find_library(READLINE_LIBRARY NAMES readline
+    find_library(READLINE_LIBRARY
+            NAMES readline libreadline.dylib libreadline.a
             PATHS /usr/local/opt/readline/lib /usr/local/lib /opt/local/lib /usr/lib
             NO_DEFAULT_PATH
     )
@@ -24,7 +25,17 @@ if (APPLE)
         add_library(Readline::Readline INTERFACE IMPORTED)
 
         # Set the include directories for the imported target
-        target_include_directories(Readline::Readline INTERFACE "${READLINE_INCLUDE_DIR}")
+#        target_include_directories(Readline::Readline INTERFACE "${READLINE_INCLUDE_DIR}")
+
+        # Set the libraries for the imported target
+#        target_link_libraries(Readline::Readline INTERFACE "${READLINE_LIBRARY}")
+
+        # Set the version for the imported target
+        set_target_properties(Readline::Readline PROPERTIES
+                INTERFACE_LINK_LIBRARIES "${READLINE_LIBRARY}"
+                INTERFACE_INCLUDE_DIRECTORIES "${READLINE_INCLUDE_DIR}"
+                IMPORTED_LOCATION "${READLINE_LIBRARY}"
+        )
 
     else ()
         message(FATAL_ERROR "Readline library not found.")
