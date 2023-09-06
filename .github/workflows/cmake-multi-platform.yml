@@ -39,7 +39,6 @@ jobs:
         exclude:
           - os: macos-13
             c_compiler: clang
-            cpp_compiler: clang++
 
     steps:
       # Install dependencies: cmake, ninja, gcc, clang (llvm), libgcrypt, openssl, readline, and libsodium
