@@ -12,7 +12,9 @@
 
 # On Apple systems, a pkg-config file is not provided for Readline, so we find it manually
 if (APPLE)
-    find_library(READLINE_LIBRARY NAMES readline)
+    find_library(READLINE_LIBRARY NAMES readline
+            HINTS /usr/local/opt/readline/lib /usr/local/lib /opt/local/lib /usr/lib
+    )
 
     if (READLINE_LIBRARY)
         get_filename_component(READLINE_INCLUDE_DIR "${READLINE_LIBRARY}" DIRECTORY)
