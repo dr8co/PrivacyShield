@@ -4,7 +4,7 @@
 # This module sets the following variables:
 #   READLINE_FOUND       - True if Readline is found
 #   READLINE_INCLUDE_DIR - Include directories for Readline
-#   READLINE_LIBRARIES   - Linker flags for Readline
+#   READLINE_LIBRARIES   - Linker flags for Readline (not on Apple)
 #   READLINE_VERSION     - Version of Readline
 
 # This module also provides an imported target:
@@ -12,25 +12,26 @@
 
 # On Apple systems, a pkg-config file is not provided for Readline, so we find it manually
 if (APPLE)
-    find_library(READLINE_LIBRARY
-            NAMES readline libreadline.dylib libreadline.a
+    find_library(READLINE_LIBRARY REQUIRED
+            NAMES libreadline.dylib libreadline.a
             PATHS /usr/local/opt/readline/lib /usr/local/lib /opt/local/lib /usr/lib
             NO_DEFAULT_PATH
     )
 
     if (READLINE_LIBRARY)
+        # Set variables
+        set(READLINE_FOUND TRUE)
+        set(READLINE_INCLUDE_DIR "${READLINE_INCLUDE_DIR}")
+        set(READLINE_VERSION "unknown")
+        set(READLINE_LIBRARIES "${READLINE_LIBRARY}")
+
+        # Get the directory of the Readline library
         get_filename_component(READLINE_INCLUDE_DIR "${READLINE_LIBRARY}" DIRECTORY)
 
         # Create an imported target for the readline library
         add_library(Readline::Readline INTERFACE IMPORTED)
 
-        # Set the include directories for the imported target
-#        target_include_directories(Readline::Readline INTERFACE "${READLINE_INCLUDE_DIR}")
-
-        # Set the libraries for the imported target
-#        target_link_libraries(Readline::Readline INTERFACE "${READLINE_LIBRARY}")
-
-        # Set the version for the imported target
+        # Configure the imported target
         set_target_properties(Readline::Readline PROPERTIES
                 INTERFACE_LINK_LIBRARIES "${READLINE_LIBRARY}"
                 INTERFACE_INCLUDE_DIRECTORIES "${READLINE_INCLUDE_DIR}"
