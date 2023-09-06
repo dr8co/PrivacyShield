@@ -33,6 +33,15 @@ jobs:
           - os: macos-13
             c_compiler: gcc
             cpp_compiler: g++-13
+            env:
+              - LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib"
+              - CPPFLAGS="-I/usr/local/opt/llvm/include"
+              - LD_LIBRARY_PATH="/usr/local/opt/llvm/lib"
+              - DYLD_LIBRARY_PATH="/usr/local/opt/llvm/lib"
+              # change where cmake looks for readline
+              - CMAKE_PREFIX_PATH="/usr/local/opt/readline"
+              - CMAKE_INCLUDE_PATH="/usr/local/opt/readline/include"
+              - CMAKE_LIBRARY_PATH="/usr/local/opt/readline/lib"
 
           - os: ubuntu-latest
             c_compiler: gcc
