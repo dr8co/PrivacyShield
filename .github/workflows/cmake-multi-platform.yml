@@ -61,7 +61,7 @@ jobs:
           sudo add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-17 main" -y
           sudo add-apt-repository ppa:ubuntu-toolchain-r/ppa -y
           sudo apt update
-          sudo apt install cmake ninja-build gcc-13 clang-17 lldb-17 lld-17 libc++-17-dev libc++abi-17-dev libomp-17-dev libgcrypt20 openssl libreadline8 libsodium23 libsodium-dev
+          sudo apt install cmake ninja-build gcc-13 g++-13 clang-17 lldb-17 lld-17 libc++-17-dev libc++abi-17-dev libomp-17-dev libgcrypt20 openssl libreadline8 libsodium23 libsodium-dev
 
       - name: Build BLAKE3
         run: |
