@@ -34,3 +34,9 @@ find_package(BLAKE3 REQUIRED) # See https://github.com/BLAKE3-team/BLAKE3
 
 
 add_subdirectory(src)
+
+# Install the binary (optional)
+install(TARGETS privacyShield
+        DESTINATION bin
+        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+)
