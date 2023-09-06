@@ -22,6 +22,8 @@ jobs:
             c_compiler: gcc
             cpp_compiler: g++-13
             env:
+              - CC=gcc-13
+              - CXX=g++-13
               - LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib"
               - CPPFLAGS="-I/usr/local/opt/llvm/include"
               - LD_LIBRARY_PATH="/usr/local/opt/llvm/lib"
@@ -30,33 +32,39 @@ jobs:
           - os: ubuntu-latest
             c_compiler: gcc
             cpp_compiler: g++-13
+            env:
+              - CC=gcc-13
+              - CXX=g++13
 
           - os: ubuntu-latest
             c_compiler: clang
             cpp_compiler: clang++-17
-            
+            env:
+              - CC=clang-17
+              - CXX=clang++-17
+
         # Don't include the following configurations in the matrix
         exclude:
           - os: macos-13
-            c_compiler: clang
+            c_compiler: clang # LLVM Clang17+ required, and building it from the source will take longer
 
     steps:
-      # Install dependencies: cmake, ninja, gcc, clang (llvm), libgcrypt, openssl, readline, and libsodium
+      # Install dependencies: cmake, ninja, gcc, libgcrypt, openssl, readline, and libsodium
       - name: Install Dependencies
         if: matrix.os == 'macos-13'
         run: |
           brew update
-          brew install cmake ninja gcc llvm libgcrypt openssl@3 readline libsodium
+          brew install cmake ninja gcc libgcrypt openssl@3 readline libsodium
           echo 'export PATH="/usr/local/opt/llvm/bin:$PATH"' >> ~/.bash_profile
 
       - name: Install Dependencies
         if: matrix.os == 'ubuntu-latest'
         run: |
           wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
-          sudo add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-17 main" -y
-          sudo add-apt-repository ppa:ubuntu-toolchain-r/ppa -y
+          sudo add-apt-repository -y "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-17 main"
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/ppa
           sudo apt update
-          sudo apt install cmake ninja-build gcc-13 g++-13 clang-17 lldb-17 lld-17 libc++-17-dev libc++abi-17-dev libomp-17-dev libgcrypt20 openssl libreadline8 libsodium23 libsodium-dev
+          sudo apt install -y cmake ninja-build gcc-13 g++-13 clang-17 lldb-17 lld-17 libc++-17-dev libc++abi-17-dev libomp-17-dev libgcrypt20 openssl libreadline8 libsodium23
 
       - name: Build BLAKE3
         run: |
@@ -66,7 +74,6 @@ jobs:
           sudo cmake --build build --config Release --target install
 
 
-
       - uses: actions/checkout@v3
 
       - name: Set reusable strings
@@ -74,32 +81,6 @@ jobs:
         shell: bash
         run: |
           echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
-
-      # Set compiler environment variables
-      - name: Set compiler environment variables
-        if: matrix.os == 'ubuntu-latest' && matrix.c_compiler == 'gcc'
-        run: |
-          export CC=gcc-13
-          export CXX=g++-13
-
-      - name: Set compiler environment variables
-        if: matrix.os == 'ubuntu-latest' && matrix.c_compiler == 'clang'
-        run: |
-          export CC=clang-17
-          export CXX=clang++-17
-
-      - name: Set compiler environment variables
-        if: matrix.os == 'macos-13' && matrix.c_compiler == 'gcc'
-        run: |
-          export CC=gcc-13
-          export CXX=g++-13
-
-      - name: Set compiler environment variables
-        if: matrix.os == 'macos-13' && matrix.c_compiler == 'clang'
-        run: |
-          export CC=clang
-          export CXX=clang++
-
 
       - name: Configure CMake
         run: >
@@ -114,5 +95,5 @@ jobs:
 
       - name: Test
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
-        # Execute tests defined by the CMake configuration. Note that --build-config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
+        # Execute tests defined by the CMake configuration
         run: ctest --build-config ${{ matrix.build_type }}

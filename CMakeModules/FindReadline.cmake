@@ -72,5 +72,7 @@ message(STATUS "Found Readline ${READLINE_VERSION}")
 message(STATUS "Readline include directories: ${READLINE_INCLUDE_DIR}")
 if (NOT APPLE)
     message(STATUS "Readline libraries: ${READLINE_LIBRARIES}")
+else ()
+    message(STATUS "Readline library: ${READLINE_LIBRARY}")
 endif ()
 
