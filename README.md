@@ -47,7 +47,7 @@ Protect Your Privacy, Secure Your Digital World.
   * [File Encryptor/Decryptor](#file-encryptordecryptor)
   * [File Shredder](#file-shredder)
   * [Browser Privacy Tracks Cleaner](#browser-privacy-tracks-cleaner)
-  * [File Deduplicator](#file-deduplicator)
+  * [Duplicate File detector](#file-deduplicator)
 * [Getting Started](#getting-started)
   * [Prerequisites](#prerequisites)
   * [Installation/Building](#installationbuilding)
@@ -57,7 +57,7 @@ Protect Your Privacy, Secure Your Digital World.
 * [Contributing](#contributing)
 * [Authors](#authors)
 * [Disclaimer](#disclaimer)
-* [Powered By](#powered-by)
+* [Technologies used](#powered-by)
 * [License](#license)
 <!-- TOC -->
 
@@ -67,11 +67,11 @@ Privacy Shield is a suite of simple tools to help you manage your privacy in the
 
 The tools included in Privacy Shield are:
 
-* **Password Manager** - A simple password manager that stores your passwords in an encrypted file.
-* **File Encryptor/Decryptor** - A simple tool to encrypt/decrypt your files.
-* **File Shredder** - A simple file shredder to securely delete your files.
-* **Browser Privacy Tracks Cleaner** - A simple tool to clean browser cookies and history items.
-* **File Deduplicator** - A bonus tool to help remove redundant files.
+* **[Password Manager](#password-manager)** - A simple password manager that stores your passwords in an encrypted file.
+* **[File Encryptor/Decryptor](#file-encryptordecryptor)** - A simple tool to encrypt/decrypt your files.
+* **[File Shredder](#file-shredder)** - A simple file shredder to securely delete your files.
+* **[Browser Privacy Tracks Cleaner](#browser-privacy-tracks-cleaner)** - A simple tool to clean browser cookies and history items.
+* **[File Deduplicator](#file-deduplicator)** - A bonus tool to help remove redundant files.
 
 ## Motivation
 
@@ -97,11 +97,17 @@ and our digital sanctuaries remain impervious to prying eyes.
 * **Cross-Platform** - Privacy Shield is written in C++ and uses CMake as its build system,
 so it can be built on any Unix platform that supports C++23 and CMake.
 
+* **Secure** - Privacy Shield uses secure cryptographic algorithms and protocols to handle sensitive data.
+Security is a complex topic, and the current implementation of Privacy Shield is not perfect.
+If you find any security vulnerabilities, please report them, or better yet, submit a pull request.
+
 * **Easy to Use** - Privacy Shield is designed to be easy to use, with a simple command-line interface.
 
 * **Fast** - Privacy Shield is designed to be fast, with support for multi-threading and concurrency.
 
 * **Lightweight** and **Portable** - The design is simple and lightweight.
+
+* **Safe** - Privacy Shield supports safe operations, with support for cancellation and error handling.
 
 * **Free** - Privacy Shield is free and open-source software, licensed under the GNU General Public License v3.0.
 See [LICENSE](./LICENSE) for more information.
@@ -112,15 +118,26 @@ See [LICENSE](./LICENSE) for more information.
 
 ## The Tools in Detail
 
+Privacy Shield currently runs exclusively in the command line in interactive mode.
+
+All the commands/operations are presented in a menu-like interface,
+and are not saved in the shell command history.
+
+Any operation with any tool can be canceled at any time by pressing `Ctrl+C`,
+and confirming the cancellation.
+
 ### Password Manager
 
 The password manager requires a primary password to encrypt/decrypt your passwords.
-It is verified using the `Argon2id` algorithm,
+It is verified using the [Argon2id algorithm](https://en.wikipedia.org/wiki/Argon2),
 which is a memory-hard password hashing algorithm,
 designed to resist side-channel attacks and slow down brute-force attacks.
 
 The primary password **must be a strong** and **must not be forgotten.**
 **Forgetting the primary password will result in the loss of all passwords stored in the password manager.**
+
+**Note:** When typing a password, the characters are not displayed on the screen for security reasons,
+and you will be asked to confirm it by typing it again.
 
 A password record consists of the following fields:
 
@@ -134,22 +151,30 @@ The actual encryption is done in two steps:
 1. Encrypt the 'password' field of a record (the actual password) using the `256-bit Serpent cipher in counter mode (CTR)`.
 2. Encrypt all the fields (including the encrypted password) using the `256-bit AES cipher in cipher block chaining mode (CBC)`.
 
-The keys (256-bit) for the two steps are derived from the primary password using the `PBKDF2` algorithm (salted with a random salt).
+The keys (256-bit) for the two steps are derived from the primary password using the [PBKDF2 algorithm](https://en.wikipedia.org/wiki/PBKDF2)
+([salted](https://en.wikipedia.org/wiki/Salt_(cryptography))
+with a random salt).
 
 No two password records are encrypted using the same key.
 To be precise, each field of a password record is encrypted independently using a different key.
-**This is done to slow down brute-force attacks.**
+**This is done to slow down [brute-force attacks](https://en.wikipedia.org/wiki/Brute-force_attack).**
 
-The Serpent cipher is used for the first step because it is a
-strong and secure cipher with more rounds than AES (32 rounds vs 14 rounds) that is resistant to cryptanalysis.
-The CTR mode is used for it because it is a fast and secure mode that is resistant to padding oracle attacks.
-A non-deterministic random nonce is used in the CTR mode to prevent nonce reuse (or misuse?).
+The [Serpent cipher](https://en.wikipedia.org/wiki/Serpent_(cipher))
+is used for the first step because it is a
+conservative and secure cipher with more rounds than [AES cipher](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard)
+(32 rounds vs 14 rounds, hence a larger security margin) that is resistant to cryptanalysis.
+The [counter mode (CTR)](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Counter_(CTR))
+is used for it because it is a fast and secure mode that is resistant to padding oracle attacks.
+A non-deterministic random [nonce](https://en.wikipedia.org/wiki/Cryptographic_nonce)
+is used in the CTR mode to prevent nonce reuse (or misuse?).
 
-The AES cipher is used for the second step because it is a
+The [AES cipher](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard)
+is used for the second step because it is a
 reputably strong and secure block cipher that has been widely used and tested.
-The CBC mode ensures that the ciphertext of a block depends on all plaintext blocks processed up to that point, so that
+The [cipher block chaining mode (CBC)](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Cipher_Block_Chaining_(CBC))
+ensures that the ciphertext of a block depends on all plaintext blocks processed up to that point, so that
 the ciphertext does not reveal patterns in the plaintext.
-Similar to the CTR mode, a non-deterministic random initialization vector (IV)
+Similar to the CTR mode, a non-deterministic random [initialization vector (IV)](https://en.wikipedia.org/wiki/Initialization_vector)
 is used in the CBC mode to prevent IV reuse.
 
 For these reasons, the password manager is considerably
@@ -168,9 +193,9 @@ The password manager also supports the following features:
 * **Analytics** - A simple analytics tool to analyze your passwords for strength and reuse.
 
 **A note on importation**\
-For importing passwords, the CSV file must have three and only three columns: name, username, and password.
+For importing passwords, the CSV file **must have three and only three columns**: name, username, and password.
 The file can have a header row, but it is not required (the program will ask you if the file has a header row).
-Non-conforming rows will be skipped.
+**Non-conforming rows will be skipped**.
 
 The imported passwords will be deduplicated and merged with the existing passwords.
 If a password already exists, the program will ask you if you want to overwrite it.
@@ -184,13 +209,18 @@ The password is not stored anywhere (neither verified during decryption) and is 
 
 If a wrong password is provided, decrypted data will be garbage, or the decryption will fail altogether.
 
-The following block ciphers are supported:
+The following block ciphers are supported (all with 256-bit keys):
 
-* **AES-256** in **CBC** mode
-* **Serpent-256** in **CTR** mode
-* **Twofish-256** in **CTR** mode
-* **Camellia-256** in **CBC** mode
-* **ARIA-256** in **CBC** mode
+* **[AES](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard)**
+in **[CBC mode](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Cipher_Block_Chaining_(CBC))**
+* **[Serpent](https://en.wikipedia.org/wiki/Serpent_(cipher))**
+in **[CTR mode](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Counter_(CTR))**
+* **[Twofish](https://en.wikipedia.org/wiki/Twofish)**
+in **CTR** mode
+* **[Camellia](https://en.wikipedia.org/wiki/Camellia_(cipher))**
+in **CBC** mode
+* **[ARIA](https://en.wikipedia.org/wiki/ARIA_(cipher))**
+in **CBC** mode
 
 These block ciphers are all strong and secure ciphers that have been widely used and tested.
 
@@ -198,10 +228,15 @@ Serpent and Twofish feature more rounds than their counterparts, and are therefo
 
 **The default algorithm is AES-256 in CBC mode.**
 
-The 256-bit encryption/decryption keys are derived from the password using the `PBKDF2` algorithm, salted with random bytes.
+The 256-bit encryption/decryption keys are derived from the password using the [PBKDF2 algorithm](https://en.wikipedia.org/wiki/PBKDF2)
+[salted](https://en.wikipedia.org/wiki/Salt_(cryptography))
+with random bytes.
 
-For the CBC mode, a non-deterministic random initialization vector (IV) is used,
-and for the CTR mode, a non-deterministic random nonce is used.
+For the CBC mode, a non-deterministic random
+[initialization vector (IV)](https://en.wikipedia.org/wiki/Initialization_vector)
+is used,
+and for the CTR mode, a non-deterministic random
+[nonce](https://en.wikipedia.org/wiki/Cryptographic_nonce) is used.
 This is done to prevent IV/nonce reuse.
 
 Future versions of the program may support authenticated modes of encryption.
@@ -219,15 +254,23 @@ The file shredder supports the following overwriting methods:
 * **3-Pass DOD 5220.22-M** - Overwrites the file with a byte, then with the complement of the byte, and finally with random bytes.
 * **7-Pass DOD 5220.22-M** - 3-Pass DOD 5220.22-M twice, with a random overwrite in between.
 
+More about the DOD 5220.22-M standard can be found
+[here](https://en.wikipedia.org/wiki/Data_erasure#Standards).
+
 The default overwriting method is a 3-pass overwrite with random bytes.
 
-The random bytes are generated using the `Mersenne Twister` algorithm,
-seeded with random bytes from the `OS entropy pool`
-(governed by C++'s `std::random_device` implementation on the platform).
+The random bytes are generated using the
+[Mersenne Twister](https://en.wikipedia.org/wiki/Mersenne_Twister)
+algorithm,
+seeded with random bytes from the `OS entropy pool`(dictated by C++'s
+[std::random_device](https://en.cppreference.com/w/cpp/numeric/random/random_device)
+implementation on the platform).
 
 The cluster tips of the file are also overwritten with zeros by default, and this can be disabled by the user.
 
 After shredding, the file is renamed to a random name thrice, and then deleted (removed, not sent to the recycle bin).
+
+The last write time of the file is also restored to the original value before removal.
 
 ### Browser Privacy Tracks Cleaner
 
