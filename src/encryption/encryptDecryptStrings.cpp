@@ -17,7 +17,8 @@
  * @details The key is derived from the password using PBKDF2 with 100,000 rounds (salted).
  * @details The IV is generated randomly using a CSPRNG and prepended to the ciphertext.
  */
-std::string encryptString(const std::string &plaintext, const std::string &password, const std::string &algo) {
+privacy::string
+encryptString(const privacy::string &plaintext, const privacy::string &password, const std::string &algo) {
     CryptoCipher cipher;
 
     // Create the cipher context
@@ -76,7 +77,7 @@ std::string encryptString(const std::string &plaintext, const std::string &passw
     result.insert(result.end(), ciphertext.begin(), ciphertext.end());
 
     // Return Base64-encoded ciphertext
-    return base64Encode(result);
+    return privacy::string{base64Encode(result)};
 }
 
 /**
@@ -85,7 +86,8 @@ std::string encryptString(const std::string &plaintext, const std::string &passw
  * @param password The string to be used to derive the decryption key.
  * @return The decrypted string (the plaintext).
  */
-std::string decryptString(const std::string &encodedCiphertext, const std::string &password, const std::string &algo) {
+privacy::string
+decryptString(const std::string &encodedCiphertext, const privacy::string &password, const std::string &algo) {
     CryptoCipher cipher;
 
     // Create the cipher context
@@ -146,7 +148,7 @@ std::string decryptString(const std::string &encodedCiphertext, const std::strin
 
     plaintextLength += finalLength;
 
-    std::string decryptedText(reinterpret_cast<char *>(plaintext.data()), plaintextLength);
+    privacy::string decryptedText(reinterpret_cast<char *>(plaintext.data()), plaintextLength);
 
     return decryptedText;
 }
@@ -168,8 +170,8 @@ inline void throwSafeError(gcry_error_t &err, const std::string &message) {
  * @details Key derivation function: PBKDF2 with 100,000 rounds.
  * @details The IV(nonce) is generated randomly and prepended to the ciphertext.
  */
-std::string
-encryptStringWithMoreRounds(const std::string &plaintext, const std::string &password,
+privacy::string
+encryptStringWithMoreRounds(const privacy::string &plaintext, const privacy::string &password,
                             const gcry_cipher_algos &algorithm) {
     gcry_error_t err;   // error tracker
 
@@ -179,7 +181,7 @@ encryptStringWithMoreRounds(const std::string &plaintext, const std::string &pas
     if (err)
         throwSafeError(err, "Failed to create the encryption cipher context");
 
-    // Check the key size, and the counter size required by the cipher
+    // Check the key size, and the counter-size required by the cipher
     std::size_t ctrSize = gcry_cipher_get_algo_blklen(algorithm);
     std::size_t keySize = gcry_cipher_get_algo_keylen(algorithm);
 
@@ -226,7 +228,7 @@ encryptStringWithMoreRounds(const std::string &plaintext, const std::string &pas
     result.insert(result.end(), ciphertext.begin(), ciphertext.end());
 
     // Return Base64-encoded ciphertext
-    return base64Encode(result);
+    return privacy::string{base64Encode(result)};
 }
 
 /**
@@ -235,10 +237,10 @@ encryptStringWithMoreRounds(const std::string &plaintext, const std::string &pas
  * @param password The string to be used to derive the decryption key.
  * @return The decrypted string (the plaintext).
  */
-std::string
-decryptStringWithMoreRounds(const std::string &encodedCiphertext, const std::string &password,
+privacy::string
+decryptStringWithMoreRounds(const std::string &encodedCiphertext, const privacy::string &password,
                             const gcry_cipher_algos &algorithm) {
-    // Fetch the cipher's counter size and key size
+    // Fetch the cipher's counter-size and key size
     std::size_t ctrSize = gcry_cipher_get_algo_blklen(algorithm);
     std::size_t keySize = gcry_cipher_get_algo_keylen(algorithm);
 
@@ -298,5 +300,5 @@ decryptStringWithMoreRounds(const std::string &encodedCiphertext, const std::str
     gcry_cipher_close(cipherHandle);
 
     // Return the plaintext
-    return plaintext.empty() ? "" : std::string(reinterpret_cast<char *>(plaintext.data()), encryptedTextSize);
+    return plaintext.empty() ? "" : privacy::string(reinterpret_cast<char *>(plaintext.data()), encryptedTextSize);
 }

@@ -45,7 +45,8 @@ std::vector<unsigned char> base64Decode(const std::string &encodedData) {
  * @brief Trims space (whitespace) off the beginning and end of a string.
  * @param str the string to trim.
  */
-inline void trimSpace(std::string &str) {
+template<typename T >
+inline void trimSpace(T &str) {
     // Trim the leading space (my IDE finds the w-word offensive)
     std::input_iterator auto it = std::ranges::find_if_not(str.begin(), str.end(),
                                                            [](char c) { return std::isspace(c); });
@@ -95,7 +96,7 @@ int getResponseInt(const std::string &prompt) {
  * @param prompt the prompt to display.
  * @return the user's input.
  */
-std::string getSensitiveInfo(const std::string &prompt) {
+privacy::string getSensitiveInfo(const std::string &prompt) {
     termios oldSettings{}, newSettings{};
 
     // Turn off terminal echoing
@@ -106,7 +107,7 @@ std::string getSensitiveInfo(const std::string &prompt) {
 
     // Read password from input
     char *tmp = readline(prompt.c_str());
-    std::string secret{tmp};
+    privacy::string secret{tmp};
     std::free(tmp);
 
     // Trim leading and trailing spaces
@@ -114,7 +115,6 @@ std::string getSensitiveInfo(const std::string &prompt) {
 
     // Restore terminal settings
     tcsetattr(STDIN_FILENO, TCSANOW, &oldSettings);
-    std::cout << std::endl;
 
     return secret;
 }

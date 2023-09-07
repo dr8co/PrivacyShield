@@ -2,7 +2,6 @@
 #include <random>
 #include <fstream>
 #include <filesystem>
-#include <sodium.h>
 #include <format>
 #include <algorithm>
 #include <thread>
@@ -17,7 +16,7 @@ namespace fs = std::filesystem;
  * @param password the password to process.
  * @return True if the password is strong, False otherwise.
  */
-bool isPasswordStrong(const std::string &password) noexcept {
+bool isPasswordStrong(const privacy::string &password) noexcept {
     // Check the length
     if (password.length() < 8)
         return false;
@@ -51,7 +50,7 @@ bool isPasswordStrong(const std::string &password) noexcept {
  * @param length the length of the password.
  * @return a random password.
  */
-std::string generatePassword(int length) {
+privacy::string generatePassword(int length) {
     // a password shouldn't be too short, nor too long
     if (length < 8)
         throw std::length_error("Password too short.");
@@ -68,7 +67,7 @@ std::string generatePassword(int length) {
     // Constant probability minimizes predictability
     std::uniform_int_distribution<int> distribution(0, static_cast<int>(characters.size()) - 1);
 
-    std::string password;
+    privacy::string password;
     password.reserve(length);
 
     int trials{0}, maxTrials{100};  // 100 trials to generate a strong password is generous enough
@@ -94,7 +93,8 @@ std::string generatePassword(int length) {
  * @param memLimit the maximum amount of RAM in bytes that the function will use.
  * @return a string of the password hash and it's associated data.
  */
-std::string hashPassword(const std::string &password, const std::size_t &opsLimit, const std::size_t &memLimit) {
+privacy::string
+hashPassword(const privacy::string &password, const std::size_t &opsLimit, const std::size_t &memLimit) {
     char hashedPassword[crypto_pwhash_STRBYTES];
 
     if (crypto_pwhash_str
@@ -103,7 +103,7 @@ std::string hashPassword(const std::string &password, const std::size_t &opsLimi
         throw std::runtime_error("Out of memory for password hashing.");
     }
 
-    return std::string{hashedPassword};
+    return privacy::string{hashedPassword};
 }
 
 /**
@@ -112,45 +112,44 @@ std::string hashPassword(const std::string &password, const std::size_t &opsLimi
  * @param storedHash the hash to verify the password against.
  * @return true if the verification succeeds, else false.
  */
-bool verifyPassword(const std::string &password, const std::string &storedHash) {
+bool verifyPassword(const privacy::string &password, const privacy::string &storedHash) {
     return crypto_pwhash_str_verify(storedHash.c_str(),
                                     password.c_str(),
                                     password.size()) == 0;
 }
 
 void
-encryptDecryptRange(privacy::vector<passwordRecords> &passwords, const std::string &key, std::size_t start,
-                    std::size_t end,
-                    bool encrypt = false) {
+encryptDecryptRange(privacy::vector<passwordRecords> &passwords, const privacy::string &key, std::size_t start,
+                    std::size_t end, bool encrypt = false) {
     if (start > end || end > passwords.size())
         throw std::range_error("Invalid range.");
 
     for (std::size_t i = start; i < end; ++i) {
         std::get<2>(passwords[i]) = encrypt ? encryptStringWithMoreRounds(std::get<2>(passwords[i]), key)
-                                            : decryptStringWithMoreRounds(std::get<2>(passwords[i]), key);
+                                            : decryptStringWithMoreRounds(std::string{std::get<2>(passwords[i])}, key);
     }
 }
 
 void
-encryptDecryptRangeAllFields(privacy::vector<passwordRecords> &passwords, const std::string &key, std::size_t start,
+encryptDecryptRangeAllFields(privacy::vector<passwordRecords> &passwords, const privacy::string &key, std::size_t start,
                              std::size_t end, bool encrypt = false) {
     if (start > end || end > passwords.size())
         throw std::runtime_error("Invalid range.");
 
     for (std::size_t i = start; i < end; ++i) {
         std::get<0>(passwords[i]) = encrypt ? encryptString(std::get<0>(passwords[i]), key)
-                                            : decryptString(std::get<0>(passwords[i]), key);
+                                            : decryptString(std::string{std::get<0>(passwords[i])}, key);
 
         std::get<1>(passwords[i]) = encrypt ? encryptString(std::get<1>(passwords[i]), key)
-                                            : decryptString(std::get<1>(passwords[i]), key);
+                                            : decryptString(std::string{std::get<1>(passwords[i])}, key);
 
         std::get<2>(passwords[i]) = encrypt ? encryptString(std::get<2>(passwords[i]), key)
-                                            : decryptString(std::get<2>(passwords[i]), key);
+                                            : decryptString(std::string{std::get<2>(passwords[i])}, key);
     }
 }
 
 void
-encryptDecryptConcurrently(privacy::vector<passwordRecords> &passwordEntries, const std::string &key, bool encrypt,
+encryptDecryptConcurrently(privacy::vector<passwordRecords> &passwordEntries, const privacy::string &key, bool encrypt,
                            bool allFields) {
     std::size_t numPasswords = passwordEntries.size();
     const unsigned int numThreads{std::jthread::hardware_concurrency() ? std::jthread::hardware_concurrency() : 8};
@@ -202,7 +201,7 @@ inline void checkCommonErrors(const std::string &path) {
  * @return True, if successful.
  */
 bool savePasswords(privacy::vector<passwordRecords> &passwords, const std::string &filePath,
-                   const std::string &encryptionKey) {
+                   const privacy::string &encryptionKey) {
 
     std::ofstream file(filePath, std::ios::trunc);
     if (!file) {
@@ -229,9 +228,9 @@ bool savePasswords(privacy::vector<passwordRecords> &passwords, const std::strin
     encryptDecryptConcurrently(passwords, encryptionKey, true, true);
 
     for (const auto &password: passwords) {
-        const std::string &encryptedSite = std::get<0>(password);
-        const std::string &encryptedUsername = std::get<1>(password);
-        const std::string &encryptedPassword = std::get<2>(password);
+        const auto &encryptedSite = std::get<0>(password);
+        const auto &encryptedUsername = std::get<1>(password);
+        const auto &encryptedPassword = std::get<2>(password);
 
         if (encryptedSite.empty() || encryptedUsername.empty() || encryptedPassword.empty())
             return false;
@@ -249,7 +248,7 @@ bool savePasswords(privacy::vector<passwordRecords> &passwords, const std::strin
  * @param decryptionKey the key/password to decrypt the passwords.
  * @return decrypted password records.
  */
-privacy::vector<passwordRecords> loadPasswords(const std::string &filePath, const std::string &decryptionKey) {
+privacy::vector<passwordRecords> loadPasswords(const std::string &filePath, const privacy::string &decryptionKey) {
     privacy::vector<passwordRecords> passwords;
     passwords.reserve(1024);
 
@@ -263,31 +262,28 @@ privacy::vector<passwordRecords> loadPasswords(const std::string &filePath, cons
     std::ifstream file(filePath);
     if (!file)
         throw std::runtime_error(std::format("Failed to open the password file ({}) for reading.", filePath));
-    std::string line;
+
+    privacy::string line;
     line.reserve(4096);  // The encoded password records can be so long
-    sodium_mlock(line.data(), 4096 * sizeof(char));
     std::getline(file, line); // Read and discard the first line
     std::getline(file, line); // Read and discard the second line too
 
     while (std::getline(file, line)) {
-        sodium_mlock(line.data(), line.size() * sizeof(char)); // In case the characters read is more than 4096
 
         std::size_t firstDelimiterPos = line.find(':');
         std::size_t secondDelimiterPos = line.find(':', firstDelimiterPos + 1);
 
-        if (firstDelimiterPos == std::string::npos || secondDelimiterPos == std::string::npos) {
+        if (firstDelimiterPos == privacy::string::npos || secondDelimiterPos == privacy::string::npos) {
             std::cerr << std::format("Invalid password entry: {}\n", line);
             continue;
         }
 
-        const std::string &website = line.substr(0, firstDelimiterPos);
-        const std::string &username = line.substr(firstDelimiterPos + 1, secondDelimiterPos - firstDelimiterPos - 1);
-        const std::string &password = line.substr(secondDelimiterPos + 1);
+        const auto &website = line.substr(0, firstDelimiterPos);
+        const auto &username = line.substr(firstDelimiterPos + 1, secondDelimiterPos - firstDelimiterPos - 1);
+        const auto &password = line.substr(secondDelimiterPos + 1);
 
         passwords.emplace_back(website, username, password);
     }
-
-    sodium_munlock(line.data(), line.size() * sizeof(char));
 
     // Decrypt all fields with AES
     encryptDecryptConcurrently(passwords, decryptionKey, false, true);
@@ -303,19 +299,17 @@ privacy::vector<passwordRecords> loadPasswords(const std::string &filePath, cons
  * @param primaryPassword the current primary password.
  * @return True if the password is changed successfully, else false.
  */
-bool changeMasterPassword(std::string &primaryPassword) {
-    std::string oldPassword = getSensitiveInfo("Enter the current primary password: ");
-    sodium_mlock(oldPassword.data(), oldPassword.size() * sizeof(char));
+bool changeMasterPassword(privacy::string &primaryPassword) {
+    privacy::string oldPassword{getSensitiveInfo("Enter the current primary password: ")};
 
-    std::string masterHash = hashPassword(primaryPassword, crypto_pwhash_OPSLIMIT_INTERACTIVE,
-                                          crypto_pwhash_MEMLIMIT_INTERACTIVE);
+    auto masterHash = hashPassword(primaryPassword, crypto_pwhash_OPSLIMIT_INTERACTIVE,
+                                   crypto_pwhash_MEMLIMIT_INTERACTIVE);
 
     if (!verifyPassword(oldPassword, masterHash)) {
-        sodium_munlock(oldPassword.data(), oldPassword.size() * sizeof(char));
         std::cerr << "Password verification failed." << std::endl;
         return false;
     }
-    std::string newPassword = getSensitiveInfo("Enter the new primary password: ");
+    privacy::string newPassword{getSensitiveInfo("Enter the new primary password: ")};
     int count{0};
     while (!isPasswordStrong(newPassword) && ++count < 3) {
         std::cerr
@@ -329,26 +323,16 @@ bool changeMasterPassword(std::string &primaryPassword) {
         return false;
     }
 
-    sodium_mlock(newPassword.data(), newPassword.size() * sizeof(char));
-
-    std::string newPassword2 = getSensitiveInfo("Enter the new primary password again: ");
-    sodium_mlock(newPassword2.data(), newPassword2.size() * sizeof(char));
-
-    sodium_munlock(oldPassword.data(), oldPassword.size() * sizeof(char));
+    privacy::string newPassword2{getSensitiveInfo("Enter the new primary password again: ")};
 
     // Verify that the new password is correct
     if (!verifyPassword(newPassword2, hashPassword(newPassword, crypto_pwhash_OPSLIMIT_INTERACTIVE,
                                                    crypto_pwhash_MEMLIMIT_INTERACTIVE))) {
-        sodium_munlock(newPassword.data(), newPassword.size() * sizeof(char));
-        sodium_munlock(newPassword2.data(), newPassword2.size() * sizeof(char));
         std::cerr << "Passwords do not match." << std::endl;
 
         return false;
     }
-    sodium_munlock(newPassword2.data(), newPassword2.size() * sizeof(char));
     primaryPassword = newPassword;
-    sodium_mlock(primaryPassword.data(), primaryPassword.size() * sizeof(char));
-    sodium_munlock(newPassword.data(), newPassword.size() * sizeof(char));
 
     return true;
 }
@@ -357,8 +341,8 @@ bool changeMasterPassword(std::string &primaryPassword) {
  * @brief Helps with the initial setup of the password manager.
  * @return New primary password and/or path to the password file, whichever is applicable.
  */
-std::pair<std::string, std::string> initialSetup() noexcept {
-    std::pair<std::string, std::string> ret{"", ""}; // ret.first = path to file, ret.second = new primary password
+std::pair<std::string, privacy::string> initialSetup() noexcept {
+    std::pair<std::string, privacy::string> ret{"", ""}; // ret.first = path to file, ret.second = new primary password
 
     std::cout << "Looks like you don't have any passwords saved yet." << std::endl;
 
@@ -370,10 +354,7 @@ std::pair<std::string, std::string> initialSetup() noexcept {
                 "3. Exit.\n"
                 "select 1, 2, or 3: ");
         if (resp == 1) {
-            std::string pass;
-            pass.reserve(32);
-            sodium_mlock(pass.data(), 32 * sizeof(char));
-            pass = getSensitiveInfo("Enter a new primary password: ");
+            privacy::string pass{getSensitiveInfo("Enter a new primary password: ")};
 
             int count{0};
             while (!isPasswordStrong(pass) && ++count < 3) {
@@ -388,25 +369,19 @@ std::pair<std::string, std::string> initialSetup() noexcept {
                 std::cerr << "\n3 incorrect password attempts." << std::endl;
                 continue;
             }
-            sodium_mlock(pass.data(), pass.size() * sizeof(char));
 
-            std::string hash = hashPassword(pass, crypto_pwhash_OPSLIMIT_INTERACTIVE,
+            const auto hash = hashPassword(pass, crypto_pwhash_OPSLIMIT_INTERACTIVE,
                                             crypto_pwhash_MEMLIMIT_INTERACTIVE);
-            std::string pass2;
-            pass.reserve(pass.size());
-            sodium_mlock(pass2.data(), pass.size() * sizeof(char));
-
-            pass2 = getSensitiveInfo("Enter the password again: ");
+            privacy::string pass2{getSensitiveInfo("Enter the password again: ")};
 
             if (!verifyPassword(pass2, hash)) {
                 std::cerr << "Password mismatch!" << std::endl;
                 continue;
             }
-            sodium_munlock(pass2.data(), pass.size() * sizeof(char));
 
-            sodium_mlock(ret.second.data(), pass.size() * sizeof(char));
             ret.second = pass;
             break;
+
         } else if (resp == 2) {
             std::string path = getResponseStr("Enter the path to the file: ");
             if (!(fs::exists(path) && fs::is_regular_file(path))) {
@@ -432,7 +407,7 @@ std::pair<std::string, std::string> initialSetup() noexcept {
  * @param filePath the path to the file containing the password records (the password file).
  * @return the primary password hash.
  */
-std::string getHash(const std::string &filePath) {
+privacy::string getHash(const std::string &filePath) {
     checkCommonErrors(filePath);
     if (fs::is_empty(filePath))
         [[unlikely]]
@@ -443,7 +418,7 @@ std::string getHash(const std::string &filePath) {
     if (!passFileStream)
         throw std::runtime_error(std::format("Failed to open '{}' for reading.", filePath));
 
-    std::string pwHash;
+    privacy::string pwHash;
     std::getline(passFileStream, pwHash); // Read and discard the first line ('PLEASE DO NOT EDIT THIS FILE')
     std::getline(passFileStream, pwHash); // The hash is on the second line
     passFileStream.close();
@@ -559,7 +534,7 @@ privacy::vector<passwordRecords> importCsv(const std::string &filePath) {
     if (!file)
         throw std::runtime_error(std::format("Failed to open the file ({}) for reading.", filePath));
 
-    std::string line, value;
+    privacy::string line, value;
     if (hasHeader)
         std::getline(file, line); // Read and discard the first line
 

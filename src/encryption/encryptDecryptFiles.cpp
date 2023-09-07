@@ -28,9 +28,13 @@ constexpr unsigned int PBKDF2_ITERATIONS = 100'000; // Iterations for PBKDF2 key
  * @return the generated salt as a vector.
  */
 privacy::vector<unsigned char> generateSalt(int saltSize) {
-    std::mutex m;  // Not sure if RAND_bytes is thread-safe
+    std::mutex m;
     privacy::vector<unsigned char> salt(saltSize);
     if (std::scoped_lock<std::mutex> lock(m); RAND_bytes(salt.data(), saltSize) != 1) {
+
+        std::cerr << "Failed to seed OpenSSL's CSPRNG properly."
+                     "\nPlease check your system's random utilities." << std::endl;
+
         randombytes_buf(salt.data(), salt.size());  // Use Sodium's random generator as a backup
     }
     return salt;
@@ -48,7 +52,7 @@ privacy::vector<unsigned char> generateSalt(int saltSize) {
  * and the number of iterations is set to 100,000.
  */
 privacy::vector<unsigned char>
-deriveKey(const std::string &password, const privacy::vector<unsigned char> &salt, const int &keySize) {
+deriveKey(const privacy::string &password, const privacy::vector<unsigned char> &salt, const int &keySize) {
     // A validation check
     if (keySize > MAX_KEY_SIZE || keySize < 1)
         throw std::length_error("Invalid Key size.");
@@ -111,7 +115,7 @@ deriveKey(const std::string &password, const privacy::vector<unsigned char> &sal
  * @details Key derivation function: PBKDF2 with BLAKE2b512 as the digest function (salted).
  * @details The IV is generated randomly with a CSPRNG and prepended to the encrypted file.
  */
-void encryptFile(const std::string &inputFile, const std::string &outputFile, const std::string &password,
+void encryptFile(const std::string &inputFile, const std::string &outputFile, const privacy::string &password,
                  const std::string &algo) {
     // Open the input file for reading
     std::ifstream inFile(inputFile, std::ios::binary);
@@ -196,7 +200,7 @@ void encryptFile(const std::string &inputFile, const std::string &outputFile, co
  * @param outputFile The file to store the decrypted content.
  * @param password The password used to decrypt the file.
  */
-void decryptFile(const std::string &inputFile, const std::string &outputFile, const std::string &password,
+void decryptFile(const std::string &inputFile, const std::string &outputFile, const privacy::string &password,
                  const std::string &algo) {
     // Open the input file for reading
     std::ifstream inFile(inputFile, std::ios::binary);
@@ -303,7 +307,7 @@ inline void throwSafeError(gcry_error_t &err, const std::string &message) {
  */
 void
 encryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &outputFilePath,
-                          const std::string &password, const gcry_cipher_algos &algorithm) {
+                          const privacy::string &password, const gcry_cipher_algos &algorithm) {
     // Open the input file for reading
     std::ifstream inputFile(inputFilePath, std::ios::binary);
     if (!inputFile)
@@ -322,7 +326,7 @@ encryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
     if (err)
         throwSafeError(err, "Failed to create the encryption cipher context");
 
-    // Check the key size, and the counter size required by the cipher
+    // Check the key size, and the counter-size required by the cipher
     std::size_t ctrSize = gcry_cipher_get_algo_blklen(algorithm);
     std::size_t keySize = gcry_cipher_get_algo_keylen(algorithm);
 
@@ -380,7 +384,7 @@ encryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
  */
 void
 decryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &outputFilePath,
-                          const std::string &password, const gcry_cipher_algos &algorithm) {
+                          const privacy::string &password, const gcry_cipher_algos &algorithm) {
     // Open the input file for reading
     std::ifstream inputFile(inputFilePath, std::ios::binary);
     if (!inputFile)
@@ -391,7 +395,7 @@ decryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
     if (!outputFile)
         throw std::runtime_error(std::format("Failed to open '{}' for writing.", outputFilePath));
 
-    // Fetch the cipher's counter size and key size
+    // Fetch the cipher's counter-size and key size
     std::size_t ctrSize = gcry_cipher_get_algo_blklen(algorithm);
     std::size_t keySize = gcry_cipher_get_algo_keylen(algorithm);
 

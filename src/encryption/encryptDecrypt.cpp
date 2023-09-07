@@ -9,7 +9,6 @@
 #include <format>
 #include <cmath>
 #include <unordered_map>
-#include <sodium.h>
 
 template<typename T>
 /**
@@ -166,7 +165,7 @@ inline void copyLastWrite(const std::string &srcFile, const std::string &destFil
 }
 
 void fileEncryptionDecryption(const std::string &inputFileName, const std::string &outputFileName,
-                              const std::string &password, unsigned int algo, OperationMode mode) {
+                              const privacy::string &password, unsigned int algo, OperationMode mode) {
     // The mode must be valid: must be either encryption or decryption
     if (mode != OperationMode::Encryption && mode != OperationMode::Decryption) {
         std::cout << "Invalid mode of operation." << std::endl;
@@ -293,21 +292,15 @@ void encryptDecrypt() {
                 auto it = algoChoice.find(algo);
                 auto cipher = it != algoChoice.end() ? it->second : Algorithms::AES;
 
-                std::string password = getSensitiveInfo("Enter the password: ");
-                sodium_mlock(password.data(), password.size());
+                privacy::string password{getSensitiveInfo("Enter the password: ")};
 
                 // Confirm the password during encryption
                 if (choice == 1) {
-                    std::string password2 = getSensitiveInfo("Enter the password again: ");
-                    sodium_mlock(password2.data(), password2.size());
+                    privacy::string password2{getSensitiveInfo("Enter the password again: ")};
 
                     if (!verifyPassword(password2, hashPassword(password, crypto_pwhash_OPSLIMIT_INTERACTIVE,
                                                                 crypto_pwhash_MEMLIMIT_INTERACTIVE))) {
                         std::cerr << "Passwords do not match." << std::endl;
-
-                        sodium_munlock(password.data(), password.size());
-                        sodium_munlock(password2.data(), password2.size());
-
                         continue;
                     }
                 }
@@ -318,7 +311,6 @@ void encryptDecrypt() {
                 fileEncryptionDecryption(inputPath.string(), outputPath.string(), password,
                                          static_cast<int>(cipher), static_cast<OperationMode>(choice));
                 std::cout << std::endl;
-                sodium_munlock(password.data(), password.size());
 
             } catch (std::exception &ex) {
                 std::cerr << "Error: " << ex.what() << std::endl;

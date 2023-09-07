@@ -9,7 +9,7 @@ template<typename T>
  * @tparam T string type.
  */
 concept StringRange = std::ranges::input_range<T> &&
-                      std::same_as<std::ranges::range_value_t<T>, std::string>;
+                      std::same_as<std::ranges::range_value_t<T>, privacy::string>;
 
 
 /**
@@ -41,12 +41,12 @@ public:
      * @param maxDistance the maximum Levenshtein Distance to consider a match.
      * @return a vector of strings matching the pattern.
      */
-    std::vector<std::string> fuzzyMatch(const std::string &pattern, const int &maxDistance) {
-        std::vector<std::string> matches;
+    std::vector<privacy::string> fuzzyMatch(const privacy::string &pattern, const int &maxDistance) {
+        std::vector<privacy::string> matches;
         auto maxSize{pattern.size() + maxDistance + 1};
         auto minSize{pattern.size() - (maxDistance + 1)};
 
-        for (const std::string &str: stringList)
+        for (const auto &str: stringList)
             if (auto size{str.size()}; size <= maxSize && size >= minSize &&
                                        levenshteinDistance(pattern, str) <= maxDistance)
                 matches.emplace_back(str);
@@ -57,7 +57,7 @@ public:
 
 
 private:
-    std::vector<std::string> stringList;
+    std::vector<privacy::string> stringList;
 
     /**
      * @brief Calculates the Levenshtein Distance between two strings.
@@ -67,7 +67,7 @@ private:
      * @note The Levenshtein distance calculated by this function is case insensitive,
      * i.e the strings are converted to lowercase when calculating the edit distance.
      */
-    static int levenshteinDistance(const std::string &str1, const std::string &str2) {
+    static int levenshteinDistance(const privacy::string &str1, const privacy::string &str2) {
         int m = static_cast<int>(str1.length());
         int n = static_cast<int>(str2.length());
 

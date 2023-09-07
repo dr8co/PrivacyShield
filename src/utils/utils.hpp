@@ -1,12 +1,11 @@
 #pragma once
 
-#include <vector>
-#include <string>
 #include <cstdint>
 #include <optional>
 #include <iostream>
 #include <openssl/buffer.h>
 #include <openssl/evp.h>
+#include "../secureAllocator.hpp"
 
 template<typename T>
 // Describes a type that can be formatted to the output stream
@@ -110,7 +109,7 @@ std::uintmax_t getAvailableSpace(const std::string &path) noexcept;
 
 bool copyFilePermissions(const std::string &srcFile, const std::string &destFile) noexcept;
 
-std::string getSensitiveInfo(const std::string &prompt = "");
+privacy::string getSensitiveInfo(const std::string &prompt = "");
 
 bool validateYesNo(const std::string &prompt = "");
 

@@ -14,30 +14,34 @@ extern const char *propertyQuery;
 privacy::vector<unsigned char> generateSalt(int saltSize);
 
 privacy::vector<unsigned char>
-deriveKey(const std::string &password, const privacy::vector<unsigned char> &salt, const int &keySize = KEY_SIZE_256);
+deriveKey(const privacy::string &password, const privacy::vector<unsigned char> &salt,
+          const int &keySize = KEY_SIZE_256);
 
-void encryptFile(const std::string &inputFile, const std::string &outputFile, const std::string &password,
+void encryptFile(const std::string &inputFile, const std::string &outputFile, const privacy::string &password,
                  const std::string &algo = "AES-256-CBC");
 
-void encryptFileWithMoreRounds(const std::string &inputFile, const std::string &outputFile, const std::string &password,
-                               const gcry_cipher_algos &algorithm = GCRY_CIPHER_SERPENT256);
+void
+encryptFileWithMoreRounds(const std::string &inputFile, const std::string &outputFile, const privacy::string &password,
+                          const gcry_cipher_algos &algorithm = GCRY_CIPHER_SERPENT256);
 
-void decryptFile(const std::string &inputFile, const std::string &outputFile, const std::string &password,
+void decryptFile(const std::string &inputFile, const std::string &outputFile, const privacy::string &password,
                  const std::string &algo = "AES-256-CBC");
 
-void decryptFileWithMoreRounds(const std::string &inputFile, const std::string &outputFile, const std::string &password,
-                               const gcry_cipher_algos &algorithm = GCRY_CIPHER_SERPENT256);
+void
+decryptFileWithMoreRounds(const std::string &inputFile, const std::string &outputFile, const privacy::string &password,
+                          const gcry_cipher_algos &algorithm = GCRY_CIPHER_SERPENT256);
 
-std::string
-encryptString(const std::string &plaintext, const std::string &password, const std::string &algo = "AES-256-CBC");
+privacy::string
+encryptString(const privacy::string &plaintext, const privacy::string &password,
+              const std::string &algo = "AES-256-CBC");
 
-std::string encryptStringWithMoreRounds(const std::string &plaintext, const std::string &password,
-                                        const gcry_cipher_algos &algorithm = GCRY_CIPHER_SERPENT256);
+privacy::string encryptStringWithMoreRounds(const privacy::string &plaintext, const privacy::string &password,
+                                            const gcry_cipher_algos &algorithm = GCRY_CIPHER_SERPENT256);
 
-std::string
-decryptString(const std::string &ciphertext, const std::string &password, const std::string &algo = "AES-256-CBC");
+privacy::string
+decryptString(const std::string &ciphertext, const privacy::string &password, const std::string &algo = "AES-256-CBC");
 
-std::string decryptStringWithMoreRounds(const std::string &ciphertext, const std::string &password,
-                                        const gcry_cipher_algos &algorithm = GCRY_CIPHER_SERPENT256);
+privacy::string decryptStringWithMoreRounds(const std::string &ciphertext, const privacy::string &password,
+                                            const gcry_cipher_algos &algorithm = GCRY_CIPHER_SERPENT256);
 
 void encryptDecrypt();
