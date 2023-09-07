@@ -36,6 +36,31 @@ Protect Your Privacy, Secure Your Digital World.
 
 ```
 
+## Table of Contents
+
+<!-- TOC -->
+* [About](#about)
+* [Motivation](#motivation)
+* [Attributes](#attributes)
+* [The Tools in Detail](#the-tools-in-detail)
+  * [Password Manager](#password-manager)
+  * [File Encryptor/Decryptor](#file-encryptordecryptor)
+  * [File Shredder](#file-shredder)
+  * [Browser Privacy Tracks Cleaner](#browser-privacy-tracks-cleaner)
+  * [File Deduplicator](#file-deduplicator)
+* [Getting Started](#getting-started)
+  * [Prerequisites](#prerequisites)
+  * [Installation/Building](#installationbuilding)
+  * [Uninstallation](#uninstallation)
+* [Usage](#usage)
+  * [Command Line Interface](#command-line-interface)
+* [Contributing](#contributing)
+* [Authors](#authors)
+* [Disclaimer](#disclaimer)
+* [Powered By](#powered-by)
+* [License](#license)
+<!-- TOC -->
+
 ## About
 
 Privacy Shield is a suite of simple tools to help you manage your privacy in the digital world.
@@ -48,6 +73,43 @@ The tools included in Privacy Shield are:
 * **Browser Privacy Tracks Cleaner** - A simple tool to clean browser cookies and history items.
 * **File Deduplicator** - A bonus tool to help remove redundant files.
 
+## Motivation
+
+Every endeavor is driven by inspiration, and Privacy Shield is no exception.
+It was born from a relentless pursuit to protect our digital lives
+and inspired by the stories of privacy advocates and individuals who fell victim to privacy breaches.
+
+I sought to create a simple, yet formidable defense against the ever-expanding data-driven landscape,
+empowering individuals like you to reclaim your privacy and fortify your digital existence.
+Thus, the Privacy Shield was born—a culmination of my passion for technology and my unwavering commitment
+to safeguarding privacy.
+
+Are you ready to don your digital armor and become a guardian of your own privacy?
+Privacy Shield invites you to join the ranks of those who refuse to compromise on privacy.
+Take control of your digital destiny,
+revel in the peace of mind that fortified privacy brings, and protect what matters most—your personal information.
+
+Together, let's shape a world where privacy reigns supreme,
+and our digital sanctuaries remain impervious to prying eyes.
+
+## Attributes
+
+* **Cross-Platform** - Privacy Shield is written in C++ and uses CMake as its build system,
+so it can be built on any Unix platform that supports C++23 and CMake.
+
+* **Easy to Use** - Privacy Shield is designed to be easy to use, with a simple command-line interface.
+
+* **Fast** - Privacy Shield is designed to be fast, with support for multi-threading and concurrency.
+
+* **Lightweight** and **Portable** - The design is simple and lightweight.
+
+* **Free** - Privacy Shield is free and open-source software, licensed under the GNU General Public License v3.0.
+See [LICENSE](./LICENSE) for more information.
+
+* **No Ads**, **Tracking**, and **Telemetry** - Privacy Shield is free of all these things.
+
+* **No Backdoors**, **Spyware**, and **Malware** - You can verify this yourself by inspecting the source code.
+
 ## The Tools in Detail
 
 ### Password Manager
@@ -59,6 +121,12 @@ designed to resist side-channel attacks and slow down brute-force attacks.
 
 The primary password **must be a strong** and **must not be forgotten.**
 **Forgetting the primary password will result in the loss of all passwords stored in the password manager.**
+
+A password record consists of the following fields:
+
+* **Name** - The name of the password record (can be a site name, an application name, etc.)
+* **Username** - The username of the password record (optional)
+* **Password** - The password of the password record.
 
 The passwords are encrypted (and Base64-encoded) before being stored in a file.
 The actual encryption is done in two steps:
@@ -88,24 +156,35 @@ For these reasons, the password manager is considerably
 slower at startup and when saving changes to the password file.
 Multithreading is used to speed up the encryption/decryption process to some extent.
 
+During runtime, the password manager stores the passwords in memory.
+The memory is locked to prevent the passwords from being swapped to disk, and is cleared when the password manager exits.
+
 The password manager also supports the following features:
 
 * **Password Generator** - A simple password generator to generate strong passwords.
 * **Password Strength Checker** - A simple password strength checker to check the strength of your passwords.
-* **Password Exporter** - A simple password exporter to export your passwords to a CSV file.
-* **Password Importer** - A simple password importer to import your passwords from a CSV file.
+* **Password Exporter** - Exports your passwords to a CSV file.
+* **Password Importer** - Imports passwords from a CSV file.
 * **Analytics** - A simple analytics tool to analyze your passwords for strength and reuse.
+
+**A note on importation**\
+For importing passwords, the CSV file must have three and only three columns: name, username, and password.
+The file can have a header row, but it is not required (the program will ask you if the file has a header row).
+Non-conforming rows will be skipped.
+
+The imported passwords will be deduplicated and merged with the existing passwords.
+If a password already exists, the program will ask you if you want to overwrite it.
 
 ### File Encryptor/Decryptor
 
 The file encryptor/decryptor requires a password to encrypt/decrypt your files.
-The password is not stored anywhere (neither verified) and is only used to encrypt/decrypt the files.
+The password is not stored anywhere (neither verified during decryption) and is only used to encrypt/decrypt the files.
 
 **Forgetting the password will result in the loss of all encrypted data.**
 
 If a wrong password is provided, decrypted data will be garbage, or the decryption will fail altogether.
 
-The following encryption/decryption algorithms are supported:
+The following block ciphers are supported:
 
 * **AES-256** in **CBC** mode
 * **Serpent-256** in **CTR** mode
@@ -117,13 +196,15 @@ These block ciphers are all strong and secure ciphers that have been widely used
 
 Serpent and Twofish feature more rounds than their counterparts, and are therefore slower (but more secure?).
 
-The default algorithm is **AES-256** in **CBC** mode.
+**The default algorithm is AES-256 in CBC mode.**
 
 The 256-bit encryption/decryption keys are derived from the password using the `PBKDF2` algorithm, salted with random bytes.
 
 For the CBC mode, a non-deterministic random initialization vector (IV) is used,
 and for the CTR mode, a non-deterministic random nonce is used.
 This is done to prevent IV/nonce reuse.
+
+Future versions of the program may support authenticated modes of encryption.
 
 ### File Shredder
 
@@ -135,7 +216,7 @@ The default is 3 overwrites.
 The file shredder supports the following overwriting methods:
 
 * **Random Bytes** - Overwrites the file with random bytes.
-* **3-Pass DOD 5220.22-M** - Overwrites the file with a random byte, then with the complement of the random byte, and finally with random bytes.
+* **3-Pass DOD 5220.22-M** - Overwrites the file with a byte, then with the complement of the byte, and finally with random bytes.
 * **7-Pass DOD 5220.22-M** - 3-Pass DOD 5220.22-M twice, with a random overwrite in between.
 
 The default overwriting method is a 3-pass overwrite with random bytes.
@@ -182,43 +263,6 @@ BLAKE3 is a fast and secure hash function that is resistant to extension attacks
 
 The hashes are computed in parallel using multiple threads to speed up the process.
 
-## Motivation
-
-Every endeavor is driven by inspiration, and Privacy Shield is no exception.
-It was born from a relentless pursuit to protect our digital lives
-and inspired by the stories of privacy advocates and individuals who fell victim to privacy breaches.
-
-I sought to create a simple, yet formidable defense against the ever-expanding data-driven landscape,
-empowering individuals like you to reclaim your privacy and fortify your digital existence.
-Thus, the Privacy Shield was born—a culmination of my passion for technology and my unwavering commitment
-to safeguarding privacy.
-
-Are you ready to don your digital armor and become a guardian of your own privacy?
-Privacy Shield invites you to join the ranks of those who refuse to compromise on privacy.
-Take control of your digital destiny,
-revel in the peace of mind that fortified privacy brings, and protect what matters most—your personal information.
-
-Together, let's shape a world where privacy reigns supreme,
-and our digital sanctuaries remain impervious to prying eyes.
-
-## Attributes
-
-* **Cross-Platform** - Privacy Shield is written in C++ and uses CMake as its build system,
-so it can be built on any Unix platform that supports C++23 and CMake.
-
-* **Easy to Use** - Privacy Shield is designed to be easy to use, with a simple command-line interface.
-
-* **Fast** - Privacy Shield is designed to be fast, with support for multi-threading and concurrency.
-
-* **Lightweight** and **Portable** - The design is simple and lightweight.
-
-* **Free** - Privacy Shield is free and open-source software, licensed under the GNU General Public License v3.0.
-See [LICENSE](./LICENSE) for more information.
-
-* **No Ads**, **Tracking**, and **Telemetry** - Privacy Shield is free of all these things.
-
-* **No Backdoors**, **Spyware**, and **Malware** - You can verify this yourself by inspecting the source code.
-
 ## Getting Started
 
 ### Prerequisites
@@ -233,7 +277,7 @@ or [LLVM Clang 17](https://clang.llvm.org/) (or later) is required.
 * [OpenSSL](https://www.openssl.org/) 3+
 * [Sodium](https://libsodium.org/) 1.0.18+
 * [GCrypt](https://gnupg.org/software/libgcrypt/index.html) 1.10+
-* [BLAKE3](https://github.com/BLAKE3-team/BLAKE3)
+* [BLAKE3](https://github.com/BLAKE3-team/BLAKE3) 1.4+
 * [GNU Readline](https://tiswww.case.edu/php/chet/readline/rltop.html) 8+
 
 ### Installation/Building
@@ -277,7 +321,7 @@ If you have installed Privacy Shield, you can uninstall it by running the follow
 
 ```bash
 # From the project root, run:
-xargs rm < build/install_manifest.txt # Might need sudo
+xargs rm -f < build/install_manifest.txt # Might need sudo
 ```
 
 ## Usage
