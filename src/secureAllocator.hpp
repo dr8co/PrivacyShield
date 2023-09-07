@@ -67,31 +67,6 @@ namespace privacy {
     template<typename T>
     using vector = std::vector<T, Allocator<T>>;
 
-    // Assignment between our custom string types
-    [[maybe_unused]] constexpr string &assign(string &lhs, const string &rhs) {
-        lhs.assign(rhs.begin(), rhs.end());
-        return lhs;
-    }
-
-    // Assignment between our custom vector types
-    template<typename T>
-    [[maybe_unused]] constexpr vector<T> &assign(vector<T> &lhs, const vector<T> &rhs) {
-        lhs.assign(rhs.begin(), rhs.end());
-        return lhs;
-    }
-
-    // Assignment between our custom string type and std::string
-    [[maybe_unused]] constexpr std::string &assign(std::string &lhs, const string &rhs) {
-        lhs.assign(rhs.begin(), rhs.end());
-        return lhs;
-    }
-
-    // Assignment between our custom vector type and std::vector
-    template<typename T>
-    [[maybe_unused]] constexpr std::vector<T> &assign(std::vector<T> &lhs, const vector<T> &rhs) {
-        lhs.assign(rhs.begin(), rhs.end());
-        return lhs;
-    }
-
+    using istringstream = std::basic_istringstream<char, std::char_traits<char>, Allocator<char> >;
 
 }  // namespace privacy
