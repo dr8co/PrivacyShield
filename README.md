@@ -41,7 +41,6 @@ Protect Your Privacy, Secure Your Digital World.
 ## About
 
 Privacy Shield is a suite of simple tools to help you manage your privacy in the digital world.
-
 The tools included in Privacy Shield are:
 
 * **[Password Manager](#password-manager)** - A simple password manager that stores your passwords in an encrypted file.
@@ -55,7 +54,7 @@ The tools included in Privacy Shield are:
 
 <!-- TOC -->
 * [Motivation](#motivation)
-* [Attributes](#features)
+* [Features](#features)
 * [The Tools in Detail](#the-tools-in-detail)
   * [Password Manager](#password-manager)
   * [File Encryptor/Decryptor](#file-encryptordecryptor)
@@ -112,7 +111,7 @@ If you find any security vulnerabilities, please report them, or better yet, sub
 * **Safe** - Privacy Shield supports safe operations, with support for cancellation and error handling.
 
 * **Free** - Privacy Shield is free and open-source software, licensed under the GNU General Public License v3.0.
-See [LICENSE](./LICENSE) for more information.
+See [LICENSE](./LICENSE.md) for more information.
 
 * **No Ads**, **Tracking**, and **Telemetry** - Privacy Shield is free of all these things.
 
@@ -426,6 +425,6 @@ However, the feeling of empowered privacy protection is a strong possibility!
 
 [![GPLv3](./media/gpl-v3-logo.png)](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
-This project is licensed under the GNU GPLv3 License—see the [LICENSE](./LICENSE) file for details.
+This project is licensed under the GNU GPLv3 License—see the [LICENSE](./LICENSE.md) file for details.
 
 All third party libraries are licensed under their respective licenses.
