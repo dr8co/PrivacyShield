@@ -32,7 +32,7 @@ community looks forward to your contributions. 🎉
 ## Code of Conduct
 
 This project and everyone participating in it is governed by the
-[Privacy Shield Code of Conduct](https://github.com/dr8co/PrivacyShieldblob/master/CODE_OF_CONDUCT.md).
+[Privacy Shield Code of Conduct](https://github.com/dr8co/PrivacyShieldblob/main/CODE_OF_CONDUCT.md).
 By participating, you are expected to uphold this code. Please report unacceptable behavior
 to <dr8co@duck.com>.
 
@@ -76,7 +76,7 @@ following steps in advance to help us fix any potential bug as fast as possible.
   might want to check [this section](#i-have-a-question)).
 - To see if other users have experienced (and potentially already solved) the same issue you are having, check if there
   is not already a bug report existing for your bug or error in
-  the [bug tracker](https://github.com/dr8co/PrivacyShieldissues?q=label%3Abug).
+  the [bug tracker](https://github.com/dr8co/PrivacyShield/issues?q=label%3Abug).
 - Also make sure to search the internet (including Stack Overflow) to see if users outside of the GitHub community have
   discussed the issue.
 - Collect information about the bug:
