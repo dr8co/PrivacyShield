@@ -1,0 +1,31 @@
+{
+  "name": "privacyshield",
+  "version-string": "1.0.0",
+  "builtin-baseline": "7b5ca09708ae42dba9517d4e0a0c975d087f1061",
+  "dependencies": [
+    {
+      "name": "libsodium",
+      "version>=": "1.0.18#9"
+    },
+    {
+      "name": "openssl",
+      "version>=": "3.1.2#3"
+    },
+    {
+      "name": "libgcrypt",
+      "version>=": "1.10.1#1"
+    },
+    {
+      "name": "readline-unix",
+      "version>=": "8.2"
+    },
+    {
+      "name": "readline-osx",
+      "version>=": "2020-01-04"
+    },
+    {
+      "name": "blake3",
+      "version>=": "1.4.0"
+    }
+  ]
+}
