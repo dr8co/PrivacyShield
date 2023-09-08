@@ -102,6 +102,15 @@ int main(int argc, char **argv) {
                 {5, duplicateFinder}
         };
 
+        // Display information about the program
+        std::cout << "Privacy Shield 1.0.0\n"
+                     "Copyright (C) 2023 Ian Duncan.\n"
+                     "This program comes with ABSOLUTELY NO WARRANTY.\n"
+                     "This is a free software; you are free to change and redistribute it\n"
+                     "under the terms of the GNU General Public License v3 or later.\n"
+                     "For more information, see https://www.gnu.org/licenses/gpl.html.\n"
+                  << std::endl;
+
         while (true) {
             std::cout << "-------------------------------------\n";
             std::cout << "1. Manage passwords\n";
