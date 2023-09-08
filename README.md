@@ -1,3 +1,4 @@
+<!-- omit in toc -->
 # Privacy Shield
 
 ```text
@@ -36,12 +37,25 @@ Protect Your Privacy, Secure Your Digital World.
 
 ```
 
+<!-- omit in toc -->
+## About
+
+Privacy Shield is a suite of simple tools to help you manage your privacy in the digital world.
+
+The tools included in Privacy Shield are:
+
+* **[Password Manager](#password-manager)** - A simple password manager that stores your passwords in an encrypted file.
+* **[File Encryptor/Decryptor](#file-encryptordecryptor)** - A simple tool to encrypt/decrypt your files.
+* **[File Shredder](#file-shredder)** - A simple file shredder to securely delete your files.
+* **[Browser Privacy Tracks Cleaner](#browser-privacy-tracks-cleaner)** - A simple tool to clean browser cookies and history items.
+* **[File Deduplicator](#file-deduplicator)** - A bonus tool to help remove redundant files.
+
+<!-- omit in toc -->
 ## Table of Contents
 
 <!-- TOC -->
-* [About](#about)
 * [Motivation](#motivation)
-* [Attributes](#attributes)
+* [Attributes](#features)
 * [The Tools in Detail](#the-tools-in-detail)
   * [Password Manager](#password-manager)
   * [File Encryptor/Decryptor](#file-encryptordecryptor)
@@ -60,18 +74,6 @@ Protect Your Privacy, Secure Your Digital World.
 * [Technologies used](#powered-by)
 * [License](#license)
 <!-- TOC -->
-
-## About
-
-Privacy Shield is a suite of simple tools to help you manage your privacy in the digital world.
-
-The tools included in Privacy Shield are:
-
-* **[Password Manager](#password-manager)** - A simple password manager that stores your passwords in an encrypted file.
-* **[File Encryptor/Decryptor](#file-encryptordecryptor)** - A simple tool to encrypt/decrypt your files.
-* **[File Shredder](#file-shredder)** - A simple file shredder to securely delete your files.
-* **[Browser Privacy Tracks Cleaner](#browser-privacy-tracks-cleaner)** - A simple tool to clean browser cookies and history items.
-* **[File Deduplicator](#file-deduplicator)** - A bonus tool to help remove redundant files.
 
 ## Motivation
 
@@ -92,7 +94,7 @@ revel in the peace of mind that fortified privacy brings, and protect what matte
 Together, let's shape a world where privacy reigns supreme,
 and our digital sanctuaries remain impervious to prying eyes.
 
-## Attributes
+## Features
 
 * **Cross-Platform** - Privacy Shield is written in C++ and uses CMake as its build system,
 so it can be built on any Unix platform that supports C++23 and CMake.
