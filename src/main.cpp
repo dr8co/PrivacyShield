@@ -1,3 +1,19 @@
+// Privacy Shield: A Suite of Tools Designed to Facilitate Privacy Management.
+// Copyright (C) 2023  Ian Duncan <dr8co@duck.com>
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see https://www.gnu.org/licenses.
+
 #include <csignal>
 #include <sodium.h>
 #include <gcrypt.h>
@@ -39,7 +55,7 @@ int main(int argc, char **argv) {
 
     // Handle keyboard interrupt (Ctrl+C) signals from the user
     struct sigaction act{};
-    act.sa_handler = [](int num[[maybe_unused]]) -> void {
+    act.sa_handler = [](int num [[maybe_unused]]) -> void {
         printColor("Keyboard interrupt detected. Unsaved data might be lost if you quit now."
                    "\nDo you still want to quit? (y/n):", 'r');
         if (validateYesNo()) std::exit(1);
