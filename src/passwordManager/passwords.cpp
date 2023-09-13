@@ -137,9 +137,11 @@ bool verifyPassword(const privacy::string &password, const privacy::string &stor
 void
 encryptDecryptRange(privacy::vector<passwordRecords> &passwords, const privacy::string &key, std::size_t start,
                     std::size_t end, bool encrypt = false) {
+    // Check for invalid range
     if (start > end || end > passwords.size())
         throw std::range_error("Invalid range.");
 
+    // Encrypt/decrypt the password field
     for (std::size_t i = start; i < end; ++i) {
         std::get<2>(passwords[i]) = encrypt ? encryptStringWithMoreRounds(std::get<2>(passwords[i]), key)
                                             : decryptStringWithMoreRounds(std::string{std::get<2>(passwords[i])}, key);
@@ -152,6 +154,7 @@ encryptDecryptRangeAllFields(privacy::vector<passwordRecords> &passwords, const 
     if (start > end || end > passwords.size())
         throw std::runtime_error("Invalid range.");
 
+    // Encrypt/decrypt all fields
     for (std::size_t i = start; i < end; ++i) {
         std::get<0>(passwords[i]) = encrypt ? encryptString(std::get<0>(passwords[i]), key)
                                             : decryptString(std::string{std::get<0>(passwords[i])}, key);
@@ -318,6 +321,7 @@ privacy::vector<passwordRecords> loadPasswords(const std::string &filePath, cons
 bool changeMasterPassword(privacy::string &primaryPassword) {
     privacy::string oldPassword{getSensitiveInfo("Enter the current primary password: ")};
 
+    // Verify that the old password is correct
     auto masterHash = hashPassword(primaryPassword, crypto_pwhash_OPSLIMIT_INTERACTIVE,
                                    crypto_pwhash_MEMLIMIT_INTERACTIVE);
 
@@ -369,7 +373,7 @@ std::pair<std::string, privacy::string> initialSetup() noexcept {
                 "2. Enter the path to an existing password file (previously created by this program).\n"
                 "3. Exit.\n"
                 "select 1, 2, or 3: ");
-        if (resp == 1) {
+        if (resp == 1) { // Initial setup
             privacy::string pass{getSensitiveInfo("Enter a new primary password: ")};
 
             int count{0};
@@ -398,7 +402,7 @@ std::pair<std::string, privacy::string> initialSetup() noexcept {
             ret.second = pass;
             break;
 
-        } else if (resp == 2) {
+        } else if (resp == 2) { // Enter the path to an existing password file
             std::string path = getResponseStr("Enter the path to the file: ");
             if (!(fs::exists(path) && fs::is_regular_file(path))) {
                 std::cerr << "That file doesn't exist or is not a regular file." << std::endl;
@@ -410,7 +414,7 @@ std::pair<std::string, privacy::string> initialSetup() noexcept {
 
         } else if (resp == 3) {
             return ret;
-        } else {
+        } else { // Invalid choice
             std::cerr << "Invalid choice. Try again" << std::endl;
             continue;
         }
@@ -505,6 +509,7 @@ bool exportCsv(const privacy::vector<passwordRecords> &records, const std::strin
 
     file << "site,username,password" << std::endl;
 
+    // Write the records to the file
     for (const auto &record: records)
         file << std::get<0>(record) << "," << std::get<1>(record) << "," << std::get<2>(record) << std::endl;
 
