@@ -86,6 +86,7 @@ int main(int argc, char **argv) {
 
         gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0); // Initialization complete
 
+        // Check if initialization was successful
         if (!gcry_control(GCRYCTL_INITIALIZATION_FINISHED_P))
             throw std::runtime_error("Failed to initialize libgcrypt.");
 
