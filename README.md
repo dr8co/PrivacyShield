@@ -240,6 +240,8 @@ and for the CTR mode, a non-deterministic random
 [nonce](https://en.wikipedia.org/wiki/Cryptographic_nonce) is used.
 This is done to prevent IV/nonce reuse.
 
+By default, the encrypted files are saved with a `.enc` extension.
+
 Future versions of the program may support authenticated modes of encryption.
 
 ### File Shredder
@@ -314,7 +316,7 @@ The hashes are computed in parallel using multiple threads to speed up the proce
 * A [Unix-like](https://en.wikipedia.org/wiki/List_of_Unix_systems#Unix-like_operating_systems)
 operating system, such as [Linux](https://en.wikipedia.org/wiki/Linux),
 [BSD](https://en.wikipedia.org/wiki/Berkeley_Software_Distribution), or [macOS](https://en.wikipedia.org/wiki/MacOS).
-* A C++ compiler with C++23 support. For this project, [GNU GCC 13](https://gcc.gnu.org/gcc-13/) (or later),
+* A C++ compiler with C++23 support. For this project, [GCC 13](https://gcc.gnu.org/gcc-13/) (or later),
 or [LLVM Clang 17](https://clang.llvm.org/) (or later) is required.
 * [CMake](https://cmake.org/) 3.25+
 * [Ninja](https://ninja-build.org/) 1.10+
