@@ -96,7 +96,7 @@ and our digital sanctuaries remain impervious to prying eyes.
 ## Features
 
 * **Cross-Platform** - Privacy Shield is written in C++ and uses CMake as its build system,
-so it can be built on any Unix platform that supports C++23 and CMake.
+so it can be built on any Unix platform that supports C++23 and the dependencies.
 
 * **Secure** - Privacy Shield uses secure cryptographic algorithms and protocols to handle sensitive data.
 Security is a complex topic, and the current implementation of Privacy Shield is not perfect.
@@ -130,7 +130,7 @@ and confirming the cancellation.
 ### Password Manager
 
 The password manager requires a primary password to encrypt/decrypt your passwords.
-It is verified using the [Argon2id algorithm](https://en.wikipedia.org/wiki/Argon2),
+The primary password is verified using the [Argon2id algorithm](https://en.wikipedia.org/wiki/Argon2),
 which is a memory-hard password hashing algorithm,
 designed to resist side-channel attacks and slow down brute-force attacks.
 
@@ -149,8 +149,8 @@ A password record consists of the following fields:
 The passwords are encrypted (and Base64-encoded) before being stored in a file.
 The actual encryption is done in two steps:
 
-1. Encrypt the 'password' field of a record (the actual password) using the `256-bit Serpent cipher in counter mode (CTR)`.
-2. Encrypt all the fields (including the encrypted password) using the `256-bit AES cipher in cipher block chaining mode (CBC)`.
+1. The 'password' field of a record (the actual password) is encrypted using the `256-bit Serpent cipher in counter mode (CTR)`.
+2. All the fields (including the encrypted password) are encrypted using the `256-bit AES cipher in cipher block chaining mode (CBC)`.
 
 The keys (256-bit) for the two steps are derived from the primary password using the [PBKDF2 algorithm](https://en.wikipedia.org/wiki/PBKDF2)
 ([salted](https://en.wikipedia.org/wiki/Salt_(cryptography))
@@ -183,7 +183,8 @@ slower at startup and when saving changes to the password file.
 Multithreading is used to speed up the encryption/decryption process to some extent.
 
 During runtime, the password manager stores the passwords in memory.
-The memory is locked to prevent the passwords from being swapped to disk, and is cleared when the password manager exits.
+The memory is locked to prevent the passwords from being swapped to disk, and is cleared (zeroized)
+when the password manager exits.
 
 The password manager also supports the following features:
 
@@ -194,7 +195,7 @@ The password manager also supports the following features:
 * **Analytics** - A simple analytics tool to analyze your passwords for strength and reuse.
 
 **A note on importation**\
-For importing passwords, the CSV file **must have three and only three columns**: name, username, and password.
+For importing passwords, the CSV file **must have three and only three columns**: name, username, and password (in that order).
 The file can have a header row, but it is not required (the program will ask you if the file has a header row).
 **Non-conforming rows will be skipped**.
 
