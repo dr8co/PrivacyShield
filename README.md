@@ -69,6 +69,7 @@ The tools included in Privacy Shield are:
   * [Command Line Interface](#command-line-interface)
 * [Contributing](#contributing)
 * [Authors](#authors)
+* [Acknowledgement](#acknowledgement)
 * [Disclaimer](#disclaimer)
 * [Technologies used](#powered-by)
 * [License](#license)
@@ -390,6 +391,11 @@ and the process for submitting pull requests.
 ## Authors
 
 * **[Ian Duncan](https//github.com/dr8co)** - *Initial work*
+
+## Acknowledgement
+
+Thanks to [Henrik Steffen Gaßmann](henrik@gassmann.onl) for [the CMake module](./CMakeModules/FindSodium.cmake)
+to configure the local libsodium installation.
 
 ## Disclaimer
 
