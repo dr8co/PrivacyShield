@@ -111,15 +111,15 @@ privacy::string generatePassword(int length) {
  */
 privacy::string
 hashPassword(const privacy::string &password, const std::size_t &opsLimit, const std::size_t &memLimit) {
-    char hashedPassword[crypto_pwhash_STRBYTES];
+    std::array<char, crypto_pwhash_STRBYTES> hashedPassword{};
 
     if (crypto_pwhash_str
-                (hashedPassword, password.c_str(), password.size(),
+                (hashedPassword.data(), password.c_str(), password.size(),
                  opsLimit, memLimit) != 0) {
         throw std::runtime_error("Out of memory for password hashing.");
     }
 
-    return privacy::string{hashedPassword};
+    return privacy::string{hashedPassword.data()};
 }
 
 /**

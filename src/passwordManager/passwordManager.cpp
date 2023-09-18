@@ -73,7 +73,7 @@ inline constexpr void printPasswordDetails(const auto &pw) noexcept {
 
 }
 
-/// @brief Add new password records.
+/// @brief Adds a new password to the saved records.
 inline void addPassword(privacy::vector<passwordRecords> &passwords) {
     privacy::string site{getResponseStr("Enter the name of the site/app: ")};
     // The site name must be non-empty
@@ -604,7 +604,7 @@ inline void analyzePasswords(privacy::vector<passwordRecords> &passwords) {
             printColor("------------------------------------------------------", 'r', true);
         }
         printColor(std::format("Please change the weak passwords above. "
-                               "\nYou can use the 'generate' command to generate strong passwords.\n"), 'r',
+                               "\nYou can use the 'generate password' option to generate strong passwords.\n"), 'r',
                    true);
     } else printColor("No weak passwords found. Keep it up!\n", 'g', true);
 
