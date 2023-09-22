@@ -331,7 +331,7 @@ operating system, such as [Linux](https://en.wikipedia.org/wiki/Linux),
 * A C++ compiler with C++23 support. For this project, [GCC 13](https://gcc.gnu.org/gcc-13/) (or later),
 or [LLVM Clang 17](https://clang.llvm.org/) (or later) is required.
 * [CMake](https://cmake.org/) 3.25+
-* [Ninja](https://ninja-build.org/) 1.10+
+* [Ninja](https://ninja-build.org/) 1.10+, or any other build system supported by CMake (Ninja is recommended)
 * [OpenSSL](https://www.openssl.org/) 3+
 * [Sodium](https://libsodium.org/) 1.0.18+
 * [GCrypt](https://gnupg.org/software/libgcrypt/index.html) 1.10+
@@ -359,7 +359,8 @@ cmake --build build --config Release -j 4
 cmake --install build --config Release # Might need sudo
 ```
 
-Remember to replace `g++-13` with your C++ compiler, and `4` with the number of CPU cores you have (for faster builds).
+Remember to replace `g++-13` with your C++ compiler, and `4` with the number of CPU cores you have (for faster builds).\
+Also, replace Ninja with your build system if you are not using Ninja.
 
 You can also install to a custom location by adding `-DCMAKE_INSTALL_PREFIX=/path/to/install` to the configure step.
 
