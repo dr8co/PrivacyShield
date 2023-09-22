@@ -90,3 +90,11 @@ jobs:
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
         # Execute tests defined by the CMake configuration
         run: ctest --build-config ${{ matrix.build_type }}
+      
+      # Download the built artifacts
+      - name: Download Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.os }}-${{ matrix.build_type }}
+          path: ${{ steps.strings.outputs.build-output-dir }}
+
