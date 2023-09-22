@@ -91,10 +91,17 @@ jobs:
         # Execute tests defined by the CMake configuration
         run: ctest --build-config ${{ matrix.build_type }}
       
-      # Download the built artifacts
-      - name: Download Artifacts
+      # Add execution permission to the binary and tar it
+      - name: Package
+        working-directory: ${{ steps.strings.outputs.build-output-dir }}
+        run: |
+          chmod +x src/privacyShield
+          tar -czvf privacyShield.tar.gz src/privacyShield
+      
+      # Upload the built artifacts
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.os }}-${{ matrix.build_type }}
-          path: ${{ steps.strings.outputs.build-output-dir }}
+          name: "${{ matrix.os }}-${{ matrix.build_type }}.tar.gz"
+          path: "${{ steps.strings.outputs.build-output-dir }}/privacyShield.tar.gz"
 
