@@ -45,7 +45,7 @@ set_target_properties(Gcrypt::Gcrypt PROPERTIES
 
 # Find the actual location of the Gcrypt library file
 find_library(GCRYPT_LIBRARY
-        NAMES libgcrypt.a # libgcrypt.so libgcrypt.dylib
+        NAMES libgcrypt.so libgcrypt.dylib libgcrypt.a
         HINTS ${GCRYPT_LIBRARY_DIRS}
 )
 

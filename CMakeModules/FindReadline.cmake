@@ -31,7 +31,7 @@
 # On Apple systems, a pkg-config file is not provided for Readline, so we find it manually
 if (APPLE)
     find_library(READLINE_LIBRARY REQUIRED
-            NAMES libreadline.a # libreadline.dylib
+            NAMES libreadline.dylib libreadline.a
             PATHS /usr/local/opt/readline/lib /usr/local/lib /opt/local/lib /usr/lib
             NO_DEFAULT_PATH
     )
@@ -81,7 +81,7 @@ else ()
 
     # Find the actual location of the Readline library file
     find_library(READLINE_LIBRARY
-            NAMES libreadline.a # libreadline.so libreadline.dylib 
+            NAMES libreadline.so libreadline.dylib libreadline.a
             HINTS ${READLINE_LIBRARY_DIRS}
     )
 
