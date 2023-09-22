@@ -90,11 +90,15 @@ jobs:
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
         # Execute tests defined by the CMake configuration
         run: ctest --build-config ${{ matrix.build_type }}
+
+      # Tar the built artifacts
+      - name: Tar Artifacts
+        run: tar -czvf "${{ matrix.os }}-${{ matrix.build_type }}.tar.gz" ${{ steps.strings.outputs.build-output-dir }}/src/privacyShield
       
-      # Download the built artifacts
-      - name: Download Artifacts
+      # Upload the built artifacts
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.os }}-${{ matrix.build_type }}
-          path: ${{ steps.strings.outputs.build-output-dir }}
+          name: "${{ matrix.os }}-${{ matrix.build_type }}.tar.gz"
+          path: "${{ matrix.os }}-${{ matrix.build_type }}.tar.gz"
 
