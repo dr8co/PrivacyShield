@@ -20,9 +20,10 @@ add_executable(privacyShield
         utils/utils.hpp
         secureAllocator.hpp)
 
-target_link_libraries(privacyShield
+target_link_libraries(privacyShield PRIVATE
         OpenSSL::Crypto
         Readline::Readline
         Sodium::sodium
         Gcrypt::Gcrypt
-        BLAKE3::blake3)
+        BLAKE3::blake3
+        Threads::Threads)

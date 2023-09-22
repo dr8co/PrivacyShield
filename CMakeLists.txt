@@ -41,11 +41,20 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Check for compiler warnings and errors
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -pedantic")
 
+# Prefer pthreads
+set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+
 # Find dependencies
-find_package(OpenSSL REQUIRED)
 find_package(Sodium REQUIRED)
 find_package(Readline REQUIRED)
 find_package(Gcrypt REQUIRED)
+
+# prefer static linking
+set(OPENSSL_USE_STATIC_LIBS TRUE)
+set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+
+find_package(OpenSSL REQUIRED)
+find_package(Threads REQUIRED)
 find_package(BLAKE3 REQUIRED) # See https://github.com/BLAKE3-team/BLAKE3
 
 
