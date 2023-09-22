@@ -52,7 +52,7 @@ std::vector<unsigned char> base64Decode(const std::string &encodedData) {
 
     BIO_free_all(bio);
 
-    decodedData.resize(len);
+    decodedData.resize(len); // Resize to the actual length of the decoded data
 
     return decodedData;
 }
@@ -99,6 +99,7 @@ std::string getResponseStr(const std::string &prompt) {
  * @return the user's input (an integer) on if it's convertible to integer, else 0.
  */
 int getResponseInt(const std::string &prompt) {
+    // A lambda to convert a string to an integer
     constexpr auto toInt = [](std::string_view s) noexcept -> int {
         int value;
         return std::from_chars(s.begin(), s.end(), value).ec == std::errc{} ? value : 0;
@@ -188,8 +189,7 @@ std::uintmax_t getAvailableSpace(const std::string &path) noexcept {
 
     const auto space = fs::space(filePath, ec);
 
-    // -1 should be returned if an error occurs, but it wraps on some systems,
-    // or maybe just mine.
+    // Return 0 in case of an error
     return std::cmp_less(space.available, 0) || std::cmp_equal(space.available, UINTMAX_MAX) ? 0 : space.available;
 }
 
@@ -241,11 +241,13 @@ std::optional<std::string> getEnv(const char *const var) {
  */
 std::string getHomeDir() noexcept {
     std::error_code ec;
+    // Try to get the home directory from the environment variables
     if (auto envHome = getEnv("HOME"); envHome)
         return *envHome;
     if (auto envUserProfile = getEnv("USERPROFILE"); envUserProfile)
         return *envUserProfile;
 
+    // If the environment variables are not set, use the current working directory
     std::cerr << "\nCouldn't find your home directory, using the current working directory instead.." << std::endl;
 
     std::string currentDir = std::filesystem::current_path(ec);

@@ -86,6 +86,7 @@ int main(int argc, char **argv) {
 
         gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0); // Initialization complete
 
+        // Check if initialization was successful
         if (!gcry_control(GCRYCTL_INITIALIZATION_FINISHED_P))
             throw std::runtime_error("Failed to initialize libgcrypt.");
 
@@ -103,7 +104,7 @@ int main(int argc, char **argv) {
         };
 
         // Display information about the program
-        std::cout << "Privacy Shield 1.0.0\n"
+        std::cout << "\nPrivacy Shield 1.0.0\n"
                      "Copyright (C) 2023 Ian Duncan.\n"
                      "This program comes with ABSOLUTELY NO WARRANTY.\n"
                      "This is a free software; you are free to change and redistribute it\n"

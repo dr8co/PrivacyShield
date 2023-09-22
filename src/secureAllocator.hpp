@@ -47,6 +47,7 @@ namespace privacy {
         template<class U>
         constexpr explicit Allocator(const Allocator<U> &) noexcept {}
 
+        // Allocate memory
         [[maybe_unused]] [[nodiscard]] constexpr T *allocate(std::size_t n) {
             if (n > std::numeric_limits<std::size_t>::max() / sizeof(T))
                 throw std::bad_array_new_length();
@@ -59,6 +60,7 @@ namespace privacy {
             throw std::bad_alloc();
         }
 
+        // Deallocate memory
         [[maybe_unused]] constexpr void deallocate(T *p, std::size_t n) noexcept {
             sodium_munlock(p, n * sizeof(T));  // Unlock and zeroize memory
             ::operator delete(p);

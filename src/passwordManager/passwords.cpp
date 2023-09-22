@@ -111,15 +111,15 @@ privacy::string generatePassword(int length) {
  */
 privacy::string
 hashPassword(const privacy::string &password, const std::size_t &opsLimit, const std::size_t &memLimit) {
-    char hashedPassword[crypto_pwhash_STRBYTES];
+    std::array<char, crypto_pwhash_STRBYTES> hashedPassword{};
 
     if (crypto_pwhash_str
-                (hashedPassword, password.c_str(), password.size(),
+                (hashedPassword.data(), password.c_str(), password.size(),
                  opsLimit, memLimit) != 0) {
         throw std::runtime_error("Out of memory for password hashing.");
     }
 
-    return privacy::string{hashedPassword};
+    return privacy::string{hashedPassword.data()};
 }
 
 /**
@@ -137,9 +137,11 @@ bool verifyPassword(const privacy::string &password, const privacy::string &stor
 void
 encryptDecryptRange(privacy::vector<passwordRecords> &passwords, const privacy::string &key, std::size_t start,
                     std::size_t end, bool encrypt = false) {
+    // Check for invalid range
     if (start > end || end > passwords.size())
         throw std::range_error("Invalid range.");
 
+    // Encrypt/decrypt the password field
     for (std::size_t i = start; i < end; ++i) {
         std::get<2>(passwords[i]) = encrypt ? encryptStringWithMoreRounds(std::get<2>(passwords[i]), key)
                                             : decryptStringWithMoreRounds(std::string{std::get<2>(passwords[i])}, key);
@@ -150,8 +152,9 @@ void
 encryptDecryptRangeAllFields(privacy::vector<passwordRecords> &passwords, const privacy::string &key, std::size_t start,
                              std::size_t end, bool encrypt = false) {
     if (start > end || end > passwords.size())
-        throw std::runtime_error("Invalid range.");
+        throw std::range_error("Invalid range.");
 
+    // Encrypt/decrypt all fields
     for (std::size_t i = start; i < end; ++i) {
         std::get<0>(passwords[i]) = encrypt ? encryptString(std::get<0>(passwords[i]), key)
                                             : decryptString(std::string{std::get<0>(passwords[i])}, key);
@@ -280,15 +283,20 @@ privacy::vector<passwordRecords> loadPasswords(const std::string &filePath, cons
         throw std::runtime_error(std::format("Failed to open the password file ({}) for reading.", filePath));
 
     privacy::string line;
-    line.reserve(4096);  // The encoded password records can be so long
-    std::getline<char, std::char_traits<char>, privacy::Allocator<char>>(file, line); // Read and discard the first line
-    std::getline<char, std::char_traits<char>, privacy::Allocator<char>>(file, line); // Read and discard the second line too
+    line.reserve(4096);  // Pre-allocate space for efficiency
 
+    // Read and discard the first line
+    std::getline<char, std::char_traits<char>, privacy::Allocator<char>>(file, line);
+
+    // Read and discard the second line too
+    std::getline<char, std::char_traits<char>, privacy::Allocator<char>>(file, line);
+
+    // Read and process the file line by line
     while (std::getline<char, std::char_traits<char>, privacy::Allocator<char>>(file, line)) {
-
         std::size_t firstDelimiterPos = line.find(':');
         std::size_t secondDelimiterPos = line.find(':', firstDelimiterPos + 1);
 
+        // Badly formatted entry
         if (firstDelimiterPos == privacy::string::npos || secondDelimiterPos == privacy::string::npos) {
             std::cerr << std::format("Invalid password entry: {}\n", line);
             continue;
@@ -298,6 +306,7 @@ privacy::vector<passwordRecords> loadPasswords(const std::string &filePath, cons
         const auto &username = line.substr(firstDelimiterPos + 1, secondDelimiterPos - firstDelimiterPos - 1);
         const auto &password = line.substr(secondDelimiterPos + 1);
 
+        // Add the entry to the database
         passwords.emplace_back(website, username, password);
     }
 
@@ -318,6 +327,7 @@ privacy::vector<passwordRecords> loadPasswords(const std::string &filePath, cons
 bool changeMasterPassword(privacy::string &primaryPassword) {
     privacy::string oldPassword{getSensitiveInfo("Enter the current primary password: ")};
 
+    // Verify that the old password is correct
     auto masterHash = hashPassword(primaryPassword, crypto_pwhash_OPSLIMIT_INTERACTIVE,
                                    crypto_pwhash_MEMLIMIT_INTERACTIVE);
 
@@ -369,7 +379,7 @@ std::pair<std::string, privacy::string> initialSetup() noexcept {
                 "2. Enter the path to an existing password file (previously created by this program).\n"
                 "3. Exit.\n"
                 "select 1, 2, or 3: ");
-        if (resp == 1) {
+        if (resp == 1) { // Initial setup
             privacy::string pass{getSensitiveInfo("Enter a new primary password: ")};
 
             int count{0};
@@ -398,7 +408,7 @@ std::pair<std::string, privacy::string> initialSetup() noexcept {
             ret.second = pass;
             break;
 
-        } else if (resp == 2) {
+        } else if (resp == 2) { // Enter the path to an existing password file
             std::string path = getResponseStr("Enter the path to the file: ");
             if (!(fs::exists(path) && fs::is_regular_file(path))) {
                 std::cerr << "That file doesn't exist or is not a regular file." << std::endl;
@@ -410,7 +420,7 @@ std::pair<std::string, privacy::string> initialSetup() noexcept {
 
         } else if (resp == 3) {
             return ret;
-        } else {
+        } else { // Invalid choice
             std::cerr << "Invalid choice. Try again" << std::endl;
             continue;
         }
@@ -435,8 +445,11 @@ privacy::string getHash(const std::string &filePath) {
         throw std::runtime_error(std::format("Failed to open '{}' for reading.", filePath));
 
     privacy::string pwHash;
-    std::getline<char, std::char_traits<char>, privacy::Allocator<char>>(passFileStream, pwHash); // Read and discard the first line ('PLEASE DO NOT EDIT THIS FILE')
-    std::getline<char, std::char_traits<char>, privacy::Allocator<char>>(passFileStream, pwHash); // The hash is on the second line
+    // Read and discard the first line ('PLEASE DO NOT EDIT THIS FILE')
+    std::getline<char, std::char_traits<char>, privacy::Allocator<char>>(passFileStream, pwHash);
+
+    // The hash is on the second line
+    std::getline<char, std::char_traits<char>, privacy::Allocator<char>>(passFileStream, pwHash);
     passFileStream.close();
 
     if (pwHash.empty())
@@ -505,6 +518,7 @@ bool exportCsv(const privacy::vector<passwordRecords> &records, const std::strin
 
     file << "site,username,password" << std::endl;
 
+    // Write the records to the file
     for (const auto &record: records)
         file << std::get<0>(record) << "," << std::get<1>(record) << "," << std::get<2>(record) << std::endl;
 

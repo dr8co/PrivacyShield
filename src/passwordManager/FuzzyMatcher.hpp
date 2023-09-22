@@ -59,9 +59,11 @@ public:
      */
     std::vector<privacy::string> fuzzyMatch(const privacy::string &pattern, const int &maxDistance) {
         std::vector<privacy::string> matches;
+        // The maximum and minimum size of a string to be considered a match
         auto maxSize{pattern.size() + maxDistance + 1};
         auto minSize{pattern.size() - (maxDistance + 1)};
 
+        // Iterate over the string list and find matches
         for (const auto &str: stringList)
             if (auto size{str.size()}; size <= maxSize && size >= minSize &&
                                        levenshteinDistance(pattern, str) <= maxDistance)
@@ -99,9 +101,11 @@ private:
         // Calculate the minimum edit distance
         for (int i = 1; i <= m; ++i) {
             for (int j = 1; j <= n; ++j) {
+                // If the characters are the same, the cost is 0
                 if (std::tolower(str1[i - 1]) == std::tolower(str2[j - 1])) {
                     dp[i][j] = dp[i - 1][j - 1];
                 } else {
+                    // Otherwise, the cost is 1
                     dp[i][j] = 1 + std::min(dp[i - 1][j],   // Deletion
                                             std::min(dp[i][j - 1],  // Insertion
                                                      dp[i - 1][j - 1])     // Substitution
