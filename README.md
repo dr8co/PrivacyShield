@@ -405,7 +405,7 @@ and the process for submitting pull requests.
 
 ## Acknowledgement
 
-Thanks to [Henrik Steffen Gaßmann](henrik@gassmann.onl) for [the CMake module](./CMakeModules/FindSodium.cmake)
+Thanks to [Henrik Steffen Gaßmann](mailto:henrik@gassmann.onl) for [the CMake module](./CMakeModules/FindSodium.cmake)
 to configure the local libsodium installation.
 
 ## Disclaimer
