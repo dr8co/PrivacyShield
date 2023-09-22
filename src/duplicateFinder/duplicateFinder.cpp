@@ -36,8 +36,8 @@ constexpr std::size_t CHUNK_SIZE = 4096;  // Read and process files in chunks of
  * @brief Represents a file by its path (canonical) and hash.
  */
 struct FileInfo {
-    std::string path; // path to the file.
-    std::string hash; // Blake2b hash of the file.
+    std::string path; // the path to the file.
+    std::string hash; // the file's BLAKE3 hash
 };
 
 

@@ -153,13 +153,18 @@ The actual encryption is done in two steps:
 1. The 'password' field of a record (the actual password) is encrypted using the `256-bit Serpent cipher in counter mode (CTR)`.
 2. All the fields (including the encrypted password) are encrypted using the `256-bit AES cipher in cipher block chaining mode (CBC)`.
 
-The keys (256-bit) for the two steps are derived from the primary password using the [PBKDF2 algorithm](https://en.wikipedia.org/wiki/PBKDF2)
-([salted](https://en.wikipedia.org/wiki/Salt_(cryptography))
+The keys (256-bit) for the two steps are derived from the primary password using the
+[PBKDF2 algorithm](https://en.wikipedia.org/wiki/PBKDF2), ([salted](https://en.wikipedia.org/wiki/Salt_(cryptography))
 with a random salt).
 
 No two password records are encrypted using the same key.
 To be precise, each field of a password record is encrypted independently using a different key.
-**This is done to slow down [brute-force attacks](https://en.wikipedia.org/wiki/Brute-force_attack).**
+Also, no two records share the same key, i.e., if you have 100 passwords, then 400 unique keys will
+be derived from the primary password for encryption/decryption of the passwords.
+**This is done to slow down [brute-force attacks](https://en.wikipedia.org/wiki/Brute-force_attack).**\
+Empty entries/fields are encrypted as well.
+
+The process might be slow, and multithreading has been leveraged to speed up the process.
 
 The [Serpent cipher](https://en.wikipedia.org/wiki/Serpent_(cipher))
 is used for the first step because it is a
@@ -185,9 +190,9 @@ Multithreading is used to speed up the encryption/decryption process to some ext
 
 During runtime, the password manager stores the passwords in memory.
 The memory is locked to prevent the passwords from being swapped to disk, and is cleared (zeroized)
-when the password manager exits.
+when the password manager exits, even in the event of a terminal error or an unexpected exit.
 
-The password manager also supports the following features:
+The password manager also features the following tools:
 
 * **Password Generator** - A simple password generator to generate strong passwords.
 * **Password Strength Checker** - A simple password strength checker to check the strength of your passwords.

@@ -106,7 +106,7 @@ inline void addPassword(privacy::vector<passwordRecords> &passwords) {
         password = getSensitiveInfo();
     }
 
-    // If the password is still empty, continue to the next iteration
+    // If the password is still empty, return
     if (password.empty()) {
         printColor("Password can't be blank. Try again later.", 'r', true, std::cerr);
         return;
