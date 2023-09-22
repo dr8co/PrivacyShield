@@ -136,7 +136,6 @@ inline void generatePassword(privacy::vector<passwordRecords> &passwords [[maybe
     int length = getResponseInt("Enter the length of the password to generate: ");
 
     int tries{0};
-
     while (length < 8 && ++tries < 3) {
         printColor("A strong password should be at least 8 characters long.", 'y', true);
         printColor(std::format("{}", tries == 2 ? "Last chance:" : "Please try again:"),
@@ -235,7 +234,7 @@ inline void updatePassword(privacy::vector<passwordRecords> &passwords) {
                                             });
 
     if (!matches.empty()) { // site found
-        if (matches.size() > 1) {
+        if (matches.size() > 1) { // there are multiple accounts under the site
             std::cout << "Found the following usernames for " << std::quoted(site) << ":\n";
             for (const auto &[_, username, pass]: matches)
                 printColor(username.empty() ? "'' [no username, reply with a blank to select]"
@@ -414,7 +413,7 @@ inline void searchPasswords(privacy::vector<passwordRecords> &passwords) {
         FuzzyMatcher matcher(constPasswordsRef | std::ranges::views::elements<0>);
         auto fuzzyMatched{matcher.fuzzyMatch(query, 2)};
 
-        if (fuzzyMatched.size() == 1) {
+        if (fuzzyMatched.size() == 1) { // A single match
             const auto &match = fuzzyMatched.at(0);
 
             printColor("Did you mean '", 'c');

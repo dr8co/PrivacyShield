@@ -249,6 +249,11 @@ This is done to prevent IV/nonce reuse.
 
 By default, the encrypted files are saved with a `.enc` extension.
 
+The files encrypted by this program can only be decrypted by this program,
+and the files encrypted by other programs cannot be decrypted by this program.
+This is because this program uses a specific format for the encrypted files,
+and the other programs may use a different format.
+
 Future versions of the program may support authenticated modes of encryption.
 
 ### File Shredder
