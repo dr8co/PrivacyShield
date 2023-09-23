@@ -1,0 +1,12 @@
+#!/bin/env bash
+
+# This script is used to build and install BLAKE3 on Unix-like systems.
+# Requires CMake, Ninja, and GCC (or a compatible C compiler) to be installed.
+
+# Clone the repository
+git clone https://github.com/BLAKE3-team/BLAKE3.git
+
+# Build and install BLAKE3
+cd BLAKE3/c || echo "Failed to find BLAKE3/c directory" && exit
+cmake -B build -DCMAKE_C_COMPILER=gcc -G Ninja
+sudo cmake --build build --config Release --target install -j 4

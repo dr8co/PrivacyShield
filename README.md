@@ -335,8 +335,20 @@ or [LLVM Clang 17](https://clang.llvm.org/) (or later) is required.
 * [OpenSSL](https://www.openssl.org/) 3+
 * [Sodium](https://libsodium.org/) 1.0.18+
 * [GCrypt](https://gnupg.org/software/libgcrypt/index.html) 1.10+
-* [BLAKE3](https://github.com/BLAKE3-team/BLAKE3) 1.4+
+* [BLAKE3](https://github.com/BLAKE3-team/BLAKE3) 1.4+ (see the note below)
 * [GNU Readline](https://tiswww.case.edu/php/chet/readline/rltop.html) 8+
+
+### IMPORTANT: A note on installing/building BLAKE3
+
+BLAKE3 is not available in the package repositories of most Linux distributions,
+so you will need to build it from source and install it manually.
+
+You can run [install_blake3.sh](./install_blake3.sh) script to install BLAKE3 automatically,
+Or you can follow the steps at [BLAKE3's GitHub page](https://github.com/BLAKE3-team/BLAKE3/blob/master/c/README.md#building)
+
+Another option is to install BLAKE3 using a package manager, such as [Vcpkg](https://vcpkg.io): `vcpkg install blake3`.
+
+**Installing with the script is recommended, as it will also set up the required CMake module for BLAKE3 automatically.**
 
 ### Installation/Building
 
