@@ -1,28 +1,22 @@
 cmake_minimum_required(VERSION 3.25)
 
-add_executable(privacyShield
-        main.cpp
-        duplicateFinder/duplicateFinder.hpp
-        duplicateFinder/duplicateFinder.cpp
-        encryption/encryptDecryptFiles.cpp
-        encryption/encryptDecryptStrings.cpp
-        encryption/encryptDecrypt.cpp
-        encryption/encryptDecrypt.hpp
-        fileShredder/shredFiles.hpp
-        fileShredder/shredFiles.cpp
-        passwordManager/passwordManager.cpp
-        passwordManager/FuzzyMatcher.hpp
-        passwordManager/passwords.hpp
-        passwordManager/passwords.cpp
-        privacyTracks/privacyTracks.hpp
-        privacyTracks/privacyTracks.cpp
-        utils/utils.cpp
-        utils/utils.hpp
-        secureAllocator.hpp)
 
-target_link_libraries(privacyShield
-        OpenSSL::Crypto
-        Readline::Readline
-        Sodium::sodium
-        Gcrypt::Gcrypt
-        BLAKE3::blake3)
+target_sources(privacyShield
+        PUBLIC main.cpp
+        PUBLIC duplicateFinder/duplicateFinder.hpp
+        PUBLIC duplicateFinder/duplicateFinder.cpp
+        PUBLIC encryption/encryptDecryptFiles.cpp
+        PUBLIC encryption/encryptDecryptStrings.cpp
+        PUBLIC encryption/encryptDecrypt.cpp
+        PUBLIC encryption/encryptDecrypt.hpp
+        PUBLIC fileShredder/shredFiles.hpp
+        PUBLIC fileShredder/shredFiles.cpp
+        PUBLIC passwordManager/passwordManager.cpp
+        PUBLIC passwordManager/FuzzyMatcher.hpp
+        PUBLIC passwordManager/passwords.hpp
+        PUBLIC passwordManager/passwords.cpp
+        PUBLIC privacyTracks/privacyTracks.hpp
+        PUBLIC privacyTracks/privacyTracks.cpp
+        PUBLIC utils/utils.cpp
+        PUBLIC utils/utils.hpp
+        PUBLIC secureAllocator.hpp)

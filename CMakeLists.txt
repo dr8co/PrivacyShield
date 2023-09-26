@@ -48,8 +48,15 @@ find_package(Readline REQUIRED)
 find_package(Gcrypt REQUIRED)
 find_package(BLAKE3 REQUIRED) # See https://github.com/BLAKE3-team/BLAKE3
 
-
+add_executable(privacyShield)
 add_subdirectory(src)
+
+target_link_libraries(privacyShield
+        OpenSSL::Crypto
+        Readline::Readline
+        Sodium::sodium
+        Gcrypt::Gcrypt
+        BLAKE3::blake3)
 
 # Install the binary (optional)
 install(TARGETS privacyShield
