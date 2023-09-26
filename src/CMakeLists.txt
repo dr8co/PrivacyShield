@@ -1,22 +1,22 @@
 cmake_minimum_required(VERSION 3.25)
 
-
+# Add sources for the target
 target_sources(privacyShield
-        PUBLIC main.cpp
-        PUBLIC duplicateFinder/duplicateFinder.hpp
-        PUBLIC duplicateFinder/duplicateFinder.cpp
-        PUBLIC encryption/encryptDecryptFiles.cpp
-        PUBLIC encryption/encryptDecryptStrings.cpp
-        PUBLIC encryption/encryptDecrypt.cpp
-        PUBLIC encryption/encryptDecrypt.hpp
-        PUBLIC fileShredder/shredFiles.hpp
-        PUBLIC fileShredder/shredFiles.cpp
-        PUBLIC passwordManager/passwordManager.cpp
-        PUBLIC passwordManager/FuzzyMatcher.hpp
-        PUBLIC passwordManager/passwords.hpp
-        PUBLIC passwordManager/passwords.cpp
-        PUBLIC privacyTracks/privacyTracks.hpp
-        PUBLIC privacyTracks/privacyTracks.cpp
-        PUBLIC utils/utils.cpp
-        PUBLIC utils/utils.hpp
-        PUBLIC secureAllocator.hpp)
+        PRIVATE main.cpp
+        PRIVATE duplicateFinder/duplicateFinder.hpp
+        PRIVATE duplicateFinder/duplicateFinder.cpp
+        PRIVATE encryption/encryptDecryptFiles.cpp
+        PRIVATE encryption/encryptDecryptStrings.cpp
+        PRIVATE encryption/encryptDecrypt.cpp
+        PRIVATE encryption/encryptDecrypt.hpp
+        PRIVATE fileShredder/shredFiles.hpp
+        PRIVATE fileShredder/shredFiles.cpp
+        PRIVATE passwordManager/passwordManager.cpp
+        PRIVATE passwordManager/FuzzyMatcher.hpp
+        PRIVATE passwordManager/passwords.hpp
+        PRIVATE passwordManager/passwords.cpp
+        PRIVATE privacyTracks/privacyTracks.hpp
+        PRIVATE privacyTracks/privacyTracks.cpp
+        PRIVATE utils/utils.cpp
+        PRIVATE utils/utils.hpp
+        PRIVATE secureAllocator.hpp)

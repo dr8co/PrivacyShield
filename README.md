@@ -43,11 +43,11 @@ Protect Your Privacy, Secure Your Digital World.
 Privacy Shield is a suite of simple tools to help you manage your privacy in the digital world.
 The tools included in Privacy Shield are:
 
-* **[Password Manager](#password-manager)** - A simple password manager that stores your passwords in an encrypted file.
-* **[File Encryptor/Decryptor](#file-encryptordecryptor)** - A simple tool to encrypt/decrypt your files.
+* **[Password Manager](#password-manager)** – A simple password manager that stores your passwords in an encrypted file.
+* **[File Encryptor/Decryptor](#file-encryptordecryptor)** – A simple tool to encrypt/decrypt your files.
 * **[File Shredder](#file-shredder)** - A simple file shredder to securely delete your files.
-* **[Browser Privacy Tracks Cleaner](#browser-privacy-tracks-cleaner)** - A simple tool to clean browser cookies and history items.
-* **[File Deduplicator](#file-deduplicator)** - A bonus tool to help remove redundant files.
+* **[Browser Privacy Tracks Cleaner](#browser-privacy-tracks-cleaner)** – A simple tool to clean browser cookies and history items.
+* **[File Deduplicator](#file-deduplicator)** – A bonus tool to help remove redundant files.
 
 <!-- omit in toc -->
 ## Table of Contents
@@ -96,27 +96,27 @@ and our digital sanctuaries remain impervious to prying eyes.
 
 ## Features
 
-* **Cross-Platform** - Privacy Shield is written in C++ and uses CMake as its build system,
+* **Cross-Platform** – Privacy Shield is written in C++ and uses CMake as its build system,
 so it can be built on any Unix platform that supports C++23 and the dependencies.
 
-* **Secure** - Privacy Shield uses secure cryptographic algorithms and protocols to handle sensitive data.
+* **Secure** – Privacy Shield uses secure cryptographic algorithms and protocols to handle sensitive data.
 Security is a complex topic, and the current implementation of Privacy Shield is not perfect.
 If you find any security vulnerabilities, please report them, or better yet, submit a pull request.
 
-* **Easy to Use** - Privacy Shield is designed to be easy to use, with a simple command-line interface.
+* **Easy to Use** – Privacy Shield is designed to be easy to use, with a simple command-line interface.
 
-* **Fast** - Privacy Shield is designed to be fast, with support for multi-threading and concurrency.
+* **Fast** – Privacy Shield is designed to be fast, with support for multi-threading and concurrency.
 
-* **Lightweight** and **Portable** - The design is simple and lightweight.
+* **Lightweight** and **Portable** – The design is simple and lightweight.
 
-* **Safe** - Privacy Shield supports safe operations, with support for cancellation and error handling.
+* **Safe** – Privacy Shield supports safe operations, with support for cancellation and error handling.
 
-* **Free** - Privacy Shield is free and open-source software, licensed under the GNU General Public License v3.0.
+* **Free** – Privacy Shield is free and open-source software, licensed under the GNU General Public License v3.0.
 See [LICENSE](./LICENSE.md) for more information.
 
-* **No Ads**, **Tracking**, and **Telemetry** - Privacy Shield is free of all these things.
+* **No Ads**, **Tracking**, and **Telemetry** – Privacy Shield is free of all these things.
 
-* **No Backdoors**, **Spyware**, and **Malware** - You can verify this yourself by inspecting the source code.
+* **No Backdoors**, **Spyware**, and **Malware** – You can verify this yourself by inspecting the source code.
 
 ## The Tools in Detail
 
@@ -143,9 +143,9 @@ and you will be asked to confirm it by typing it again.
 
 A password record consists of the following fields:
 
-* **Name** - The name of the password record (can be a site name, an application name, etc.)
-* **Username** - The username of the password record (optional)
-* **Password** - The password of the password record.
+* **Name** – The name of the password record (can be a site name, an application name, etc.)
+* **Username** – The username of the password record (optional)
+* **Password** – The password of the password record.
 
 The passwords are encrypted (and Base64-encoded) before being stored in a file.
 The actual encryption is done in two steps:
@@ -189,16 +189,17 @@ slower at startup and when saving changes to the password file.
 Multithreading is used to speed up the encryption/decryption process to some extent.
 
 During runtime, the password manager stores the passwords in memory.
-The memory is locked to prevent the passwords from being swapped to disk, and is cleared (zeroized)
-when the password manager exits, even in the event of a terminal error or an unexpected exit.
+The memory is locked to prevent the passwords from being swapped to disk,
+and is cleared (zeroized, i.e., filled with zeros) when the password manager exits,
+even if a fatal error occurs, or if the program exits unexpectedly.
 
 The password manager also features the following tools:
 
-* **Password Generator** - A simple password generator to generate strong passwords.
-* **Password Strength Checker** - A simple password strength checker to check the strength of your passwords.
-* **Password Exporter** - Exports your passwords to a CSV file.
-* **Password Importer** - Imports passwords from a CSV file.
-* **Analytics** - A simple analytics tool to analyze your passwords for strength and reuse.
+* **Password Generator** – A simple password generator to generate strong passwords.
+* **Password Strength Checker** – A simple password strength checker to check the strength of your passwords.
+* **Password Exporter** – Exports your passwords to a CSV file.
+* **Password Importer** – Imports passwords from a CSV file.
+* **Analytics** – A simple analytics tool to analyze your passwords for strength and reuse.
 
 **A note on importation**\
 For importing passwords, the CSV file **must have three and only three columns**: name, username, and password (in that order).
@@ -265,9 +266,9 @@ The default is 3 overwrites.
 
 The file shredder supports the following overwriting methods:
 
-* **Random Bytes** - Overwrites the file with random bytes.
-* **3-Pass DOD 5220.22-M** - Overwrites the file with a byte, then with the complement of the byte, and finally with random bytes.
-* **7-Pass DOD 5220.22-M** - 3-Pass DOD 5220.22-M twice, with a random overwrite in between.
+* **Random Bytes** – Overwrites the file with random bytes.
+* **3-Pass DOD 5220.22-M** – Overwrites the file with a byte, then with the complement of the byte, and finally with random bytes.
+* **7-Pass DOD 5220.22-M** – 3-Pass DOD 5220.22-M twice, with a random overwrite in between.
 
 More about the DOD 5220.22-M standard can be found
 [here](https://en.wikipedia.org/wiki/Data_erasure#Standards).
@@ -372,18 +373,19 @@ cmake --install build --config Release # Might need sudo
 ```
 
 Remember to replace `g++-13` with your C++ compiler, and `4` with the number of CPU cores you have (for faster builds).\
-Also, replace Ninja with your build system if you are not using Ninja.
+Also, replace `Ninja` with your build system if you are not using Ninja.
 
-You can also install to a custom location by adding `-DCMAKE_INSTALL_PREFIX=/path/to/install` to the configure step.
+You can also install to a custom location by adding `-DCMAKE_INSTALL_PREFIX=/path/to/install` to the `configure` step.
 
-If you've installed Privacy Shield, you can run the program by typing `privacyShield` in your terminal
-(if you've installed to a custom location, you will need to add that install location to your `PATH` environment variable)
+If you have installed Privacy Shield, you can run the program by typing `privacyShield` in your terminal
+(if you've installed to a custom location,
+you will need to add that installation location to your `PATH` environment variable)
 
 If not, you can run the compiled target directly:
 
 ```bash
 # Assuming you are in the project root
-./build/src/privacyShield
+./build/privacyShield
 ```
 
 ### Uninstallation
@@ -413,7 +415,7 @@ and the process for submitting pull requests.
 
 ## Authors
 
-* **[Ian Duncan](https//github.com/dr8co)** - *Initial work*
+* **[Ian Duncan](https//github.com/dr8co)** – *Initial work*
 
 ## Acknowledgement
 

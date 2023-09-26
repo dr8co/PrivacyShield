@@ -22,14 +22,14 @@ project(privacyShield
         LANGUAGES CXX)
 
 # If we are not on unix, we cannot build
-if(NOT UNIX)
+if (NOT UNIX)
     message(FATAL_ERROR "This project can only be built on unix-like systems")
-endif()
+endif ()
 
 # If the user does not specify a build type, default to Release
-if(NOT CMAKE_BUILD_TYPE)
+if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
-endif()
+endif ()
 
 # Set the path to additional CMake modules
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
@@ -48,15 +48,17 @@ find_package(Readline REQUIRED)
 find_package(Gcrypt REQUIRED)
 find_package(BLAKE3 REQUIRED) # See https://github.com/BLAKE3-team/BLAKE3
 
+# Add the executable target
 add_executable(privacyShield)
 add_subdirectory(src)
 
+# Link dependencies
 target_link_libraries(privacyShield
-        OpenSSL::Crypto
-        Readline::Readline
-        Sodium::sodium
-        Gcrypt::Gcrypt
-        BLAKE3::blake3)
+        PRIVATE OpenSSL::Crypto
+        PRIVATE Readline::Readline
+        PRIVATE Sodium::sodium
+        PRIVATE Gcrypt::Gcrypt
+        PRIVATE BLAKE3::blake3)
 
 # Install the binary (optional)
 install(TARGETS privacyShield
