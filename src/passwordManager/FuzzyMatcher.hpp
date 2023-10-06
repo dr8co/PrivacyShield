@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include "../secureAllocator.hpp"
 #include <string>
 #include <vector>
 

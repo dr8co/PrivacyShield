@@ -14,10 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
+#include "utils.hpp"
 #include <charconv>
 #include <readline/readline.h>
 #include <unistd.h>
-#include "utils.hpp"
 #include <filesystem>
 #include <utility>
 #include <termios.h>

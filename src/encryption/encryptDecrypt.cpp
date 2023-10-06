@@ -14,12 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
+#include "../utils/utils.hpp"
+#include "../passwordManager/passwords.hpp"
+#include "encryptDecrypt.hpp"
 #include <algorithm>
 #include <system_error>
 #include <filesystem>
-#include "encryptDecrypt.hpp"
-#include "../utils/utils.hpp"
-#include "../passwordManager/passwords.hpp"
 #include <utility>
 #include <iostream>
 #include <format>

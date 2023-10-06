@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
+#include "../utils/utils.hpp"
+#include "duplicateFinder.hpp"
 #include <iostream>
 #include <fstream>
 #include <system_error>
@@ -24,8 +26,6 @@
 #include <sodium.h>
 #include <blake3.h>
 #include <format>
-#include "../utils/utils.hpp"
-#include "duplicateFinder.hpp"
 
 namespace fs = std::filesystem;
 

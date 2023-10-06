@@ -1,8 +1,8 @@
 #pragma once
 
+#include "../secureAllocator.hpp"
 #include <openssl/evp.h>
 #include <gcrypt.h>
-#include "../secureAllocator.hpp"
 
 extern const int SALT_SIZE;
 extern const int KEY_SIZE_256;

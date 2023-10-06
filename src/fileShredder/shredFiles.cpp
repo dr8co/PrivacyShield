@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
+#include "../utils/utils.hpp"
+#include "shredFiles.hpp"
 #include <iostream>
 #include <fstream>
 #include <random>
@@ -22,8 +24,6 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <format>
-#include "shredFiles.hpp"
-#include "../utils/utils.hpp"
 
 namespace fs = std::filesystem;
 

@@ -1,11 +1,11 @@
 #pragma once
 
+#include "../secureAllocator.hpp"
 #include <cstdint>
 #include <optional>
 #include <iostream>
 #include <openssl/buffer.h>
 #include <openssl/evp.h>
-#include "../secureAllocator.hpp"
 
 template<typename T>
 // Describes a type that can be formatted to the output stream

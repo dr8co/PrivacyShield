@@ -14,6 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
+#include "../utils/utils.hpp"
+#include "FuzzyMatcher.hpp"
+#include "passwords.hpp"
 #include <filesystem>
 #include <algorithm>
 #include <format>
@@ -23,9 +26,6 @@
 #include <utility>
 #include <cmath>
 #include <random>
-#include "../utils/utils.hpp"
-#include "passwords.hpp"
-#include "FuzzyMatcher.hpp"
 
 namespace fs = std::filesystem;
 using string = std::string;

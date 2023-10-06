@@ -14,13 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
+#include "../utils/utils.hpp"
+#include "privacyTracks.hpp"
 #include <format>
 #include <iostream>
 #include <string>
 #include <vector>
 #include <filesystem>
-#include "privacyTracks.hpp"
-#include "../utils/utils.hpp"
 
 namespace fs = std::filesystem;
 

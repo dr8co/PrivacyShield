@@ -14,6 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
+#include "duplicateFinder/duplicateFinder.hpp"
+#include "encryption/encryptDecrypt.hpp"
+#include "fileShredder/shredFiles.hpp"
+#include "passwordManager/passwords.hpp"
+#include "privacyTracks/privacyTracks.hpp"
 #include <csignal>
 #include <sodium.h>
 #include <gcrypt.h>
@@ -22,11 +27,6 @@
 #include <functional>
 #include <unistd.h>
 #include <sys/resource.h>
-#include "encryption/encryptDecrypt.hpp"
-#include "duplicateFinder/duplicateFinder.hpp"
-#include "fileShredder/shredFiles.hpp"
-#include "passwordManager/passwords.hpp"
-#include "privacyTracks/privacyTracks.hpp"
 
 constexpr const char *const MINIMUM_LIBGCRYPT_VERSION = "1.10.0";
 

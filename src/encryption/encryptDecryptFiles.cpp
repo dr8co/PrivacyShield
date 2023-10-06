@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
+#include "cryptoCipher.hpp"
+#include "encryptDecrypt.hpp"
 #include <iostream>
 #include <fstream>
 #include <memory>
@@ -24,8 +26,6 @@
 #include <format>
 #include <filesystem>
 #include <mutex>
-#include "cryptoCipher.hpp"
-#include "encryptDecrypt.hpp"
 
 // OpenSSL's library context and property query string
 OSSL_LIB_CTX *libContext = nullptr;
