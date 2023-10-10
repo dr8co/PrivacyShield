@@ -49,7 +49,7 @@ privacy::vector<unsigned char> generateSalt(int saltSize) {
     if (std::scoped_lock<std::mutex> lock(m); RAND_bytes(salt.data(), saltSize) != 1) {
 
         std::cerr << "Failed to seed OpenSSL's CSPRNG properly."
-                     "\nPlease check your system's random utilities." << std::endl;
+                     "\nPlease check your system's randomness utilities." << std::endl;
 
         randombytes_buf(salt.data(), salt.size());  // Use Sodium's random generator as a backup
     }

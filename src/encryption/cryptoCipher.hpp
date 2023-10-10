@@ -24,22 +24,22 @@
 class CryptoCipher {
 public:
     // Only one constructor without parameters to avoid potential mix-ups
-    CryptoCipher() noexcept = default;
+    constexpr CryptoCipher() noexcept = default;
 
     // Delete the copy constructor to disable copying of CryptoCipher objects
-    CryptoCipher(const CryptoCipher &other) noexcept = delete;
+    constexpr CryptoCipher(const CryptoCipher &) noexcept = delete;
 
     // Delete the copy assignment operator too
-    CryptoCipher &operator=(const CryptoCipher &other) noexcept = delete;
+    constexpr CryptoCipher &operator=(const CryptoCipher &) noexcept = delete;
 
     // Setters
     /** setter for the cipher implementation */
-    void setCipher() {
+    constexpr void setCipher() {
         cipher = EVP_CIPHER_fetch(libCtx, algo, propQuery);
     }
 
     /** Overloaded setter for cipher implementation */
-    void setCipher(OSSL_LIB_CTX *libraryContext, const char *algorithm, const char *propertyQuery) {
+    constexpr void setCipher(OSSL_LIB_CTX *libraryContext, const char *algorithm, const char *propertyQuery) {
         setLibCtx(libraryContext);
         setAlgo(algorithm);
         setPropQuery(propertyQuery);
@@ -53,43 +53,43 @@ public:
     }
 
     /** setter for the library context */
-    void setLibCtx(OSSL_LIB_CTX *libContext) {
+    constexpr void setLibCtx(OSSL_LIB_CTX *libContext) {
         libCtx = libContext;
     }
 
     /** setter for the cipher algorithm */
-    void setAlgo(const char *algorithm) {
+    constexpr void setAlgo(const char *algorithm) {
         algo = algorithm;
     }
 
     /** setter for the implementation property query */
-    void setPropQuery(const char *propertyQuery) {
+    constexpr void setPropQuery(const char *propertyQuery) {
         propQuery = propertyQuery;
     }
 
     // Getters
     /** Getter for property query */
-    [[maybe_unused]] [[nodiscard]] const char *getPropQuery() const noexcept {
+    [[maybe_unused]] [[nodiscard]] constexpr const char *getPropQuery() const noexcept {
         return propQuery;
     }
 
     /** Getter for the cipher algorithm */
-    [[maybe_unused]] [[nodiscard]] const char *getAlgo() const noexcept {
+    [[maybe_unused]] [[nodiscard]] constexpr const char *getAlgo() const noexcept {
         return algo;
     }
 
     /** Getter for the library context */
-    [[maybe_unused]] [[nodiscard]] OSSL_LIB_CTX *getLibCtx() const noexcept {
+    [[maybe_unused]] [[nodiscard]] constexpr OSSL_LIB_CTX *getLibCtx() const noexcept {
         return libCtx;
     }
 
     /** Getter for the cipher context */
-    [[nodiscard]] EVP_CIPHER_CTX *getCtx() const noexcept {
+    [[nodiscard]] constexpr EVP_CIPHER_CTX *getCtx() const noexcept {
         return ctx;
     }
 
     /** Getter for the cipher implementation */
-    [[nodiscard]] EVP_CIPHER *getCipher() const noexcept {
+    [[nodiscard]] constexpr EVP_CIPHER *getCipher() const noexcept {
         return cipher;
     }
 
