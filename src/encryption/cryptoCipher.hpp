@@ -24,13 +24,13 @@
 class CryptoCipher {
 public:
     // Only one constructor without parameters to avoid potential mix-ups
-    CryptoCipher() = default;
+    CryptoCipher() noexcept = default;
 
     // Delete the copy constructor to disable copying of CryptoCipher objects
-    CryptoCipher(const CryptoCipher &other) = delete;
+    CryptoCipher(const CryptoCipher &other) noexcept = delete;
 
     // Delete the copy assignment operator too
-    CryptoCipher &operator=(const CryptoCipher &other) = delete;
+    CryptoCipher &operator=(const CryptoCipher &other) noexcept = delete;
 
     // Setters
     /** setter for the cipher implementation */
@@ -69,27 +69,27 @@ public:
 
     // Getters
     /** Getter for property query */
-    [[maybe_unused]] [[nodiscard]] const char *getPropQuery() const {
+    [[maybe_unused]] [[nodiscard]] const char *getPropQuery() const noexcept {
         return propQuery;
     }
 
     /** Getter for the cipher algorithm */
-    [[maybe_unused]] [[nodiscard]] const char *getAlgo() const {
+    [[maybe_unused]] [[nodiscard]] const char *getAlgo() const noexcept {
         return algo;
     }
 
     /** Getter for the library context */
-    [[maybe_unused]] [[nodiscard]] OSSL_LIB_CTX *getLibCtx() const {
+    [[maybe_unused]] [[nodiscard]] OSSL_LIB_CTX *getLibCtx() const noexcept {
         return libCtx;
     }
 
     /** Getter for the cipher context */
-    [[nodiscard]] EVP_CIPHER_CTX *getCtx() const {
+    [[nodiscard]] EVP_CIPHER_CTX *getCtx() const noexcept {
         return ctx;
     }
 
     /** Getter for the cipher implementation */
-    [[nodiscard]] EVP_CIPHER *getCipher() const {
+    [[nodiscard]] EVP_CIPHER *getCipher() const noexcept {
         return cipher;
     }
 
