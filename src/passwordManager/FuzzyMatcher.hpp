@@ -34,14 +34,41 @@ concept StringRange = std::ranges::input_range<T> &&
  */
 class FuzzyMatcher {
 public:
+    /// Default constructor
+    constexpr FuzzyMatcher() noexcept = default;
+
+    /// Copy constructor
+    constexpr FuzzyMatcher(const FuzzyMatcher &) noexcept = default;
+
+    /// Copy assignment operator
+    constexpr FuzzyMatcher &operator=(const FuzzyMatcher &) noexcept = default;
+
+    /// Equality operator
+    constexpr bool operator==(const FuzzyMatcher &rhs) const noexcept {
+        return stringList == rhs.stringList;
+    }
+
+    /// Inequality operator
+    constexpr bool operator!=(const FuzzyMatcher &rhs) const noexcept {
+        return !(rhs == *this);
+    }
+
     /**
-     * @brief Constructs a FuzzyMatcher object.
+     * @brief Constructs a FuzzyMatcher object, with initialization.
      * @param wordList the list of strings to be matched against a pattern.
      * @tparam Range a range of strings.
      * @note The wordList should be sorted, for deduplication to be successful.
      */
     template<StringRange Range>
-    explicit FuzzyMatcher(const Range &wordList) {
+    explicit FuzzyMatcher(const Range &wordList) { setStringList(wordList); }
+
+    /**
+     * @brief Sets the list of words for fuzzy matching
+     * @tparam Range a range of strings
+     * @param wordList the list of strings to be matched against a pattern.
+     */
+    template<StringRange Range>
+    constexpr void setStringList(const Range &wordList) {
         stringList.reserve(std::ranges::distance(wordList));
 
         // Copy unique entries to the string list vector (wordList is sorted)
@@ -49,7 +76,11 @@ public:
         for (const auto &el: wordList)
             if (el != stringList.back())
                 stringList.emplace_back(el);
+    }
 
+    /// stringList Getter
+    [[maybe_unused]] [[nodiscard]] constexpr const auto &getStringList() const {
+        return stringList;
     }
 
     /**
@@ -59,7 +90,7 @@ public:
      * @return a vector of strings matching the pattern.
      */
     std::vector<privacy::string> fuzzyMatch(const privacy::string &pattern, const int &maxDistance) {
-        std::vector<privacy::string> matches;
+        std::vector<privacy::string> matches{};
         // The maximum and minimum size of a string to be considered a match
         auto maxSize{pattern.size() + maxDistance + 1};
         auto minSize{pattern.size() - (maxDistance + 1)};
@@ -74,9 +105,12 @@ public:
         return matches;
     }
 
+    /// Default destructor
+    virtual ~FuzzyMatcher() noexcept = default;
+
 
 private:
-    std::vector<privacy::string> stringList;
+    std::vector<privacy::string> stringList{};
 
     /**
      * @brief Calculates the Levenshtein Distance between two strings.
@@ -86,7 +120,7 @@ private:
      * @note The Levenshtein distance calculated by this function is case insensitive,
      * i.e the strings are converted to lowercase when calculating the edit distance.
      */
-    static int levenshteinDistance(const privacy::string &str1, const privacy::string &str2) {
+    constexpr static int levenshteinDistance(const privacy::string &str1, const privacy::string &str2) {
         int m = static_cast<int>(str1.length());
         int n = static_cast<int>(str2.length());
 
