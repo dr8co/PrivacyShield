@@ -135,7 +135,7 @@ inline void addPassword(privacy::vector<passwordRecords> &passwords) {
 }
 
 /// @brief Generates a random password.
-inline void generatePassword(privacy::vector<passwordRecords> &passwords [[maybe_unused]]) {
+inline void generatePassword(privacy::vector<passwordRecords> &) {
     int length = getResponseInt("Enter the length of the password to generate: ");
 
     int tries{0};
