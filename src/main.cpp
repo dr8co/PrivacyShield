@@ -53,9 +53,9 @@ int main(int argc, char **argv) {
         std::cout << std::endl;
     }
 
-    // Handle keyboard interrupt (Ctrl+C) signals from the user
+    // Handle the keyboard interrupt (SIGINT) signal (i.e., Ctrl+C)
     struct sigaction act{};
-    act.sa_handler = [](int num [[maybe_unused]]) -> void {
+    act.sa_handler = [](int /* unused */) noexcept -> void {
         printColor("Keyboard interrupt detected. Unsaved data might be lost if you quit now."
                    "\nDo you still want to quit? (y/n):", 'r');
         if (validateYesNo()) std::exit(1);
@@ -94,15 +94,6 @@ int main(int argc, char **argv) {
         if (sodium_init() == -1)
             throw std::runtime_error("Failed to initialize libsodium.");
 
-        // All the available tools
-        std::unordered_map<int, std::function<void(void)>> apps = {
-                {1, passwordManager},
-                {2, encryptDecrypt},
-                {3, fileShredder},
-                {4, clearPrivacyTracks},
-                {5, duplicateFinder}
-        };
-
         // Display information about the program
         std::cout << "\nPrivacy Shield 1.0.0\n"
                      "Copyright (C) 2023 Ian Duncan.\n"
@@ -112,6 +103,16 @@ int main(int argc, char **argv) {
                      "For more information, see https://www.gnu.org/licenses/gpl.html.\n"
                   << std::endl;
 
+        // All the available tools
+        std::unordered_map<int, std::function<void(void)>> apps = {
+                {1, passwordManager},
+                {2, encryptDecrypt},
+                {3, fileShredder},
+                {4, clearPrivacyTracks},
+                {5, duplicateFinder}
+        };
+
+        // Applications loop
         while (true) {
             std::cout << "-------------------------------------\n";
             std::cout << "1. Manage passwords\n";
