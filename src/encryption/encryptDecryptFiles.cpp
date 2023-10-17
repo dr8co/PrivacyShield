@@ -38,11 +38,9 @@ constexpr std::size_t CHUNK_SIZE = 4096;            // Read/Write files in chunk
 constexpr unsigned int PBKDF2_ITERATIONS = 100'000; // Iterations for PBKDF2 key derivation
 
 
-/**
- * @brief Generates random bytes using a CSPRNG.
- * @param saltSize number of bytes of salt to generate.
- * @return the generated salt as a vector.
- */
+/// \brief Generates random bytes using a CSPRNG.
+/// \param saltSize number of bytes of salt to generate.
+/// \return the generated salt as a vector.
 privacy::vector<unsigned char> generateSalt(int saltSize) {
     std::mutex m;
     privacy::vector<unsigned char> salt(saltSize);
@@ -56,17 +54,15 @@ privacy::vector<unsigned char> generateSalt(int saltSize) {
     return salt;
 }
 
-/**
- * @brief Derives a key from a password and a salt.
- * @param password the password.
- * @param salt the salt.
- * @param keySize the size (length) of the key in bytes.
- * @return the generated key.
- *
- * @details Key derivation is done using the PBKDF2 algorithm.
- * @details BLAKE2b512 is used as the hash function for PBKDF2
- * and the number of iterations is set to 100,000.
- */
+/// \brief Derives a key from a password and a salt.
+/// \param password the password.
+/// \param salt the salt.
+/// \param keySize the size (length) of the key in bytes.
+/// \return the generated key.
+///
+/// \details Key derivation is done using the PBKDF2 algorithm.
+/// \details BLAKE2b512 is used as the hash function for PBKDF2
+/// and the number of iterations is set to 100,000.
 privacy::vector<unsigned char>
 deriveKey(const privacy::string &password, const privacy::vector<unsigned char> &salt, const int &keySize) {
     // A validation check
@@ -91,7 +87,7 @@ deriveKey(const privacy::string &password, const privacy::vector<unsigned char> 
     // Dynamic memory management of kdfCtx
     std::unique_ptr<EVP_KDF_CTX, decltype(&EVP_KDF_CTX_free)> ctxPtr(kdfCtx, EVP_KDF_CTX_free);
 
-    /*************** Set the required parameters **************/
+    /// ************* Set the required parameters *************
     // Set the password to derive the key from
     *p++ = OSSL_PARAM_construct_octet_string(OSSL_KDF_PARAM_PASSWORD, (void *) password.data(), password.size());
 
@@ -110,7 +106,7 @@ deriveKey(const privacy::string &password, const privacy::vector<unsigned char> 
     *p++ = OSSL_PARAM_construct_int(OSSL_KDF_PARAM_PKCS5, &pkcs5);
 
     *p = OSSL_PARAM_construct_end(); // Finalize parameter construction
-    /************** end of parameters construction *************/
+    /// ************ end of parameters construction ************
 
     // Derive the key using the parameters
     privacy::vector<unsigned char> key(keySize);
@@ -120,17 +116,15 @@ deriveKey(const privacy::string &password, const privacy::vector<unsigned char> 
     return key;
 }
 
-/**
- * @brief Encrypts a file with a strong block cipher.
- * @param inputFile The file to be encrypted.
- * @param outputFile The file to store the encrypted content.
- * @param password The password used to encrypt the file.
- *
- * @details Available ciphers: AES-256, Camellia-256, and Aria-256.
- * @details Encryption mode: CBC.
- * @details Key derivation function: PBKDF2 with BLAKE2b512 as the digest function (salted).
- * @details The IV is generated randomly with a CSPRNG and prepended to the encrypted file.
- */
+/// \brief Encrypts a file with a strong block cipher.
+/// \param inputFile The file to be encrypted.
+/// \param outputFile The file to store the encrypted content.
+/// \param password The password used to encrypt the file.
+///
+/// \details Available ciphers: AES-256, Camellia-256, and Aria-256.
+/// \details Encryption mode: CBC.
+/// \details Key derivation function: PBKDF2 with BLAKE2b512 as the digest function (salted).
+/// \details The IV is generated randomly with a CSPRNG and prepended to the encrypted file.
 void encryptFile(const std::string &inputFile, const std::string &outputFile, const privacy::string &password,
                  const std::string &algo) {
     // Open the input file for reading
@@ -210,12 +204,10 @@ void encryptFile(const std::string &inputFile, const std::string &outputFile, co
     outFile.write(reinterpret_cast<const char *>(outBuf.data()), bytesWritten);
 }
 
-/**
- * @brief Decrypts a file encrypted by encryptFile() function.
- * @param inputFile The file to be decrypted.
- * @param outputFile The file to store the decrypted content.
- * @param password The password used to decrypt the file.
- */
+/// \brief Decrypts a file encrypted by encryptFile() function.
+/// \param inputFile The file to be decrypted.
+/// \param outputFile The file to store the decrypted content.
+/// \param password The password used to decrypt the file.
 void decryptFile(const std::string &inputFile, const std::string &outputFile, const privacy::string &password,
                  const std::string &algo) {
     // Open the input file for reading
@@ -309,18 +301,16 @@ inline void throwSafeError(gcry_error_t &err, const std::string &message) {
     throw std::runtime_error(std::format("{}: {}", message, gcry_strerror(err)));
 }
 
-/**
- * @brief Encrypts a file with ciphers that use more rounds.
- * @param inputFilePath the file to be encrypted.
- * @param outputFilePath the file to save the ciphertext to.
- * @param password the password used to encrypt the file.
- *
- * @details Available ciphers: Serpent-256 and Twofish-256.
- * @details Encryption mode: Counter (CTR).
- * @details The key is derived from the password and a randomly generated salt
- * using PBKDF2 with BLAKE2b-512 as the hash function.
- * @details The IV(nonce) is randomly generated and stored in the output file.
- */
+/// \brief Encrypts a file with ciphers that use more rounds.
+/// \param inputFilePath the file to be encrypted.
+/// \param outputFilePath the file to save the ciphertext to.
+/// \param password the password used to encrypt the file.
+///
+/// \details Available ciphers: Serpent-256 and Twofish-256.
+/// \details Encryption mode: Counter (CTR).
+/// \details The key is derived from the password and a randomly generated salt
+/// using PBKDF2 with BLAKE2b-512 as the hash function.
+/// \details The IV(nonce) is randomly generated and stored in the output file.
 void
 encryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &outputFilePath,
                           const privacy::string &password, const gcry_cipher_algos &algorithm) {
@@ -392,12 +382,10 @@ encryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
     gcry_cipher_close(cipherHandle);
 }
 
-/**
- * @brief Decrypts a file encrypted by encryptFileWithMoreRounds() function.
- * @param inputFilePath The file to be decrypted.
- * @param outputFilePath The file to store the decrypted content.
- * @param password The password used to decrypt the file.
- */
+/// \brief Decrypts a file encrypted by encryptFileWithMoreRounds() function.
+/// \param inputFilePath The file to be decrypted.
+/// \param outputFilePath The file to store the decrypted content.
+/// \param password The password used to decrypt the file.
 void
 decryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &outputFilePath,
                           const privacy::string &password, const gcry_cipher_algos &algorithm) {

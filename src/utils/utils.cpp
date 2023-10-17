@@ -25,11 +25,9 @@
 
 namespace fs = std::filesystem;
 
-/**
- * @brief Performs Base64 decoding of a string into binary data.
- * @param encodedData Base64 encoded string.
- * @return a vector of the decoded binary data.
- */
+/// \brief Performs Base64 decoding of a string into binary data.
+/// \param encodedData Base64 encoded string.
+/// \return a vector of the decoded binary data.
 std::vector<unsigned char> base64Decode(const std::string &encodedData) {
     BIO *bio, *b64;
     int len;
@@ -57,11 +55,9 @@ std::vector<unsigned char> base64Decode(const std::string &encodedData) {
     return decodedData;
 }
 
-/**
- * @brief Trims space (whitespace) off the beginning and end of a string.
- * @param str the string to trim.
- */
-template<typename T >
+/// \brief Trims space (whitespace) off the beginning and end of a string.
+/// \param str the string to trim.
+template<typename T>
 inline void trimSpace(T &str) {
     // Trim the leading space (my IDE finds the w-word offensive)
     std::input_iterator auto it = std::ranges::find_if_not(str.begin(), str.end(),
@@ -73,12 +69,10 @@ inline void trimSpace(T &str) {
     str.erase(it, str.end());
 }
 
-/**
- * @brief Captures the user's response while offering editing capabilities
- * while the user is entering the data.
- * @param prompt the prompt displayed to the user for the input.
- * @return the user's input (string) if successful, else nullptr.
- */
+/// \brief Captures the user's response while offering editing capabilities
+/// while the user is entering the data.
+/// \param prompt the prompt displayed to the user for the input.
+/// \return the user's input (string) if successful, else nullptr.
 std::string getResponseStr(const std::string &prompt) {
     std::cout << prompt << std::endl;
     char *tmp = readline("> ");
@@ -92,12 +86,10 @@ std::string getResponseStr(const std::string &prompt) {
     return str;
 }
 
-/**
- * @brief Captures the user's response while offering editing capabilities.
- * while the user is entering the data.
- * @param prompt the prompt displayed to the user for the input.
- * @return the user's input (an integer) on if it's convertible to integer, else 0.
- */
+/// \brief Captures the user's response while offering editing capabilities.
+/// while the user is entering the data.
+/// \param prompt the prompt displayed to the user for the input.
+/// \return the user's input (an integer) on if it's convertible to integer, else 0.
 int getResponseInt(const std::string &prompt) {
     // A lambda to convert a string to an integer
     constexpr auto toInt = [](std::string_view s) noexcept -> int {
@@ -108,11 +100,9 @@ int getResponseInt(const std::string &prompt) {
     return toInt(getResponseStr(prompt));
 }
 
-/**
- * @brief Reads sensitive input from a terminal without echoing them.
- * @param prompt the prompt to display.
- * @return the user's input.
- */
+/// \brief Reads sensitive input from a terminal without echoing them.
+/// \param prompt the prompt to display.
+/// \return the user's input.
 privacy::string getSensitiveInfo(const std::string &prompt) {
     termios oldSettings{}, newSettings{};
 
@@ -136,47 +126,39 @@ privacy::string getSensitiveInfo(const std::string &prompt) {
     return secret;
 }
 
-/**
- * @brief Confirms a user's response to a yes/no (y/n) situation.
- * @param prompt The confirmation prompt.
- * @return True if the user confirms the action, else false.
- */
+/// \brief Confirms a user's response to a yes/no (y/n) situation.
+/// \param prompt The confirmation prompt.
+/// \return True if the user confirms the action, else false.
 bool validateYesNo(const std::string &prompt) {
     std::string resp = getResponseStr(prompt);
     if (resp.empty()) return false;
     return std::tolower(resp.at(0)) == 'y';
 }
 
-/**
- * @brief Checks if an existing file grants write permissions.
- * to the current user.
- * @param filename the path to the file.
- * @return true if the current user has write permissions, else false.
- */
+/// \brief Checks if an existing file grants write permissions.
+/// to the current user.
+/// \param filename the path to the file.
+/// \return true if the current user has write permissions, else false.
 bool isWritable(const std::string &filename) {
     return access(filename.c_str(), F_OK | W_OK) == 0;
 }
 
-/**
- * @brief Checks if an existing file grants read permissions.
- * to the current user.
- * @param filename the path to the file.
- * @return true if the current user has read permissions, else false.
- */
+/// \brief Checks if an existing file grants read permissions.
+/// to the current user.
+/// \param filename the path to the file.
+/// \return true if the current user has read permissions, else false.
 bool isReadable(const std::string &filename) {
     return access(filename.c_str(), F_OK | R_OK) == 0;
 }
 
-/**
- * @brief Checks the available space on disk.
- * @param path The path to check.
- * @return The available space in bytes.
- *
- * @warning This function does not throw, and returns 0 in case of an error.
- * @note This function is meant to be used to detect possible errors
- * early enough before file operations, and to warn the user to
- * check their filesystem storage space when it seems insufficient.
- */
+/// \brief Checks the available space on disk.
+/// \param path The path to check.
+/// \return The available space in bytes.
+///
+/// \warning This function does not throw, and returns 0 in case of an error.
+/// \note This function is meant to be used to detect possible errors
+/// early enough before file operations, and to warn the user to
+/// check their filesystem storage space when it seems insufficient.
 std::uintmax_t getAvailableSpace(const std::string &path) noexcept {
     fs::path filePath(path);
 
@@ -193,15 +175,14 @@ std::uintmax_t getAvailableSpace(const std::string &path) noexcept {
     return std::cmp_less(space.available, 0) || std::cmp_equal(space.available, UINTMAX_MAX) ? 0 : space.available;
 }
 
-/**
- * @brief Copies a file's permissions to another, replacing if necessary.
- * @param srcFile The source file.
- * @param destFile The destination file.
- * @return True if the operation is successful, else false.
- *
- * @note This function is only needed for the preservation of file permissions
- * during encryption and decryption.
- */
+
+/// \brief Copies a file's permissions to another, replacing if necessary.
+/// \param srcFile The source file.
+/// \param destFile The destination file.
+/// \return True if the operation is successful, else false.
+///
+/// \note This function is only needed for the preservation of file permissions
+/// during encryption and decryption.
 bool copyFilePermissions(const std::string &srcFile, const std::string &destFile) noexcept {
     std::error_code ec;
     // Get the permissions of the input file
@@ -215,12 +196,10 @@ bool copyFilePermissions(const std::string &srcFile, const std::string &destFile
     return true;
 }
 
-/**
- * @brief Gets the value of an environment variable.
- * @param var an environment variable to query.
- * @return the value of the environment variable if it exists, else nullopt (nothing).
- * @note The returned value MUST be checked before access.
- */
+/// \brief Gets the value of an environment variable.
+/// \param var an environment variable to query.
+/// \return the value of the environment variable if it exists, else nullopt (nothing).
+/// \note The returned value MUST be checked before access.
 std::optional<std::string> getEnv(const char *const var) {
     // Use secure_getenv() if available
 #if _GNU_SOURCE
@@ -233,12 +212,10 @@ std::optional<std::string> getEnv(const char *const var) {
     return std::nullopt;
 }
 
-/**
- * @brief Retrieves the user's home directory
- * @return The home directory read from {'HOME', 'USERPROFILE'}
- * environment variables, else the current working directory (or an empty
- * string if the current directory couldn't be determined).
- */
+/// \brief Retrieves the user's home directory
+/// \return The home directory read from {'HOME', 'USERPROFILE'}
+/// environment variables, else the current working directory (or an empty
+/// string if the current directory couldn't be determined).
 std::string getHomeDir() noexcept {
     std::error_code ec;
     // Try to get the home directory from the environment variables

@@ -18,9 +18,7 @@
 
 #include <openssl/evp.h>
 
-/**
- * @brief A class wrapper for OpenSSL cipher implementations and contexts.
- */
+/// \brief A class wrapper for OpenSSL cipher implementations and contexts.
 class CryptoCipher {
 public:
     // Only one constructor without parameters to avoid potential mix-ups
@@ -33,12 +31,12 @@ public:
     constexpr CryptoCipher &operator=(const CryptoCipher &) noexcept = delete;
 
     // Setters
-    /** setter for the cipher implementation */
+    /// setter for the cipher implementation
     constexpr void setCipher() {
         cipher = EVP_CIPHER_fetch(libCtx, algo, propQuery);
     }
 
-    /** Overloaded setter for cipher implementation */
+    /// Overloaded setter for cipher implementation
     constexpr void setCipher(OSSL_LIB_CTX *libraryContext, const char *algorithm, const char *propertyQuery) {
         setLibCtx(libraryContext);
         setAlgo(algorithm);
@@ -47,48 +45,48 @@ public:
         setCipher();
     }
 
-    /** setter for the cipher context */
+    /// setter for the cipher context
     void setCtx() {
         ctx = EVP_CIPHER_CTX_new();
     }
 
-    /** setter for the library context */
+    /// setter for the library context
     constexpr void setLibCtx(OSSL_LIB_CTX *libContext) {
         libCtx = libContext;
     }
 
-    /** setter for the cipher algorithm */
+    /// setter for the cipher algorithm
     constexpr void setAlgo(const char *algorithm) {
         algo = algorithm;
     }
 
-    /** setter for the implementation property query */
+    /// setter for the implementation property query
     constexpr void setPropQuery(const char *propertyQuery) {
         propQuery = propertyQuery;
     }
 
     // Getters
-    /** Getter for property query */
+    /// Getter for property query
     [[maybe_unused]] [[nodiscard]] constexpr const char *getPropQuery() const noexcept {
         return propQuery;
     }
 
-    /** Getter for the cipher algorithm */
+    /// Getter for the cipher algorithm
     [[maybe_unused]] [[nodiscard]] constexpr const char *getAlgo() const noexcept {
         return algo;
     }
 
-    /** Getter for the library context */
+    /// Getter for the library context
     [[maybe_unused]] [[nodiscard]] constexpr OSSL_LIB_CTX *getLibCtx() const noexcept {
         return libCtx;
     }
 
-    /** Getter for the cipher context */
+    /// Getter for the cipher context
     [[nodiscard]] constexpr EVP_CIPHER_CTX *getCtx() const noexcept {
         return ctx;
     }
 
-    /** Getter for the cipher implementation */
+    /// Getter for the cipher implementation
     [[nodiscard]] constexpr EVP_CIPHER *getCipher() const noexcept {
         return cipher;
     }

@@ -32,21 +32,15 @@ namespace fs = std::filesystem;
 constexpr std::size_t CHUNK_SIZE = 4096;  // Read and process files in chunks of 4 kB
 
 
-/**
- * @brief Represents a file by its path (canonical) and hash.
- */
+/// \brief Represents a file by its path (canonical) and hash.
 struct FileInfo {
     std::string path; // the path to the file.
     std::string hash; // the file's BLAKE3 hash
 };
 
-
-/**
- * @brief Calculates the 256-bit BLAKE3 hash of a file.
- *
- * @param filePath path to the file.
- * @return Base64-encoded hash of the file.
- */
+/// \brief Calculates the 256-bit BLAKE3 hash of a file.
+/// \param filePath path to the file.
+/// \return Base64-encoded hash of the file.
 std::string calculateBlake3(const std::string &filePath) {
     // Open the file
     std::ifstream file(filePath, std::ios::binary);
@@ -73,10 +67,8 @@ std::string calculateBlake3(const std::string &filePath) {
     return base64Encode(digest);
 }
 
-/**
- * @brief handles file i/o errors during low-level file operations.
- * @param filename path to the file on which an error occurred.
- */
+/// \brief handles file i/o errors during low-level file operations.
+/// \param filename path to the file on which an error occurred.
 inline void handleAccessError(const std::string &filename) {
     std::string errMsg;
     switch (errno) {
@@ -108,11 +100,9 @@ inline void handleAccessError(const std::string &filename) {
     printColor(std::format("Skipping '{}': {}.", filename, errMsg), 'r', true, std::cerr);
 }
 
-/**
- * @brief recursively traverses a directory and collects file information.
- * @param directoryPath the directory to process.
- * @param files a vector to store the information from the files found in the directory.
- */
+/// \brief recursively traverses a directory and collects file information.
+/// \param directoryPath the directory to process.
+/// \param files a vector to store the information from the files found in the directory.
 void traverseDirectory(const std::string &directoryPath, std::vector<FileInfo> &files) {
 
     for (const auto &entry: fs::recursive_directory_iterator(directoryPath,
@@ -138,12 +128,10 @@ void traverseDirectory(const std::string &directoryPath, std::vector<FileInfo> &
     }
 }
 
-/**
- * @brief calculates hashes for a range of files.
- * @param files the files to process.
- * @param start the index where processing starts.
- * @param end the index where processing ends.
- */
+/// \brief calculates hashes for a range of files.
+/// \param files the files to process.
+/// \param start the index where processing starts.
+/// \param end the index where processing ends.
 void calculateHashes(std::vector<FileInfo> &files, std::size_t start, std::size_t end) {
     // Check if the range is valid
     if (start > end || end > files.size())
@@ -154,11 +142,9 @@ void calculateHashes(std::vector<FileInfo> &files, std::size_t start, std::size_
         files[i].hash = calculateBlake3(files[i].path);
 }
 
-/**
- * @brief finds duplicate files (by content) in a directory.
- * @param directoryPath - the directory to process.
- * @return True if duplicates are found, else False.
- */
+/// \brief finds duplicate files (by content) in a directory.
+/// \param directoryPath - the directory to process.
+/// \return True if duplicates are found, else False.
 std::size_t findDuplicates(const std::string &directoryPath) {
     // Initialize libsodium if not already initialized
     if (sodium_init() == -1)
@@ -227,9 +213,7 @@ std::size_t findDuplicates(const std::string &directoryPath) {
     return numDuplicates;
 }
 
-/**
- * @brief A simple duplicate file detective.
- */
+/// \brief A simple duplicate file detective.
 void duplicateFinder() {
     while (true) {
         std::cout << "\n------------------- Duplicate Finder -------------------\n";

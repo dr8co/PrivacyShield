@@ -27,11 +27,9 @@
 
 namespace fs = std::filesystem;
 
-/**
- * @brief Checks the strength of a password.
- * @param password the password to process.
- * @return True if the password is strong, False otherwise.
- */
+/// \brief Checks the strength of a password.
+/// \param password the password to process.
+/// \return True if the password is strong, False otherwise.
 bool isPasswordStrong(const privacy::string &password) noexcept {
     // Check the length
     if (password.length() < 8)
@@ -61,11 +59,9 @@ bool isPasswordStrong(const privacy::string &password) noexcept {
     return false;
 }
 
-/**
- * @brief Generates a random password.
- * @param length the length of the password.
- * @return a random password.
- */
+/// \brief Generates a random password.
+/// \param length the length of the password.
+/// \return a random password.
 privacy::string generatePassword(int length) {
     // a password shouldn't be too short, nor too long
     if (length < 8)
@@ -101,14 +97,12 @@ privacy::string generatePassword(int length) {
     return password;
 }
 
-/**
- * @brief Hashes a password (using Argon2id implementation from Sodium)
- * for verification without having to store the password.
- * @param password the password to hash.
- * @param opsLimit the maximum amount of computations to perform.
- * @param memLimit the maximum amount of RAM in bytes that the function will use.
- * @return a string of the password hash and it's associated data.
- */
+/// \brief Hashes a password (using Argon2id implementation from Sodium)
+/// for verification without having to store the password.
+/// \param password the password to hash.
+/// \param opsLimit the maximum amount of computations to perform.
+/// \param memLimit the maximum amount of RAM in bytes that the function will use.
+/// \return a string of the password hash and it's associated data.
 privacy::string
 hashPassword(const privacy::string &password, const std::size_t &opsLimit, const std::size_t &memLimit) {
     std::array<char, crypto_pwhash_STRBYTES> hashedPassword{};
@@ -122,12 +116,10 @@ hashPassword(const privacy::string &password, const std::size_t &opsLimit, const
     return privacy::string{hashedPassword.data()};
 }
 
-/**
- * @brief Verifies a password.
- * @param password the password being verified.
- * @param storedHash the hash to verify the password against.
- * @return true if the verification succeeds, else false.
- */
+/// \brief Verifies a password.
+/// \param password the password being verified.
+/// \param storedHash the hash to verify the password against.
+/// \return true if the verification succeeds, else false.
 bool verifyPassword(const privacy::string &password, const privacy::string &storedHash) {
     return crypto_pwhash_str_verify(storedHash.c_str(),
                                     password.c_str(),
@@ -212,13 +204,11 @@ inline void checkCommonErrors(const std::string &path) {
         throw std::runtime_error(std::format("The password file ({}) is not a regular file.", path));
 }
 
-/**
- * @brief Encrypts and then saves passwords to a file.
- * @param passwords a vector of password records.
- * @param filePath the path where the file is saved.
- * @param encryptionKey the key/password to encrypt the passwords in the process.
- * @return True, if successful.
- */
+/// \brief Encrypts and then saves passwords to a file.
+/// \param passwords a vector of password records.
+/// \param filePath the path where the file is saved.
+/// \param encryptionKey the key/password to encrypt the passwords in the process.
+/// \return True, if successful.
 bool savePasswords(privacy::vector<passwordRecords> &passwords, const std::string &filePath,
                    const privacy::string &encryptionKey) {
 
@@ -261,12 +251,10 @@ bool savePasswords(privacy::vector<passwordRecords> &passwords, const std::strin
     return true;
 }
 
-/**
- * @brief Loads the encrypted passwords from the disk, and decrypts them.
- * @param filePath path to the password file.
- * @param decryptionKey the key/password to decrypt the passwords.
- * @return decrypted password records.
- */
+/// \brief Loads the encrypted passwords from the disk, and decrypts them.
+/// \param filePath path to the password file.
+/// \param decryptionKey the key/password to decrypt the passwords.
+/// \return decrypted password records.
 privacy::vector<passwordRecords> loadPasswords(const std::string &filePath, const privacy::string &decryptionKey) {
     privacy::vector<passwordRecords> passwords;
     passwords.reserve(1024);
@@ -319,11 +307,9 @@ privacy::vector<passwordRecords> loadPasswords(const std::string &filePath, cons
     return passwords;
 }
 
-/**
- * @brief Helps the user change the primary password.
- * @param primaryPassword the current primary password.
- * @return True if the password is changed successfully, else false.
- */
+/// \brief Helps the user change the primary password.
+/// \param primaryPassword the current primary password.
+/// \return True if the password is changed successfully, else false.
 bool changeMasterPassword(privacy::string &primaryPassword) {
     privacy::string oldPassword{getSensitiveInfo("Enter the current primary password: ")};
 
@@ -363,10 +349,8 @@ bool changeMasterPassword(privacy::string &primaryPassword) {
     return true;
 }
 
-/**
- * @brief Helps with the initial setup of the password manager.
- * @return New primary password and/or path to the password file, whichever is applicable.
- */
+/// \brief Helps with the initial setup of the password manager.
+/// \return New primary password and/or path to the password file, whichever is applicable.
 std::pair<std::string, privacy::string> initialSetup() noexcept {
     std::pair<std::string, privacy::string> ret{"", ""}; // ret.first = path to file, ret.second = new primary password
 
@@ -397,7 +381,7 @@ std::pair<std::string, privacy::string> initialSetup() noexcept {
             }
 
             const auto hash = hashPassword(pass, crypto_pwhash_OPSLIMIT_INTERACTIVE,
-                                            crypto_pwhash_MEMLIMIT_INTERACTIVE);
+                                           crypto_pwhash_MEMLIMIT_INTERACTIVE);
             privacy::string pass2{getSensitiveInfo("Enter the password again: ")};
 
             if (!verifyPassword(pass2, hash)) {
@@ -428,11 +412,9 @@ std::pair<std::string, privacy::string> initialSetup() noexcept {
     return ret;
 }
 
-/**
- * @brief Reads the primary password hash from the password records.
- * @param filePath the path to the file containing the password records (the password file).
- * @return the primary password hash.
- */
+/// \brief Reads the primary password hash from the password records.
+/// \param filePath the path to the file containing the password records (the password file).
+/// \return the primary password hash.
 privacy::string getHash(const std::string &filePath) {
     checkCommonErrors(filePath);
     if (fs::is_empty(filePath))
@@ -461,11 +443,9 @@ privacy::string getHash(const std::string &filePath) {
     return pwHash;
 }
 
-/**
- * @brief Export the password records to a CSV file.
- * @param records the password records to export.
- * @param filePath the file to export to.
- */
+/// \brief Export the password records to a CSV file.
+/// \param records the password records to export.
+/// \param filePath the file to export to.
 bool exportCsv(const privacy::vector<passwordRecords> &records, const std::string &filePath) {
     fs::path filepath(filePath);
     std::error_code ec;
@@ -530,10 +510,8 @@ bool exportCsv(const privacy::vector<passwordRecords> &records, const std::strin
     return true;
 }
 
-/**
- * @brief Trims space (whitespace) off the beginning and end of a string.
- * @param str the string to trim.
- */
+/// \brief Trims space (whitespace) off the beginning and end of a string.
+/// \param str the string to trim.
 inline void trim(std::string &str) {
     // Trim the leading space (my IDE finds the w-word offensive)
     std::input_iterator auto it = std::ranges::find_if_not(str.begin(), str.end(),
@@ -545,15 +523,12 @@ inline void trim(std::string &str) {
     str.erase(it, str.end());
 }
 
-/**
- * @brief Imports password records from a csv file.
- * @param filePath Path to the csv file.
- * @return Imported password records.
- *
- * @note This function expects the csv data to have only three columns: {site, username, password}.
- * The password entry cannot be empty, and either site or username can be empty, but not both.
- * Non-compliant rows will be ignored entirely.
- */
+/// \brief Imports password records from a csv file.
+/// \param filePath Path to the csv file.
+/// \return Imported password records.
+/// \note This function expects the csv data to have only three columns: {site, username, password}.
+/// The password entry cannot be empty, and either site or username can be empty, but not both.
+/// Non-compliant rows will be ignored entirely.
 privacy::vector<passwordRecords> importCsv(const std::string &filePath) {
     privacy::vector<passwordRecords> passwords;
 
@@ -566,7 +541,8 @@ privacy::vector<passwordRecords> importCsv(const std::string &filePath) {
 
     privacy::string line, value;
     if (hasHeader)
-        std::getline<char, std::char_traits<char>, privacy::Allocator<char>>(file, line); // Read and discard the first line
+        std::getline<char, std::char_traits<char>, privacy::Allocator<char>>(file,
+                                                                             line); // Read and discard the first line
 
     while (std::getline<char, std::char_traits<char>, privacy::Allocator<char>>(file, line)) {
         privacy::istringstream iss(line);

@@ -13,13 +13,11 @@ concept PrintableToStream = requires(std::ostream &os, const T &t) {
     os << t;
 };
 
-/**
- * @brief Prints colored text to a stream.
- * @param text the text to print.
- * @param color a character representing the desired color.
- * @param printNewLine a flag to indicate whether a newline should be printed after the text.
- * @param os the stream object to print to.
- */
+/// \brief Prints colored text to a stream.
+/// \param text the text to print.
+/// \param color a character representing the desired color.
+/// \param printNewLine a flag to indicate whether a newline should be printed after the text.
+/// \param os the stream object to print to.
 void printColor(const PrintableToStream auto &text, const char &color = 'w', const bool &printNewLine = false,
                 std::ostream &os = std::cout) {
     switch (color) {
@@ -64,11 +62,9 @@ concept uCharVector = std::copy_constructible<T> && requires(T t, unsigned char 
     t.shrink_to_fit();
 };
 
-/**
- * @brief Performs Base64 encoding of binary data into a string.
- * @param input a vector of the binary data to be encoded.
- * @return Base64-encoded string.
- */
+/// \brief Performs Base64 encoding of binary data into a string.
+/// \param input a vector of the binary data to be encoded.
+/// \return Base64-encoded string.
 std::string base64Encode(const uCharVector auto &input) {
     BIO *bio, *b64;
     BUF_MEM *bufferPtr;

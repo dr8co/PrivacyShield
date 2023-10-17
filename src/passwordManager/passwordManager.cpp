@@ -31,13 +31,11 @@ namespace fs = std::filesystem;
 using string = std::string;
 const string DefaultPasswordFile = getHomeDir() + "/.privacyShield/passwords";
 
-/**
- * @brief A binary predicate for searching, sorting, and deduplication of the password records,
- * based on the site and username members of a password tuple.
- * @param lhs a password record tuple.
- * @param rhs another record to be compared with lhs.
- * @return true if lhs is less than (i.e. is ordered before) rhs, else false.
- */
+/// \brief A binary predicate for searching, sorting, and deduplication of the password records,
+/// based on the site and username members of a password tuple.
+/// \param lhs a password record tuple.
+/// \param rhs another record to be compared with lhs.
+/// \return true if lhs is less than (i.e. is ordered before) rhs, else false.
 inline bool comparator
 // Avoid a gcc compiler error on ignored scoped attribute directives (-Werror=attributes is enabled in debug config),
 // while still encouraging both Clang and GCC compilers to inline the function.
@@ -52,10 +50,8 @@ inline bool comparator
            std::tie(std::get<0>(rhs), std::get<1>(rhs)) < nullptr;
 }
 
-/**
- * @brief Prints the details of a password record.
- * @param pw a password tuple.
- */
+/// \brief Prints the details of a password record.
+/// \param pw a password tuple.
 inline constexpr void printPasswordDetails(const auto &pw) noexcept {
     const auto &[site, username, pass]{pw};
     if (!site.empty()) { // Skip blank entries
@@ -447,7 +443,7 @@ inline void searchPasswords(privacy::vector<passwordRecords> &passwords) {
 
             } else printColor("Sorry, '" + query + "' not found.", 'r', true);
 
-        } else if (!fuzzyMatched.empty()) { /* multiple matches */
+        } else if (!fuzzyMatched.empty()) { // multiple matches
             printColor("Did you mean one of these?:", 'b', true);
             // Print all the matches
             for (const auto &el: fuzzyMatched) {

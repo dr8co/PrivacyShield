@@ -27,17 +27,15 @@
 #include <unordered_map>
 
 template<typename T>
-/**
- * @brief A concept describing a type convertible & comparable with uintmax_t.
- * @tparam T - An integral type.
- */
+
+/// \brief A concept describing a type convertible & comparable with uintmax_t.
+/// \tparam T - An integral type.
 concept Num = std::integral<T> && std::convertible_to<T, std::uintmax_t> &&
               std::equality_comparable_with<T, std::uintmax_t>;
 
-/**
- * @brief A class to make file sizes more readable.
- * @details Adapted from https://en.cppreference.com/w/cpp/filesystem/file_size
- */
+
+/// \brief A class to make file sizes more readable.
+/// \details Adapted from https://en.cppreference.com/w/cpp/filesystem/file_size
 class FormatFileSize {
 public:
     explicit FormatFileSize(const Num auto &size) {
@@ -60,9 +58,7 @@ private:
     }
 };
 
-/**
- * @brief Available encryption/decryption ciphers.
- */
+/// \brief Available encryption/decryption ciphers.
 enum class Algorithms : const
 unsigned int {
         AES      = 1 << 0,
@@ -72,18 +68,14 @@ unsigned int {
         Twofish  = 1 << 4
 };
 
-/**
- * @brief Operation modes: encryption or decryption.
- */
+/// \brief Operation modes: encryption or decryption.
 enum class OperationMode : const
 int {
         Encryption = 1,
         Decryption = 2
 };
 
-/**
- * @brief A structure to aid algorithm selection.
- */
+/// \brief A structure to aid algorithm selection.
 const struct {
     const std::string AES      = "AES-256-CBC";
     const std::string Camellia = "CAMELLIA-256-CBC";
@@ -189,7 +181,7 @@ void fileEncryptionDecryption(const std::string &inputFileName, const std::strin
     }
 
     try {
-        /** Encrypts/decrypts a file based on the passed mode and algorithm. */
+        /// Encrypts/decrypts a file based on the passed mode and algorithm.
         auto encryptDecrypt = [&](const std::string &algorithm) -> void {
             if (mode == OperationMode::Encryption) // Encryption
                 encryptFile(inputFileName, outputFileName, password, algorithm);
@@ -197,7 +189,7 @@ void fileEncryptionDecryption(const std::string &inputFileName, const std::strin
                 decryptFile(inputFileName, outputFileName, password, algorithm);
         };
 
-        /** Encrypts/decrypts a file using a cipher with more rounds. */
+        /// Encrypts/decrypts a file using a cipher with more rounds.
         auto encryptDecryptMoreRounds = [&](const gcry_cipher_algos &algo) -> void {
             if (mode == OperationMode::Encryption)  // Encryption
                 encryptFileWithMoreRounds(inputFileName, outputFileName, password, algo);
@@ -234,8 +226,9 @@ void fileEncryptionDecryption(const std::string &inputFileName, const std::strin
     }
 }
 
+/// \brief Encrypts and decrypts files.
 void encryptDecrypt() {
-    // I'm avoiding writing many if-else statements with these hashmaps
+    // I'm using hashmaps as an alternative to multiple if-else statements
     std::unordered_map<int, Algorithms> algoChoice = {
             {0, Algorithms::AES}, // Default
             {1, Algorithms::AES},
@@ -310,7 +303,7 @@ void encryptDecrypt() {
 
                 privacy::string password{getSensitiveInfo("Enter the password: ")};
 
-                // Confirm the password during encryption
+                // Confirm the password before encryption
                 if (choice == 1) {
                     privacy::string password2{getSensitiveInfo("Enter the password again: ")};
 

@@ -27,12 +27,10 @@
 
 namespace fs = std::filesystem;
 
-/**
- * @brief overwrites a file with random bytes.
- * @param file output file stream object.
- * @param fileSize the size of the file in bytes.
- * @param nPasses the number of passes to overwrite the file.
- */
+/// \brief overwrites a file with random bytes.
+/// \param file output file stream object.
+/// \param fileSize the size of the file in bytes.
+/// \param nPasses the number of passes to overwrite the file.
 void overwriteRandom(std::ofstream &file, const std::size_t fileSize, int nPasses = 1) {
 
     // Instantiate the random number generator
@@ -55,14 +53,11 @@ void overwriteRandom(std::ofstream &file, const std::size_t fileSize, int nPasse
 
 }
 
-/**
- * @brief overwrites a file wih a constant byte.
- * @tparam T type of the byte.
- * @param filename the path to the file to be overwritten.
- * @param byte the byte to overwrite the file with.
- * @param fileSize the size of the file in bytes.
- *
- */
+/// \brief overwrites a file wih a constant byte.
+/// \tparam T type of the byte.
+/// \param filename the path to the file to be overwritten.
+/// \param byte the byte to overwrite the file with.
+/// \param fileSize the size of the file in bytes.
 template<typename T>
 void overwriteConstantByte(std::ofstream &file, T byte, const auto &fileSize) {
     // seek to the beginning of the file
@@ -73,11 +68,9 @@ void overwriteConstantByte(std::ofstream &file, T byte, const auto &fileSize) {
     }
 }
 
-/**
- * @brief renames a file to a random name before removing it.
- * @param filename the path to the file to be renamed.
- * @param numTimes the number of times to rename the file.
- */
+/// \brief renames a file to a random name before removing it.
+/// \param filename the path to the file to be renamed.
+/// \param numTimes the number of times to rename the file.
 inline void renameAndRemove(const std::string &filename, int numTimes = 1) {
     constexpr int maxTries = 10;        // max number of trials to rename the file
     constexpr int minNameLength = 3;    // min length of the random name
@@ -137,10 +130,8 @@ inline void renameAndRemove(const std::string &filename, int numTimes = 1) {
     if (ec) std::cerr << "Failed to delete " << filename << ": " << ec.message() << '\n';
 }
 
-/**
- * @brief wipes the cluster tips of a file.
- * @param fileName the path to the file to be wiped.
- */
+/// \brief wipes the cluster tips of a file.
+/// \param fileName the path to the file to be wiped.
 inline void wipeClusterTips(const std::string &fileName) {
     int fileDescriptor = open(fileName.c_str(), O_RDWR);
     if (fileDescriptor == -1) {
@@ -188,10 +179,8 @@ inline void wipeClusterTips(const std::string &fileName) {
     close(fileDescriptor);
 }
 
-/**
- * @brief shreds a file by overwriting it with random bytes
- * @param filename path to the file being overwritten
- */
+/// \brief shreds a file by overwriting it with random bytes.
+/// \param filename path to the file being overwritten.
 void simpleShred(const std::string &filename, const int &nPasses = 3, bool wipeClusterTip = false) {
     std::ofstream file(filename, std::ios::binary | std::ios::in);
     if (!file)
@@ -221,11 +210,9 @@ void simpleShred(const std::string &filename, const int &nPasses = 3, bool wipeC
     renameAndRemove(filename, 3);
 }
 
-/**
- * @brief shreds a file using a simple version of
- * The U.S Department of Defence (DoD) 5220.22-M Standard algorithm.
- * @param filename - the path to the file to be shred.
- */
+/// \brief shreds a file using a simple version of
+/// The U.S Department of Defence (DoD) 5220.22-M Standard algorithm.
+/// \param filename - the path to the file to be shred.
 void dod5220Shred(const std::string &filename, const int &nPasses = 3, bool wipeClusterTip = false) {
     std::ofstream file(filename, std::ios::binary | std::ios::in);
     if (!file)
@@ -275,9 +262,7 @@ void dod5220Shred(const std::string &filename, const int &nPasses = 3, bool wipe
     renameAndRemove(filename, 3);
 }
 
-/**
- * @brief Represents the different shredding options.
- */
+/// \brief Represents the different shredding options.
 enum class shredOptions : const
 unsigned int {
     Simple          = 1 << 0,   // Simple overwrite with random bytes
@@ -286,21 +271,18 @@ unsigned int {
     WipeClusterTips = 1 << 3    // Wiping of the cluster tips
 };
 
-/**
- * @brief Adds write and write permissions to a file, if the user has authority.
- * @param fileName The file to modify.
- * @return True if the operation succeeds, else false.
- *
- * @details The actions of this function are similar to the unix command:
- * @code chmod ugo+rw fileName @endcode or @code chmod a+rw fileName @endcode
- * The read/write permissions are added for everyone.
- *
- * @note This function is meant for the file shredder ONLY, which might
- * need to modify a file's permissions (if and only if it has to) to successfully shred it.
- *
- * @warning Modifying file permissions unnecessarily is a serious security risk,
- * and this program doesn't take that for granted.
- */
+/// \brief Adds write and write permissions to a file, if the user has authority.
+/// \param fileName The file to modify.
+/// \return True if the operation succeeds, else false.
+///
+/// \details The actions of this function are similar to the unix command:
+/// \code chmod ugo+rw fileName @endcode or @code chmod a+rw fileName @endcode
+/// The read/write permissions are added for everyone.
+/// \note This function is meant for the file shredder ONLY, which might
+/// need to modify a file's permissions (if and only if it has to) to successfully shred it.
+///
+/// \warning Modifying file permissions unnecessarily is a serious security risk,
+/// and this program doesn't take that for granted.
 inline bool addReadWritePermissions(const std::string &fileName) noexcept {
     std::error_code ec;
     fs::permissions(fileName, fs::perms::owner_read | fs::perms::owner_write | fs::perms::group_read |
@@ -309,17 +291,15 @@ inline bool addReadWritePermissions(const std::string &fileName) noexcept {
     return !ec;
 }
 
-/**
- * @brief shreds a file (or all files and subdirectories of a directory)
- * using the specified options.
- * @param filePath - the path to the file to be shred.
- * @param options - the options to use when shredding the file.
- * @param simplePasses - the number of passes for random overwrite
- * for simple shredding.
- * @return true if the file (or directory) was shred successfully, false otherwise.
- * @warning If the filePath is a directory, then all its files and subdirectories
- * are shredded without warning.
- */
+/// \brief shreds a file (or all files and subdirectories of a directory)
+/// using the specified options.
+/// \param filePath - the path to the file to be shred.
+/// \param options - the options to use when shredding the file.
+/// \param simplePasses - the number of passes for random overwrite
+/// for simple shredding.
+/// \return true if the file (or directory) was shred successfully, false otherwise.
+/// \warning If the filePath is a directory, then all its files and subdirectories
+/// are shredded without warning.
 bool shredFiles(const std::string &filePath, const unsigned int &options, const int &simplePasses = 3) {
     std::error_code ec;
     fs::file_status fileStatus = fs::status(filePath, ec);
@@ -394,7 +374,7 @@ bool shredFiles(const std::string &filePath, const unsigned int &options, const 
 }
 
 void fileShredder() {
-    /** @brief Configures the shredding options. */
+    /// \brief Configures the shredding options.
     auto selectPreferences = [](unsigned int &preferences, int &simpleNumPass) {
         int moreChoices1 = getResponseInt("\n1. Continue with default shredding options\n"
                                           "2. Configure shredding options");

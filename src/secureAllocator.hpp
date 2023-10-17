@@ -25,29 +25,27 @@
 namespace privacy {
 
     template<typename T>
-    /**
-     * @brief Custom allocator for STL containers, which locks and zeroizes memory.
-     * @details Adapted from https://en.cppreference.com/w/cpp/named_req/Allocator
-     */
+    /// \brief Custom allocator for STL containers, which locks and zeroizes memory.
+    /// \details Adapted from https://en.cppreference.com/w/cpp/named_req/Allocator
     struct Allocator {
     public:
 
         [[maybe_unused]] typedef T value_type;
 
-        // Default constructor
+        /// Default constructor
         constexpr Allocator() noexcept = default;
 
-        // Assignment operator
+        /// Assignment operator
         constexpr Allocator &operator=(const Allocator &) noexcept = default;
 
-        // Destructor
+        /// Destructor
         ~Allocator() noexcept = default;
 
-        // Copy constructor
+        /// Copy constructor
         template<class U>
         constexpr explicit Allocator(const Allocator<U> &) noexcept {}
 
-        // Allocate memory
+        /// Allocate memory
         [[maybe_unused]] [[nodiscard]] constexpr T *allocate(std::size_t n) {
             if (n > std::numeric_limits<std::size_t>::max() / sizeof(T))
                 throw std::bad_array_new_length();
@@ -60,20 +58,20 @@ namespace privacy {
             throw std::bad_alloc();
         }
 
-        // Deallocate memory
+        /// Deallocate memory
         [[maybe_unused]] constexpr void deallocate(T *p, std::size_t n) noexcept {
             sodium_munlock(p, n * sizeof(T));  // Unlock and zeroize memory
             ::operator delete(p);
         }
     };
 
-    // Equality operators
+    /// Equality operators
     template<class T, class U>
     [[maybe_unused]] constexpr bool operator==(const Allocator<T> &, const Allocator<U> &) noexcept {
         return true;
     }
 
-    // Inequality operators
+    /// Inequality operators
     template<class T, class U>
     [[maybe_unused]] constexpr bool operator!=(const Allocator<T> &, const Allocator<U> &) noexcept {
         return false;

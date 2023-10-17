@@ -22,17 +22,15 @@
 #include <sodium.h>
 #include <format>
 
-/**
- * @brief Encrypts a string using symmetric unauthenticated encryption.
- * @param plaintext The string to be encrypted.
- * @param password The string to be used to derive the encryption key.
- * @return Base64-encoded ciphertext (the encrypted data).
- *
- * @details Available ciphers: AES-256, Camellia-256, and Aria-256.
- * @details Encryption mode: CBC.
- * @details The key is derived from the password using PBKDF2 with 100,000 rounds (salted).
- * @details The IV is generated randomly using a CSPRNG and prepended to the ciphertext.
- */
+/// \brief Encrypts a string using symmetric unauthenticated encryption.
+/// \param plaintext The string to be encrypted.
+/// \param password The string to be used to derive the encryption key.
+/// \return Base64-encoded ciphertext (the encrypted data).
+///
+/// \details Available ciphers: AES-256, Camellia-256, and Aria-256.
+/// \details Encryption mode: CBC.
+/// \details The key is derived from the password using PBKDF2 with 100,000 rounds (salted).
+/// \details The IV is generated randomly using a CSPRNG and prepended to the ciphertext.
 privacy::string
 encryptString(const privacy::string &plaintext, const privacy::string &password, const std::string &algo) {
     CryptoCipher cipher;
@@ -96,12 +94,10 @@ encryptString(const privacy::string &plaintext, const privacy::string &password,
     return privacy::string{base64Encode(result)};
 }
 
-/**
- * @brief Decrypts a string encrypted with the encryptString() function.
- * @param encodedCiphertext Base64-encoded ciphertext to be decrypted.
- * @param password The string to be used to derive the decryption key.
- * @return The decrypted string (the plaintext).
- */
+/// \brief Decrypts a string encrypted with the encryptString() function.
+/// \param encodedCiphertext Base64-encoded ciphertext to be decrypted.
+/// \param password The string to be used to derive the decryption key.
+/// \return The decrypted string (the plaintext).
 privacy::string
 decryptString(const std::string &encodedCiphertext, const privacy::string &password, const std::string &algo) {
     CryptoCipher cipher;
@@ -175,17 +171,15 @@ inline void throwSafeError(gcry_error_t &err, const std::string &message) {
     throw std::runtime_error(std::format("{}: {}", message, gcry_strerror(err)));
 }
 
-/**
- * @brief Encrypts a string with ciphers with more rounds.
- * @param plaintext The string to be encrypted.
- * @param password The string to be used to derive the encryption key.
- * @return Base64-encoded ciphertext (the encrypted data).
- *
- * @details Available ciphers: Serpent-256 and Twofish-256.
- * @details Encryption mode: CTR.
- * @details Key derivation function: PBKDF2 with 100,000 rounds.
- * @details The IV(nonce) is generated randomly and prepended to the ciphertext.
- */
+/// \brief Encrypts a string with ciphers with more rounds.
+/// \param plaintext The string to be encrypted.
+/// \param password The string to be used to derive the encryption key.
+/// \return Base64-encoded ciphertext (the encrypted data).
+///
+/// \details Available ciphers: Serpent-256 and Twofish-256.
+/// \details Encryption mode: CTR.
+/// \details Key derivation function: PBKDF2 with 100,000 rounds.
+/// \details The IV(nonce) is generated randomly and prepended to the ciphertext.
 privacy::string
 encryptStringWithMoreRounds(const privacy::string &plaintext, const privacy::string &password,
                             const gcry_cipher_algos &algorithm) {
@@ -247,12 +241,10 @@ encryptStringWithMoreRounds(const privacy::string &plaintext, const privacy::str
     return privacy::string{base64Encode(result)};
 }
 
-/**
- * @brief Decrypts a string encrypted by encryptStringWithMoreRounds() function.
- * @param encodedCiphertext Base64-encoded ciphertext to be decrypted.
- * @param password The string to be used to derive the decryption key.
- * @return The decrypted string (the plaintext).
- */
+/// \brief Decrypts a string encrypted by encryptStringWithMoreRounds() function.
+/// \param encodedCiphertext Base64-encoded ciphertext to be decrypted.
+/// \param password The string to be used to derive the decryption key.
+/// \return The decrypted string (the plaintext).
 privacy::string
 decryptStringWithMoreRounds(const std::string &encodedCiphertext, const privacy::string &password,
                             const gcry_cipher_algos &algorithm) {
