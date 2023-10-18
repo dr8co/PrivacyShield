@@ -39,6 +39,12 @@ public:
     /// Copy assignment operator
     constexpr FuzzyMatcher &operator=(const FuzzyMatcher &) noexcept = default;
 
+    /// Move constructor
+    constexpr FuzzyMatcher(FuzzyMatcher &&) noexcept = default;
+
+    /// Move assignment operator
+    constexpr FuzzyMatcher &operator=(FuzzyMatcher &&) noexcept = default;
+
     /// Equality operator
     constexpr bool operator==(const FuzzyMatcher &rhs) const noexcept {
         return stringList == rhs.stringList;

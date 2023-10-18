@@ -21,7 +21,7 @@
 /// \brief A class wrapper for OpenSSL cipher implementations and contexts.
 class CryptoCipher {
 public:
-    // Only one constructor without parameters to avoid potential mix-ups
+    // Default constructor
     constexpr CryptoCipher() noexcept = default;
 
     // Delete the copy constructor to disable copying of CryptoCipher objects
@@ -29,6 +29,12 @@ public:
 
     // Delete the copy assignment operator too
     constexpr CryptoCipher &operator=(const CryptoCipher &) noexcept = delete;
+
+    // Move constructor
+    constexpr CryptoCipher(CryptoCipher &&) noexcept = default;
+
+    // Move assignment operator
+    CryptoCipher &operator=(CryptoCipher &&) noexcept = default;
 
     // Setters
     /// setter for the cipher implementation
