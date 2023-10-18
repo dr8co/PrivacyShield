@@ -276,7 +276,7 @@ unsigned int {
 /// \return True if the operation succeeds, else false.
 ///
 /// \details The actions of this function are similar to the unix command:
-/// \code chmod ugo+rw fileName @endcode or @code chmod a+rw fileName @endcode
+/// \code chmod ugo+rw fileName \endcode or \code chmod a+rw fileName \endcode
 /// The read/write permissions are added for everyone.
 /// \note This function is meant for the file shredder ONLY, which might
 /// need to modify a file's permissions (if and only if it has to) to successfully shred it.

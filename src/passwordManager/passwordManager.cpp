@@ -69,7 +69,7 @@ inline constexpr void printPasswordDetails(const auto &pw) noexcept {
 
 }
 
-/// @brief Adds a new password to the saved records.
+/// \brief Adds a new password to the saved records.
 inline void addPassword(privacy::vector<passwordRecords> &passwords) {
     privacy::string site{getResponseStr("Enter the name of the site/app: ")};
     // The site name must be non-empty
@@ -130,7 +130,7 @@ inline void addPassword(privacy::vector<passwordRecords> &passwords) {
     });
 }
 
-/// @brief Generates a random password.
+/// \brief Generates a random password.
 inline void generatePassword(privacy::vector<passwordRecords> &) {
     int length = getResponseInt("Enter the length of the password to generate: ");
 
@@ -148,7 +148,7 @@ inline void generatePassword(privacy::vector<passwordRecords> &) {
     printColor(generatePassword(length), 'g', true);
 }
 
-/// @brief Shows all saved passwords.
+/// \brief Shows all saved passwords.
 inline void viewAllPasswords(privacy::vector<passwordRecords> &passwords) {
     // We mustn't modify the password records in this function
     auto &&constPasswordsRef = std::as_const(passwords);
@@ -175,7 +175,7 @@ inline void viewAllPasswords(privacy::vector<passwordRecords> &passwords) {
     }
 }
 
-/// @brief Handles fuzzy matching for update and deletion of passwords.
+/// \brief Handles fuzzy matching for update and deletion of passwords.
 inline void checkFuzzyMatches(auto &iter, privacy::vector<passwordRecords> &records, privacy::string &query) {
     // Fuzzy-match the query against the site names
     FuzzyMatcher matcher(records | std::ranges::views::elements<0>);
@@ -208,7 +208,7 @@ inline void checkFuzzyMatches(auto &iter, privacy::vector<passwordRecords> &reco
     }
 }
 
-/// @brief Updates a password record.
+/// \brief Updates a password record.
 inline void updatePassword(privacy::vector<passwordRecords> &passwords) {
     if (passwords.empty()) [[unlikely]] { // There is nothing to update
         printColor("No passwords saved yet.", 'r', true, std::cerr);
@@ -309,7 +309,7 @@ inline void updatePassword(privacy::vector<passwordRecords> &passwords) {
     }
 }
 
-/// @brief Deletes a password record.
+/// \brief Deletes a password record.
 inline void deletePassword(privacy::vector<passwordRecords> &passwords) { // Similar to updating a password
     if (passwords.empty()) {
         printColor("No passwords saved yet.", 'r', true, std::cerr);
@@ -381,7 +381,7 @@ inline void deletePassword(privacy::vector<passwordRecords> &passwords) { // Sim
     }
 }
 
-/// @brief Finds a password record.
+/// \brief Finds a password record.
 inline void searchPasswords(privacy::vector<passwordRecords> &passwords) {
     if (passwords.empty()) [[unlikely]] { // There is nothing to search
         printColor("No passwords saved yet.", 'r', true, std::cerr);
@@ -455,7 +455,7 @@ inline void searchPasswords(privacy::vector<passwordRecords> &passwords) {
 
 }
 
-/// @brief Imports passwords from a csv file.
+/// \brief Imports passwords from a csv file.
 inline void importPasswords(privacy::vector<passwordRecords> &passwords) {
     string fileName = getResponseStr("Enter the path to the csv file: ");
 
@@ -538,7 +538,7 @@ inline void importPasswords(privacy::vector<passwordRecords> &passwords) {
     else printColor("Passwords not imported.", 'r', true);
 }
 
-/// @brief Exports passwords to a csv file.
+/// \brief Exports passwords to a csv file.
 inline void exportPasswords(privacy::vector<passwordRecords> &passwords) {
     if (passwords.empty()) [[unlikely]] {
         printColor("No passwords saved yet.", 'r', true, std::cerr);
@@ -636,7 +636,7 @@ inline void analyzePasswords(privacy::vector<passwordRecords> &passwords) {
     } else printColor("All your passwords are strong. Keep it up!", 'g', true);
 }
 
-/// @brief A simple, minimalistic password manager.
+/// \brief A simple, minimalistic password manager.
 void passwordManager() {
     privacy::string encryptionKey;
     std::string passwordFile{DefaultPasswordFile};
