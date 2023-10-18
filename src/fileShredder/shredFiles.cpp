@@ -373,6 +373,7 @@ bool shredFiles(const std::string &filePath, const unsigned int &options, const 
     return true;
 }
 
+/// \brief A simple file shredder.
 void fileShredder() {
     /// \brief Configures the shredding options.
     auto selectPreferences = [](unsigned int &preferences, int &simpleNumPass) {

@@ -86,6 +86,9 @@ const struct {
 
 namespace fs = std::filesystem;
 
+/// \brief Checks for issues with the input file, that may hinder encryption/decryption.
+/// \param inFile the input file, to be encrypted/decrypted.
+/// \param mode the mode of operation: encryption or decryption.
 inline void checkInputFile(fs::path &inFile, const OperationMode &mode) {
     if (mode != OperationMode::Encryption && mode != OperationMode::Decryption)
         throw std::invalid_argument("Invalid mode of operation.");
@@ -111,7 +114,10 @@ inline void checkInputFile(fs::path &inFile, const OperationMode &mode) {
         throw std::runtime_error(std::format("{} is not readable.", file));
 }
 
-
+/// \brief Checks for issues with the output file, that may hinder encryption/decryption.
+/// \param inFile the input file, to be encrypted/decrypted.
+/// \param outFile the output file, to be saved.
+/// \param mode the mode of operation: encryption or decryption.
 inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const OperationMode &mode) {
     if (mode != OperationMode::Encryption && mode != OperationMode::Decryption)
         throw std::invalid_argument("Invalid mode of operation.");
@@ -165,6 +171,9 @@ inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const Ope
     }
 }
 
+/// \brief Copies the last write time of a file to another.
+/// \param srcFile the source file.
+/// \param destFile the destination file.
 inline void copyLastWrite(const std::string &srcFile, const std::string &destFile) noexcept {
     std::error_code ec;
     auto srcTime = fs::last_write_time(srcFile, ec);
@@ -172,6 +181,12 @@ inline void copyLastWrite(const std::string &srcFile, const std::string &destFil
     fs::last_write_time(destFile, srcTime, ec);
 }
 
+/// \brief Encrypts/Decrypts a file.
+/// \param inputFileName the path to the input file.
+/// \param outputFileName the path to the output file.
+/// \param password the password to use for encryption/decryption.
+/// \param algo the algorithm to use for encryption/decryption.
+/// \param mode the mode of operation: encryption or decryption.
 void fileEncryptionDecryption(const std::string &inputFileName, const std::string &outputFileName,
                               const privacy::string &password, unsigned int algo, OperationMode mode) {
     // The mode must be valid: must be either encryption or decryption

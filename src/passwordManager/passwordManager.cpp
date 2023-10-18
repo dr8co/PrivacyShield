@@ -558,6 +558,7 @@ inline void exportPasswords(privacy::vector<passwordRecords> &passwords) {
     else printColor("Passwords not exported.", 'r', true, std::cerr);
 }
 
+/// \brief Analyzes the saved passwords for weak passwords and password reuse.
 inline void analyzePasswords(privacy::vector<passwordRecords> &passwords) {
     if (passwords.empty()) {
         printColor("No passwords to analyze.", 'r', true);

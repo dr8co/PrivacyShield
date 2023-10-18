@@ -126,6 +126,12 @@ bool verifyPassword(const privacy::string &password, const privacy::string &stor
                                     password.size()) == 0;
 }
 
+/// \brief Encrypts/decrypts a range of passwords.
+/// \param passwords the password records to encrypt/decrypt.
+/// \param key the password to encrypt/decrypt the passwords.
+/// \param start the start index.
+/// \param end the end index.
+/// \param encrypt A boolean value indicating whether to encrypt or decrypt.
 void
 encryptDecryptRange(privacy::vector<passwordRecords> &passwords, const privacy::string &key, std::size_t start,
                     std::size_t end, bool encrypt = false) {
@@ -140,6 +146,12 @@ encryptDecryptRange(privacy::vector<passwordRecords> &passwords, const privacy::
     }
 }
 
+/// \brief Encrypts/decrypts all fields of a password record.
+/// \param passwords the password records to encrypt/decrypt.
+/// \param key the password to encrypt/decrypt the passwords.
+/// \param start the start index.
+/// \param end the end index.
+/// \param encrypt A boolean value indicating whether to encrypt or decrypt.
 void
 encryptDecryptRangeAllFields(privacy::vector<passwordRecords> &passwords, const privacy::string &key, std::size_t start,
                              std::size_t end, bool encrypt = false) {
@@ -159,6 +171,11 @@ encryptDecryptRangeAllFields(privacy::vector<passwordRecords> &passwords, const 
     }
 }
 
+/// \brief Encrypts/decrypts passwords concurrently.
+/// \param passwordEntries the password records to encrypt/decrypt.
+/// \param key the password to encrypt/decrypt the passwords.
+/// \param encrypt A boolean value indicating whether to encrypt or decrypt.
+/// \param allFields A boolean value indicating whether to encrypt/decrypt all fields or just the password field.
 void
 encryptDecryptConcurrently(privacy::vector<passwordRecords> &passwordEntries, const privacy::string &key, bool encrypt,
                            bool allFields) {
@@ -188,6 +205,8 @@ encryptDecryptConcurrently(privacy::vector<passwordRecords> &passwordEntries, co
     }
 }
 
+/// \brief Checks for common errors when reading/writing to a file.
+/// \param path the path to the file.
 inline void checkCommonErrors(const std::string &path) {
     std::error_code ec;
     fs::file_status fileStatus = fs::status(path, ec);
