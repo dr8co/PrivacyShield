@@ -540,15 +540,17 @@ inline void importPasswords(privacy::vector<passwordRecords> &passwords) {
 
 /// \brief Exports passwords to a csv file.
 inline void exportPasswords(privacy::vector<passwordRecords> &passwords) {
-    if (passwords.empty()) [[unlikely]] {
+    auto &&passwordsConstRef = std::as_const(passwords);
+
+    if (passwordsConstRef.empty()) [[unlikely]] {
         printColor("No passwords saved yet.", 'r', true, std::cerr);
         return;
     }
     string fileName = getResponseStr("Enter the path to save the file (leave blank for default): ");
 
     // Export the passwords to a csv file
-    bool exported = fileName.empty() ? exportCsv(std::as_const(passwords)) : exportCsv(std::as_const(passwords),
-                                                                                       fileName);
+    bool exported = fileName.empty() ? exportCsv(passwordsConstRef) : exportCsv(passwordsConstRef,
+                                                                                fileName);
 
     if (exported)
         [[likely]]
