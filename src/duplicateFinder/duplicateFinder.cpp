@@ -143,7 +143,7 @@ void calculateHashes(std::vector<FileInfo> &files, std::size_t start, std::size_
 }
 
 /// \brief finds duplicate files (by content) in a directory.
-/// \param directoryPath - the directory to process.
+/// \param directoryPath the directory to process.
 /// \return True if duplicates are found, else False.
 std::size_t findDuplicates(const std::string &directoryPath) {
     // Initialize libsodium if not already initialized
@@ -160,12 +160,12 @@ std::size_t findDuplicates(const std::string &directoryPath) {
     unsigned int n{std::jthread::hardware_concurrency()};
     const unsigned int numThreads{n ? n : 8}; // Use 8 threads if hardware_concurrency() fails
 
-    // Divide files among threads
+    // Divide the files among the threads
     std::vector<std::jthread> threads;
     std::size_t filesPerThread = filesProcessed / numThreads;
     std::size_t start = 0;
 
-    // Calculate the hashes in parallel
+    // Calculate the files' hashes in parallel
     for (int i = 0; i < static_cast<int>(numThreads - 1); ++i) {
         threads.emplace_back(calculateHashes, std::ref(files), start, start + filesPerThread);
         start += filesPerThread;
@@ -202,7 +202,8 @@ std::size_t findDuplicates(const std::string &directoryPath) {
             printColor("Duplicate files set ", 'c');
             printColor(duplicatesSet, 'g');
             printColor(":", 'c', true);
-            for (const std::string &filePath: duplicates) {
+
+            for (const auto &filePath: duplicates) {
                 std::cout << "  " << filePath << std::endl;
                 ++numDuplicates;
             }

@@ -27,8 +27,7 @@
 #include <unordered_map>
 
 template<typename T>
-
-/// \brief A concept describing a type convertible & comparable with uintmax_t.
+/// \brief A concept describing a type convertible and comparable with uintmax_t.
 /// \tparam T - An integral type.
 concept Num = std::integral<T> && std::convertible_to<T, std::uintmax_t> &&
               std::equality_comparable_with<T, std::uintmax_t>;
@@ -236,7 +235,7 @@ void fileEncryptionDecryption(const std::string &inputFileName, const std::strin
         // Try to preserve the time of last modification
         copyLastWrite(inputFileName, outputFileName);
 
-    } catch (std::exception &ex) {
+    } catch (const std::exception &ex) {
         std::cerr << "Error: " << ex.what() << std::endl;
     }
 }
@@ -262,22 +261,24 @@ void encryptDecrypt() {
     };
 
     while (true) {
-        std::cout << "------------- file encryption/decryption utility -------------" << std::endl;
-        std::cout << "1. Encrypt a file" << std::endl;
-        std::cout << "2. Decrypt a file" << std::endl;
-        std::cout << "3. Exit" << std::endl;
+        std::cout << "------------- file encryption/decryption utility -------------\n";
+        std::cout << "1. Encrypt a file\n";
+        std::cout << "2. Decrypt a file\n";
+        std::cout << "3. Exit\n";
         std::cout << "--------------------------------------------------------------" << std::endl;
 
         int choice = getResponseInt("Enter your choice: ");
 
         if (choice == 1 || choice == 2) {
             try {
-                std::string pre = choice == 1 ? "En" : "De";
-                std::string pre_l{pre};
+                std::string pre = choice == 1 ? "En" : "De"; // the prefix string
+                std::string pre_l{pre}; // the prefix in lowercase
 
+                // Transform the prefix to lowercase
                 std::ranges::transform(pre_l.begin(), pre_l.end(), pre_l.begin(), [](unsigned char c) -> unsigned char {
                     return std::tolower(c);
                 });
+
                 std::cout << "Enter the path to the file to " << pre_l << "crypt:" << std::endl;
                 std::string inputFile = getResponseStr();
 
@@ -290,7 +291,7 @@ void encryptDecrypt() {
                 checkInputFile(inputPath, static_cast<OperationMode>(choice));
 
                 std::cout << "Enter the path to save the " << pre_l
-                          << "crypted file \n(or leave it blank to save it in the same directory): " << std::endl;
+                          << "crypted file \n(or leave it blank to save it in the same directory):" << std::endl;
                 std::string outputFile = getResponseStr();
 
                 if ((outputFile.ends_with('/') || outputFile.ends_with('\\')) && outputFile.size() > 1)
@@ -299,17 +300,17 @@ void encryptDecrypt() {
                 fs::path outputPath(outputFile);
                 checkOutputFile(inputPath, outputPath, static_cast<OperationMode>(choice));
 
-                std::cout << "Choose a cipher (All are 256-bit): " << std::endl;
-                std::cout << "1. Advanced Encryption Standard (AES)" << std::endl;
-                std::cout << "2. Camellia" << std::endl;
-                std::cout << "3. Aria" << std::endl;
-                std::cout << "4. Serpent" << std::endl;
-                std::cout << "5. Twofish" << std::endl;
+                std::cout << "Choose a cipher (All are 256-bit):\n";
+                std::cout << "1. Advanced Encryption Standard (AES)\n";
+                std::cout << "2. Camellia\n";
+                std::cout << "3. Aria\n";
+                std::cout << "4. Serpent\n";
+                std::cout << "5. Twofish\n";
                 std::cout << "Leave blank to use the default (AES)" << std::endl;
 
                 int algo = getResponseInt();
                 if (algo < 0 || algo > 5) { // 0 is default (AES)
-                    std::cout << "Invalid choice!" << std::endl;
+                    std::cerr << "Invalid choice!" << std::endl;
                     continue;
                 }
 
@@ -336,7 +337,7 @@ void encryptDecrypt() {
                                          static_cast<int>(cipher), static_cast<OperationMode>(choice));
                 std::cout << std::endl;
 
-            } catch (std::exception &ex) {
+            } catch (const std::exception &ex) {
                 std::cerr << "Error: " << ex.what() << std::endl;
                 std::cout << std::endl;
                 continue;
