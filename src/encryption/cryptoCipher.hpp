@@ -37,7 +37,7 @@ public:
     CryptoCipher &operator=(CryptoCipher &&) noexcept = default;
 
     // Setters
-    /// setter for the cipher implementation
+    /// Sets the cipher implementation
     constexpr void setCipher() {
         cipher = EVP_CIPHER_fetch(libCtx, algo, propQuery);
     }
@@ -51,53 +51,53 @@ public:
         setCipher();
     }
 
-    /// setter for the cipher context
+    /// Sets the cipher context
     void setCtx() {
         ctx = EVP_CIPHER_CTX_new();
     }
 
-    /// setter for the library context
+    /// Sets the library context
     constexpr void setLibCtx(OSSL_LIB_CTX *libContext) {
         libCtx = libContext;
     }
 
-    /// setter for the cipher algorithm
+    /// Sets the cipher algorithm
     constexpr void setAlgo(const char *algorithm) {
         algo = algorithm;
     }
 
-    /// setter for the implementation property query
+    /// Sets the implementation property query
     constexpr void setPropQuery(const char *propertyQuery) {
         propQuery = propertyQuery;
     }
 
     // Getters
-    /// Getter for property query
+    /// Gets the property query
     [[maybe_unused]] [[nodiscard]] constexpr const char *getPropQuery() const noexcept {
         return propQuery;
     }
 
-    /// Getter for the cipher algorithm
+    /// Gets the cipher algorithm
     [[maybe_unused]] [[nodiscard]] constexpr const char *getAlgo() const noexcept {
         return algo;
     }
 
-    /// Getter for the library context
+    /// Gets the library context
     [[maybe_unused]] [[nodiscard]] constexpr OSSL_LIB_CTX *getLibCtx() const noexcept {
         return libCtx;
     }
 
-    /// Getter for the cipher context
+    /// Gets the cipher context
     [[nodiscard]] constexpr EVP_CIPHER_CTX *getCtx() const noexcept {
         return ctx;
     }
 
-    /// Getter for the cipher implementation
+    /// Gets the cipher implementation
     [[nodiscard]] constexpr EVP_CIPHER *getCipher() const noexcept {
         return cipher;
     }
 
-    // Destructor to perform cleanup
+    // Destructor for cleanup
     virtual ~CryptoCipher() {
         EVP_CIPHER_free(cipher);
         EVP_CIPHER_CTX_free(ctx);
@@ -109,5 +109,4 @@ private:
     OSSL_LIB_CTX *libCtx{nullptr};  // OpenSSL library context
     const char *algo{nullptr};      // cipher algorithm
     const char *propQuery{nullptr}; // a string to filter cipher implementations
-
 };
