@@ -19,9 +19,7 @@
 #include "encryptDecrypt.hpp"
 #include <algorithm>
 #include <system_error>
-#include <filesystem>
 #include <utility>
-#include <iostream>
 #include <format>
 #include <cmath>
 #include <unordered_map>
@@ -76,14 +74,12 @@ int {
 
 /// \brief A structure to aid algorithm selection.
 const struct {
-    const std::string AES      = "AES-256-CBC";
-    const std::string Camellia = "CAMELLIA-256-CBC";
-    const std::string Aria     = "ARIA-256-CBC";
+    const char *const AES      = "AES-256-CBC";
+    const char *const Camellia = "CAMELLIA-256-CBC";
+    const char *const Aria     = "ARIA-256-CBC";
     const gcry_cipher_algos Serpent = GCRY_CIPHER_SERPENT256;
     const gcry_cipher_algos Twofish = GCRY_CIPHER_TWOFISH;
 } AlgoSelection;
-
-namespace fs = std::filesystem;
 
 /// \brief Checks for issues with the input file, that may hinder encryption/decryption.
 /// \param inFile the input file, to be encrypted/decrypted.
@@ -147,7 +143,8 @@ inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const Ope
 
     // If the output file exists, ask for confirmation for overwriting
     if (fs::exists(outFile)) {
-        std::cout << fs::canonical(outFile) << " already exists. \nDo you want to overwrite it? (y/n): ";
+        printColor(fs::canonical(outFile).string(), 'b', false, std::cerr);
+        printColor(" already exists. \nDo you want to overwrite it? (y/n): ", 'r', false, std::cerr);
         if (!validateYesNo())
             throw std::runtime_error("Operation aborted.");
     }
@@ -160,11 +157,16 @@ inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const Ope
     const auto availableSpace = getAvailableSpace(outFile);
     const auto fileSize = fs::file_size(inFile);
     if (std::cmp_less(availableSpace, fileSize)) {
-        std::cerr << "Not enough space on disk to save " << outFile.string() << std::endl;
-        std::cerr << "Required:  " << FormatFileSize(fileSize) << std::endl;
-        std::cerr << "Available: " << FormatFileSize(availableSpace) << std::endl;
+        printColor("Not enough space to save ", 'r', false, std::cerr);
+        printColor(fs::absolute(outFile).string(), 'c', true, std::cerr);
 
-        std::cout << "\nDo you want to continue? (y/n) ";
+        printColor("Required:  ", 'y', false, std::cerr);
+        printColor(FormatFileSize(fileSize), 'g', true, std::cerr);
+
+        printColor("Available: ", 'y', false, std::cerr);
+        printColor(FormatFileSize(availableSpace), 'r', true, std::cerr);
+
+        printColor("\nDo you still want to continue? (y/n):", 'b');
         if (!validateYesNo())
             throw std::runtime_error("Insufficient storage space.");
     }
@@ -189,8 +191,8 @@ inline void copyLastWrite(const std::string &srcFile, const std::string &destFil
 void fileEncryptionDecryption(const std::string &inputFileName, const std::string &outputFileName,
                               const privacy::string &password, unsigned int algo, OperationMode mode) {
     // The mode must be valid: must be either encryption or decryption
-    if (mode != OperationMode::Encryption && mode != OperationMode::Decryption) {
-        std::cout << "Invalid mode of operation." << std::endl;
+    if (mode != OperationMode::Encryption && mode != OperationMode::Decryption) [[unlikely]] {
+        printColor("Invalid mode of operation.", 'r', true, std::cerr);
         return;
     }
 
@@ -225,12 +227,13 @@ void fileEncryptionDecryption(const std::string &inputFileName, const std::strin
 
         // If we reach here, the operation was successful
         auto pre = mode == OperationMode::Encryption ? "En" : "De";
-        std::cout << std::format("{}cryption completed successfully. \n{}crypted file saved as '{}'", pre, pre,
-                                 outputFileName) << std::endl;
+        printColor(std::format("{}cryption completed successfully. \n{}crypted file saved as ", pre, pre), 'g');
+        printColor(outputFileName, 'b', true);
 
         // Preserve file permissions
         if (!copyFilePermissions(inputFileName, outputFileName))
-            std::cerr << "Check the permissions of the " << pre << "crypted file." << std::endl;
+            [[unlikely]]
+                    printColor(std::format("Check the permissions of the {}crypted file.", pre), 'm', true);
 
         // Try to preserve the time of last modification
         copyLastWrite(inputFileName, outputFileName);
@@ -261,10 +264,12 @@ void encryptDecrypt() {
     };
 
     while (true) {
-        std::cout << "------------- file encryption/decryption utility -------------\n";
-        std::cout << "1. Encrypt a file\n";
-        std::cout << "2. Decrypt a file\n";
-        std::cout << "3. Exit\n";
+        std::cout << "-------------";
+        printColor(" file encryption/decryption utility ", 'c');
+        std::cout << "-------------\n";
+        printColor("1. Encrypt a file\n", 'g');
+        printColor("2. Decrypt a file\n", 'm');
+        printColor("3. Exit\n", 'r');
         std::cout << "--------------------------------------------------------------" << std::endl;
 
         int choice = getResponseInt("Enter your choice: ");
@@ -279,7 +284,7 @@ void encryptDecrypt() {
                     return std::tolower(c);
                 });
 
-                std::cout << "Enter the path to the file to " << pre_l << "crypt:" << std::endl;
+                printColor(std::format("Enter the path to the file to {}crypt:", pre_l), 'c', true);
                 std::string inputFile = getResponseStr();
 
                 // Remove the trailing directory separator
@@ -290,8 +295,10 @@ void encryptDecrypt() {
                 fs::path inputPath(inputFile);
                 checkInputFile(inputPath, static_cast<OperationMode>(choice));
 
-                std::cout << "Enter the path to save the " << pre_l
-                          << "crypted file \n(or leave it blank to save it in the same directory):" << std::endl;
+                printColor(std::format("Enter the path to save the {}crypted file "
+                                       "\n(or leave it blank to save it in the same directory):",
+                                       pre_l), 'c', true);
+
                 std::string outputFile = getResponseStr();
 
                 if ((outputFile.ends_with('/') || outputFile.ends_with('\\')) && outputFile.size() > 1)
@@ -310,7 +317,7 @@ void encryptDecrypt() {
 
                 int algo = getResponseInt();
                 if (algo < 0 || algo > 5) { // 0 is default (AES)
-                    std::cerr << "Invalid choice!" << std::endl;
+                    printColor("Invalid choice!", 'r', true, std::cerr);
                     continue;
                 }
 
@@ -321,30 +328,41 @@ void encryptDecrypt() {
 
                 // Confirm the password before encryption
                 if (choice == 1) {
+                    int tries{0};
+                    while (password.empty() && ++tries < 3) {
+                        printColor("Please avoid empty or weak passwords. Please try again.", 'r', true, std::cerr);
+                        password = getSensitiveInfo("Enter the password: ");
+                    }
+
+                    if (tries >= 3)
+                        throw std::runtime_error("Empty encryption password.");
+
                     privacy::string password2{getSensitiveInfo("Enter the password again: ")};
 
                     if (!verifyPassword(password2, hashPassword(password, crypto_pwhash_OPSLIMIT_INTERACTIVE,
                                                                 crypto_pwhash_MEMLIMIT_INTERACTIVE))) {
-                        std::cerr << "Passwords do not match." << std::endl;
+                        printColor("Passwords do not match.", 'r', true, std::cerr);
                         continue;
                     }
                 }
-
-                std::cout << pre << "crypting " << fs::canonical(inputPath) << " with "
-                          << algoDescription.find(cipher)->second << "..." << std::endl;
+                printColor(std::format("{}crypting ", pre), 'g');
+                printColor(fs::canonical(inputPath).string(), 'b');
+                printColor(" with ", 'g');
+                printColor(algoDescription.find(cipher)->second, 'c');
+                printColor("...", 'g', true);
 
                 fileEncryptionDecryption(fs::canonical(inputPath).string(), fs::canonical(outputPath).string(),
                                          password, static_cast<int>(cipher), static_cast<OperationMode>(choice));
                 std::cout << std::endl;
 
             } catch (const std::exception &ex) {
-                std::cerr << "Error: " << ex.what() << std::endl;
-                std::cout << std::endl;
+                printColor("Error: ", 'y', false, std::cerr);
+                printColor(ex.what(), 'r', true, std::cerr);
+                std::cerr << std::endl;
                 continue;
             }
 
         } else if (choice == 3) break;
-        else std::cerr << "Invalid choice!" << std::endl;
+        else printColor("Invalid choice!", 'r', true, std::cerr);
     }
 }
-
