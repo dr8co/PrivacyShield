@@ -44,8 +44,8 @@ constexpr unsigned int PBKDF2_ITERATIONS = 100'000; // Iterations for PBKDF2 key
 privacy::vector<unsigned char> generateSalt(int saltSize) {
     std::mutex m;
     privacy::vector<unsigned char> salt(saltSize);
-    if (std::scoped_lock<std::mutex> lock(m); RAND_bytes(salt.data(), saltSize) != 1) {
 
+    if (std::scoped_lock<std::mutex> lock(m); RAND_bytes(salt.data(), saltSize) != 1) {
         std::cerr << "Failed to seed OpenSSL's CSPRNG properly."
                      "\nPlease check your system's randomness utilities." << std::endl;
 
@@ -110,7 +110,7 @@ deriveKey(const privacy::string &password, const privacy::vector<unsigned char> 
 
     // Derive the key using the parameters
     privacy::vector<unsigned char> key(keySize);
-    if (EVP_KDF_derive(kdfCtx, key.data(), key.size(), params) != 1)
+    if (EVP_KDF_derive(kdfCtx, key.data(), keySize, params) != 1)
         throw std::runtime_error("Failed to derive key.");
 
     return key;
@@ -295,6 +295,9 @@ void decryptFile(const std::string &inputFile, const std::string &outputFile, co
     outFile.flush();
 }
 
+/// \brief Throws a thread-safe Gcrypt error.
+/// \param err Gcrypt error value.
+/// \param message the error message.
 inline void throwSafeError(gcry_error_t &err, const std::string &message) {
     std::mutex m;
     std::scoped_lock<std::mutex> locker(m);
