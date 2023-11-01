@@ -4,8 +4,11 @@
 #include <cstdint>
 #include <optional>
 #include <iostream>
+#include <filesystem>
 #include <openssl/buffer.h>
 #include <openssl/evp.h>
+
+namespace fs = std::filesystem;
 
 template<typename T>
 // Describes a type that can be formatted to the output stream
@@ -101,7 +104,7 @@ bool isWritable(const std::string &filename);
 
 bool isReadable(const std::string &filename);
 
-std::uintmax_t getAvailableSpace(const std::string &path) noexcept;
+std::uintmax_t getAvailableSpace(const fs::path &path) noexcept;
 
 bool copyFilePermissions(const std::string &srcFile, const std::string &destFile) noexcept;
 

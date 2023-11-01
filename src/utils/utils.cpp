@@ -18,12 +18,9 @@
 #include <charconv>
 #include <readline/readline.h>
 #include <unistd.h>
-#include <filesystem>
 #include <utility>
 #include <termios.h>
 #include <optional>
-
-namespace fs = std::filesystem;
 
 /// \brief Performs Base64 decoding of a string into binary data.
 /// \param encodedData Base64 encoded string.
@@ -159,8 +156,8 @@ bool isReadable(const std::string &filename) {
 /// \note This function is meant to be used to detect possible errors
 /// early enough before file operations, and to warn the user to
 /// check their filesystem storage space when it seems insufficient.
-std::uintmax_t getAvailableSpace(const std::string &path) noexcept {
-    fs::path filePath(path);
+std::uintmax_t getAvailableSpace(const fs::path &path) noexcept {
+    fs::path filePath{path};
 
     std::error_code ec; // For ignoring errors to avoid throwing
 
@@ -169,7 +166,7 @@ std::uintmax_t getAvailableSpace(const std::string &path) noexcept {
         filePath = filePath.parent_path();
     if (ec) ec.clear();
 
-    const auto space = fs::space(filePath, ec);
+    const auto space = fs::space(fs::canonical(filePath, ec), ec);
 
     // Return 0 in case of an error
     return std::cmp_less(space.available, 0) || std::cmp_equal(space.available, UINTMAX_MAX) ? 0 : space.available;

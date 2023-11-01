@@ -146,18 +146,18 @@ inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const Ope
     }
 
     // If the output file exists, ask for confirmation for overwriting
-    if (auto file = outFile.string();fs::exists(outFile)) {
-        std::cout << file << " already exists. \nDo you want to overwrite it? (y/n): ";
+    if (fs::exists(outFile)) {
+        std::cout << fs::canonical(outFile) << " already exists. \nDo you want to overwrite it? (y/n): ";
         if (!validateYesNo())
             throw std::runtime_error("Operation aborted.");
     }
 
     // Determine if the output file can be written if it exists
-    if (auto file = outFile.string(); fs::exists(outFile) && !(isWritable(file) && isReadable(file)))
+    if (auto file = fs::canonical(outFile).string(); fs::exists(outFile) && !(isWritable(file) && isReadable(file)))
         throw std::runtime_error(std::format("{} is not writable/readable.", file));
 
     // Check if there is enough space on the disk to save the output file.
-    const auto availableSpace = getAvailableSpace(outFile.string());
+    const auto availableSpace = getAvailableSpace(outFile);
     const auto fileSize = fs::file_size(inFile);
     if (std::cmp_less(availableSpace, fileSize)) {
         std::cerr << "Not enough space on disk to save " << outFile.string() << std::endl;
@@ -225,7 +225,7 @@ void fileEncryptionDecryption(const std::string &inputFileName, const std::strin
 
         // If we reach here, the operation was successful
         auto pre = mode == OperationMode::Encryption ? "En" : "De";
-        std::cout << std::format("{}cryption completed successfully. \n{}crypted file saved at '{}'", pre, pre,
+        std::cout << std::format("{}cryption completed successfully. \n{}crypted file saved as '{}'", pre, pre,
                                  outputFileName) << std::endl;
 
         // Preserve file permissions
@@ -330,11 +330,11 @@ void encryptDecrypt() {
                     }
                 }
 
-                std::cout << pre << "crypting " << inputPath << " with " << algoDescription.find(cipher)->second
-                          << "..." << std::endl;
+                std::cout << pre << "crypting " << fs::canonical(inputPath) << " with "
+                          << algoDescription.find(cipher)->second << "..." << std::endl;
 
-                fileEncryptionDecryption(inputPath.string(), outputPath.string(), password,
-                                         static_cast<int>(cipher), static_cast<OperationMode>(choice));
+                fileEncryptionDecryption(fs::canonical(inputPath).string(), fs::canonical(outputPath).string(),
+                                         password, static_cast<int>(cipher), static_cast<OperationMode>(choice));
                 std::cout << std::endl;
 
             } catch (const std::exception &ex) {

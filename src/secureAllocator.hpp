@@ -27,7 +27,7 @@ namespace privacy {
     template<typename T>
     /// \brief Custom allocator for STL containers, which locks and zeroizes memory.
     /// \details Adapted from https://en.cppreference.com/w/cpp/named_req/Allocator
-    struct Allocator {
+    class Allocator {
     public:
 
         [[maybe_unused]] typedef T value_type;
