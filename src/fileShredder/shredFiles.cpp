@@ -268,7 +268,7 @@ unsigned int {
     Simple          = 1 << 0,   // Simple overwrite with random bytes
     Dod5220         = 1 << 1,   // DoD 5220.22-M Standard algorithm
     Dod5220_7       = 1 << 2,   // DoD 5220.22-M Standard algorithm with 7 passes
-    WipeClusterTips = 1 << 3    // Wiping of the cluster tips
+WipeClusterTips = 1 << 3    // Wiping of the cluster tips
 };
 
 /// \brief Adds write and write permissions to a file, if the user has authority.
@@ -304,19 +304,24 @@ bool shredFiles(const std::string &filePath, const unsigned int &options, const 
     std::error_code ec;
     fs::file_status fileStatus = fs::status(filePath, ec);
     if (ec) {
-        std::cerr << "Failed to determine " << filePath << "'s status: " << ec.message() << std::endl;
+        printColor("Unable to determine ", 'y', false, std::cerr);
+        printColor(filePath, 'b', false, std::cerr);
+
+        printColor("'s status: ", 'y', false, std::cerr);
+        printColor(ec.message(), 'r', true, std::cerr);
         return false;
     }
     // Check if the file exists and is a regular file.
     if (!fs::exists(fileStatus)) {
-        std::cerr << "File does not exist: " << filePath << std::endl;
+        printColor(filePath, 'c', false, std::cerr);
+        printColor(" does not exist.", 'r', true, std::cerr);
         return false;
     }// If the filepath is a directory, shred all the files in the directory and all its subdirectories
     else if (fs::is_directory(fileStatus)) {
         if (fs::is_empty(filePath, ec)) {
             if (ec) ec.clear();
             else {
-                std::cout << "The path is an empty directory." << std::endl;
+                printColor("The path is an empty directory.", 'y', true);
                 return true;
             }
         }
@@ -326,16 +331,19 @@ bool shredFiles(const std::string &filePath, const unsigned int &options, const 
         for (const auto &entry: fs::recursive_directory_iterator(filePath)) {
             if (fs::exists(entry.status())) {
                 if (!fs::is_directory(entry.status())) {
-                    std::cout << "Shredding " << entry.path() << "..";
+                    printColor("Shredding ", 'c');
+                    printColor(entry.path(), 'b');
+                    printColor(" ...", 'c');
                     try {
                         bool shredded = shredFiles(entry.path(), options);
-                        std::cout << (shredded ? "\tshredded successfully." : "\tshredding failed.") << std::endl;
+                        printColor(shredded ? "\tshredded successfully." : "\tshredding failed.", shredded ? 'g' : 'r',
+                                   true);
 
                         ++(shredded ? numShredded : numNotShredded);
 
                     } catch (std::runtime_error &err) {
-                        std::cerr << err.what() << std::endl;
-                        std::cerr << "shredding failed." << std::endl;
+                        printColor("Shredding failed: ", 'y', false, std::cerr);
+                        printColor(err.what(), 'r', true, std::cerr);
                     }
                 }
             }
