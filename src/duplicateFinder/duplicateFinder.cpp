@@ -71,6 +71,8 @@ std::string calculateBlake3(const std::string &filePath) {
 /// \param filename path to the file on which an error occurred.
 inline void handleAccessError(const std::string &filename) {
     std::string errMsg;
+    errMsg.reserve(50);
+
     switch (errno) {
         case EACCES:        // Permission denied
             errMsg = "You do not have permission to access this item";
@@ -121,7 +123,8 @@ void traverseDirectory(const std::string &directoryPath, std::vector<FileInfo> &
                     files.emplace_back(fileInfo);
 
                 } else if (!entry.is_directory()) // Neither regular nor a directory
-                    std::cerr << std::format("Skipping '{}': Not a regular file.", entry.path().string()) << std::endl;
+                    printColor(std::format("Skipping '{}': Not a regular file.",
+                                           entry.path().string()), 'r', true, std::cerr);
 
             } else handleAccessError(entry.path().string());
         }
@@ -209,7 +212,8 @@ std::size_t findDuplicates(const std::string &directoryPath) {
             }
         }
     }
-    std::cout << "\nFiles processed: " << filesProcessed << std::endl;
+    printColor("\nFiles processed: ", 'c');
+    printColor(filesProcessed, 'g', true);
 
     return numDuplicates;
 }
@@ -217,15 +221,20 @@ std::size_t findDuplicates(const std::string &directoryPath) {
 /// \brief A simple duplicate file detective.
 void duplicateFinder() {
     while (true) {
-        std::cout << "\n------------------- Duplicate Finder -------------------\n";
-        std::cout << "1. Scan for duplicate files\n2. Exit\n";
+        std::cout << "\n-------------------";
+        printColor(" Duplicate Finder ", 'm');
+        std::cout << "-------------------\n";
+        printColor("1. Scan for duplicate files\n", 'g');
+        printColor("2. Exit\n", 'r');
         std::cout << "--------------------------------------------------------" << std::endl;
 
-        int resp = getResponseInt("Enter your choice:");
+        printColor("Enter your choice:", 'b');
+        int resp = getResponseInt();
 
         if (resp == 1) {
             try {
-                std::string dirPath = getResponseStr("Enter the path to the directory to scan: ");
+                printColor("Enter the path to the directory to scan:", 'b');
+                std::string dirPath = getResponseStr();
 
                 if (auto len = dirPath.size(); len > 1 && (dirPath.ends_with('/') || dirPath.ends_with('\\')))
                     dirPath.erase(len - 1);
@@ -233,28 +242,36 @@ void duplicateFinder() {
                 std::error_code ec;
                 fs::file_status fileStatus = fs::status(dirPath, ec);
                 if (ec) {
-                    std::cerr << "Unable to determine " << dirPath << "'s status: " << ec.message() << std::endl;
+                    printColor("Unable to determine ", 'y', false, std::cerr);
+                    printColor(dirPath, 'b', false, std::cerr);
+
+                    printColor("'s status: ", 'y', false, std::cerr);
+                    printColor(ec.message(), 'r', true, std::cerr);
+
                     ec.clear();
                     continue;
                 }
                 if (!fs::exists(fileStatus)) {
-                    std::cerr << "'" << dirPath << "' does not exist." << std::endl;
+                    printColor(dirPath, 'c', false, std::cerr);
+                    printColor(" does not exist.", 'r', true, std::cerr);
                     continue;
                 }
                 if (!fs::is_directory(fileStatus)) {
-                    std::cerr << "'" << dirPath << "' is not a directory." << std::endl;
+                    printColor(dirPath, 'c', false, std::cerr);
+                    printColor(" is not a directory.", 'r', true, std::cerr);
                     continue;
                 }
 
                 if (fs::is_empty(dirPath, ec)) {
                     if (ec) ec.clear();
                     else {
-                        std::cout << "The directory is empty." << std::endl;
+                        printColor("The directory is empty.", 'r', true, std::cerr);
                         continue;
                     }
                 }
-
-                std::cout << "Scanning " << dirPath << "..." << std::endl;
+                printColor("Scanning ", 'c');
+                printColor(fs::canonical(dirPath).string(), 'g');
+                printColor(" ...", 'c', true);
                 std::size_t duplicateFiles = findDuplicates(dirPath);
 
                 std::cout << "Duplicates "
@@ -262,13 +279,14 @@ void duplicateFinder() {
                           << std::endl;
 
             } catch (const std::exception &ex) {
-                std::cerr << "An error occurred: " << ex.what() << std::endl;
+                printColor("An error occurred: ", 'y', false, std::cerr);
+                printColor(ex.what(), 'r', true, std::cerr);
                 continue;
             }
 
         } else if (resp == 2) break;
         else {
-            std::cerr << "Invalid option!" << std::endl;
+            printColor("Invalid option!", 'r', true, std::cerr);
             continue;
         }
     }

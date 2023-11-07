@@ -87,6 +87,7 @@ public:
     /// \return a vector of strings matching the pattern.
     std::vector<privacy::string> fuzzyMatch(const privacy::string &pattern, const int &maxDistance) {
         std::vector<privacy::string> matches{};
+        matches.reserve(stringList.size());  // Worst case: every string in stringList is a match.
         // The maximum and minimum size of a string to be considered a match
         auto maxSize{pattern.size() + maxDistance + 1};
         auto minSize{pattern.size() - (maxDistance + 1)};
