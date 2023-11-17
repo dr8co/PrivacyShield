@@ -1,29 +1,63 @@
-#!/bin/env bash
+#!/usr/bin/env bash
 
 # This script is used to build and install BLAKE3 on Unix-like systems.
 # Requires CMake, Ninja, and GCC (or a compatible C compiler) to be installed.
 
-C_COMPILER=gcc
+# Function to display error message and exit
+error_exit() {
+    echo "$1" 1>&2
+    exit 1
+}
 
-if [ "$1" ]; then
-    C_COMPILER="$1"
-fi
+# Function to Detect OS and set variables
+detect_os() {
+    case "$OSTYPE" in
+    "linux-gnu"*) CURRENT_OS="linux" ;;
+    "darwin"*) CURRENT_OS="macos" ;;
+    esac
+}
+
+# Function to check root access
+check_root() {
+    [[ "$CURRENT_OS" != "macos" && "$EUID" -ne 0 ]] && error_exit "This script must be run as root."
+}
+
+get_number_of_processors() {
+    case "$CURRENT_OS" in
+    "linux") NUMBER_OF_PROCESSORS=$(nproc) ;;
+    "macos") NUMBER_OF_PROCESSORS=$(sysctl -n hw.ncpu) ;;
+    *) NUMBER_OF_PROCESSORS=4 ;;
+    esac
+}
+
+# Function to clone repository
+clone_repo() {
+    git clone https://github.com/BLAKE3-team/BLAKE3.git || error_exit "Failed to clone BLAKE3 repository."
+}
+
+# Function to build and install BLAKE3
+build_install() {
+    cd BLAKE3/c || error_exit "Failed to navigate to BLAKE3/c directory."
+    cmake -B build -DCMAKE_C_COMPILER="$C_COMPILER" -G Ninja || error_exit "Failed to run cmake."
+    get_number_of_processors
+
+    cmake --build build --config Release --target install -j "$NUMBER_OF_PROCESSORS" || error_exit "Failed to build and install."
+
+    # Cleanup
+    cd ../..
+    rm -rf BLAKE3
+}
+
+# Set C compiler
+C_COMPILER=${1:-gcc}
+
+detect_os
+check_root
+
+cd "${0%/*}" || error_exit "Failed to change directory to script location."
 
 echo "Compiling BLAKE3 with $C_COMPILER compiler.."
 
-# Root access is required to install BLAKE3 to the system.
-if [ "$EUID" -ne 0 ]; then
-    echo "Please run as root."
-    exit
-fi
-
-# Run from this directory
-cd "${0%/*}" || exit 1
-
-# Clone the repository
-git clone https://github.com/BLAKE3-team/BLAKE3.git
-
-# Build and install BLAKE3
-cd BLAKE3/c || echo "Failed to find BLAKE3/c directory" && exit 1
-cmake -B build -DCMAKE_C_COMPILER="$C_COMPILER" -G Ninja
-cmake --build build --config Release --target install -j 4
+# Call functions
+clone_repo
+build_install
