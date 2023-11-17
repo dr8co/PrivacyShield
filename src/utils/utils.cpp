@@ -52,10 +52,14 @@ std::vector<unsigned char> base64Decode(const std::string &encodedData) {
     return decodedData;
 }
 
+// This concept checks if the type provides the functionality of a string
+template<typename T>
+concept StringLike =
+std::same_as<T, std::basic_string<typename T::value_type, typename T::traits_type, typename T::allocator_type>>;
+
 /// \brief Trims space (whitespace) off the beginning and end of a string.
 /// \param str the string to trim.
-template<typename T>
-inline void trimSpace(T &str) {
+inline void trimSpace(StringLike auto &str) {
     // Trim the leading space (my IDE finds the w-word offensive)
     std::input_iterator auto it = std::ranges::find_if_not(str.begin(), str.end(),
                                                            [](char c) { return std::isspace(c); });
@@ -66,10 +70,13 @@ inline void trimSpace(T &str) {
     str.erase(it, str.end());
 }
 
-/// \brief Captures the user's response while offering editing capabilities
-/// while the user is entering the data.
-/// \param prompt the prompt displayed to the user for the input.
-/// \return the user's input (string) if successful, else nullptr.
+/// \brief Gets a response string from user input.
+///
+/// This function prompts the user with the given prompt and reads a response string
+/// from the standard input.
+///
+/// \param prompt The prompt to display to the user.
+/// \return The response string entered by the user if successful, else nullptr.
 std::string getResponseStr(const std::string &prompt) {
     std::cout << prompt << std::endl;
     char *tmp = readline("> ");

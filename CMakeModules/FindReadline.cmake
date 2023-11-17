@@ -28,46 +28,13 @@
 # This module also provides an imported target:
 #   Readline::Readline   - Readline library
 
-# On Apple systems, a pkg-config file is not provided for Readline, so we find it manually
-if (APPLE)
-    find_library(READLINE_LIBRARY REQUIRED
-            NAMES libreadline.dylib libreadline.a
-            PATHS /usr/local/opt/readline/lib /usr/local/lib /opt/local/lib /usr/lib
-            NO_DEFAULT_PATH
-    )
+# Find the pkg-config package for Readline
+find_package(PkgConfig REQUIRED)
 
-    if (READLINE_LIBRARY)
-        # Set variables
-        set(READLINE_FOUND TRUE)
-        set(READLINE_INCLUDE_DIR "${READLINE_INCLUDE_DIR}")
-        set(READLINE_VERSION "unknown")
-        set(READLINE_LIBRARIES "${READLINE_LIBRARY}")
+pkg_check_modules(READLINE readline)
 
-        # Get the directory of the Readline library
-        get_filename_component(READLINE_INCLUDE_DIR "${READLINE_LIBRARY}" DIRECTORY)
-
-        # Create an imported target for the readline library
-        add_library(Readline::Readline INTERFACE IMPORTED)
-
-        # Configure the imported target
-        set_target_properties(Readline::Readline PROPERTIES
-                INTERFACE_LINK_LIBRARIES "${READLINE_LIBRARY}"
-                INTERFACE_INCLUDE_DIRECTORIES "${READLINE_INCLUDE_DIR}"
-                IMPORTED_LOCATION "${READLINE_LIBRARY}"
-        )
-
-    else ()
-        message(FATAL_ERROR "Readline library not found.")
-    endif ()
-
-else ()
-    # Find the pkg-config package for Readline
-    find_package(PkgConfig REQUIRED)
-
-    pkg_check_modules(READLINE REQUIRED readline)
-
+if (READLINE_FOUND AND NOT APPLE)
     # Set the Readline variables
-    set(READLINE_FOUND TRUE)
     set(READLINE_INCLUDE_DIR ${READLINE_INCLUDE_DIRS})
     set(READLINE_LIBRARIES ${READLINE_LDFLAGS})
     set(READLINE_VERSION ${READLINE_VERSION})
@@ -90,19 +57,53 @@ else ()
         set_target_properties(Readline::Readline PROPERTIES
                 IMPORTED_LOCATION "${READLINE_LIBRARY}"
         )
-
     else ()
         message(FATAL_ERROR "Readline library not found")
     endif ()
 
 endif ()
 
-# Print Readline information
-message(STATUS "Found Readline ${READLINE_VERSION}")
-message(STATUS "Readline include directories: ${READLINE_INCLUDE_DIR}")
-if (NOT APPLE)
-    message(STATUS "Readline libraries: ${READLINE_LIBRARIES}")
-else ()
-    message(STATUS "Readline library: ${READLINE_LIBRARY}")
+if (NOT READLINE_FOUND AND APPLE)
+    # Find library manually
+    find_library(READLINE_LIBRARY REQUIRED
+            NAMES libreadline.dylib libreadline.a
+            PATHS /usr/local/opt/readline/lib /usr/local/lib /opt/local/lib /usr/lib
+            NO_DEFAULT_PATH
+    )
+
+    # Get the directory of the Readline library
+    get_filename_component(READLINE_INCLUDE_DIR "${READLINE_LIBRARY}" DIRECTORY)
+
+    # Create an imported target for the readline library
+    add_library(Readline::Readline INTERFACE IMPORTED)
+
+    # Configure the imported target
+    set_target_properties(Readline::Readline PROPERTIES
+            INTERFACE_LINK_LIBRARIES "${READLINE_LIBRARY}"
+            INTERFACE_INCLUDE_DIRECTORIES "${READLINE_INCLUDE_DIR}"
+            IMPORTED_LOCATION "${READLINE_LIBRARY}"
+    )
+
+    set(READLINE_FOUND TRUE)
+    set(READLINE_VERSION "unknown")
 endif ()
+
+if (READLINE_LIBRARY)
+    set(READLINE_FOUND TRUE)
+else ()
+    set(READLINE_FOUND FALSE)
+    message(FATAL_ERROR "Readline library not found.")
+endif ()
+
+function(print_readline_info)
+    message(STATUS "Found Readline ${READLINE_VERSION}")
+    message(STATUS "Readline include directories: ${READLINE_INCLUDE_DIR}")
+    if (NOT APPLE)
+        message(STATUS "Readline libraries: ${READLINE_LIBRARIES}")
+    else ()
+        message(STATUS "Readline library: ${READLINE_LIBRARY}")
+    endif ()
+endfunction()
+
+print_readline_info()
 

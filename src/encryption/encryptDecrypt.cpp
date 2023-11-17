@@ -37,21 +37,21 @@ class FormatFileSize {
 public:
     explicit FormatFileSize(const Num auto &size) {
         // Default negative values to zero
-        if (std::cmp_greater(size, this->size))
-            this->size = static_cast<std::uintmax_t>(size);
+        if (std::cmp_greater(size, size_))
+            size_ = static_cast<std::uintmax_t>(size);
     }
 
 private:
-    std::uintmax_t size{0};
+    std::uintmax_t size_{0};
 
     friend
     std::ostream &operator<<(std::ostream &os, FormatFileSize ffs) {
         int i{};
-        auto mantissa = static_cast<double>(ffs.size);
+        auto mantissa = static_cast<double>(ffs.size_);
         for (; mantissa >= 1024.; mantissa /= 1024., ++i) {}
         mantissa = std::ceil(mantissa * 10.) / 10.;
         os << mantissa << "BKMGTPE"[i];
-        return i == 0 ? os : os << "B (" << ffs.size << ')';
+        return i == 0 ? os : os << "B (" << ffs.size_ << ')';
     }
 };
 
