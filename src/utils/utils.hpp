@@ -7,8 +7,19 @@
 #include <filesystem>
 #include <openssl/buffer.h>
 #include <openssl/evp.h>
+#include <unordered_map>
 
 namespace fs = std::filesystem;
+
+const std::unordered_map<char, const char *const> COLOR = {
+        {'r', "\033[1;31m"}, // Red
+        {'g', "\033[1;32m"}, // Green
+        {'y', "\033[1;33m"}, // Yellow
+        {'b', "\033[1;34m"}, // Blue
+        {'m', "\033[1;35m"}, // Magenta
+        {'c', "\033[1;36m"}, // Cyan
+        {'w', "\033[1;37m"}, // White
+};
 
 template<typename T>
 // Describes a type that can be formatted to the output stream
@@ -23,34 +34,12 @@ concept PrintableToStream = requires(std::ostream &os, const T &t) {
 /// \param os the stream object to print to.
 void printColor(const PrintableToStream auto &text, const char &color = 'w', const bool &printNewLine = false,
                 std::ostream &os = std::cout) {
-    switch (color) {
-        case 'r': // Red
-            os << "\033[1;31m";
-            break;
-        case 'g': // Green
-            os << "\033[1;32m";
-            break;
-        case 'y': // Yellow
-            os << "\033[1;33m";
-            break;
-        case 'b': // Blue
-            os << "\033[1;34m";
-            break;
-        case 'm': // Magenta
-            os << "\033[1;35m";
-            break;
-        case 'c': // Cyan
-            os << "\033[1;36m";
-            break;
-        case 'w': // White
-            os << "\033[1;37m";
-            break;
-        default:
-            break;
-    }
-    os << text << "\033[0m";
-    if (printNewLine)
-        os << std::endl;
+
+    // Print the text in the desired color
+    os << (COLOR.count(color) ? COLOR.at(color) : "") << text << "\033[0m";
+
+    // Print a newline if requested
+    if (printNewLine) os << std::endl;
 }
 
 template<typename T>
