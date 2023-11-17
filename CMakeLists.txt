@@ -50,7 +50,13 @@ find_package(BLAKE3 REQUIRED) # See https://github.com/BLAKE3-team/BLAKE3
 
 # Add the executable target
 add_executable(privacyShield)
-add_subdirectory(src)
+
+# Add sources for the target
+file(GLOB_RECURSE PRIVACY_SHIELD_SOURCES
+        "${CMAKE_SOURCE_DIR}/src/*.cpp"
+        "${CMAKE_SOURCE_DIR}/src/*.hpp")
+
+target_sources(privacyShield PRIVATE ${PRIVACY_SHIELD_SOURCES})
 
 # Link dependencies
 target_link_libraries(privacyShield
