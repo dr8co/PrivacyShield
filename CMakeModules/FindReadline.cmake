@@ -63,6 +63,8 @@ if (READLINE_FOUND AND NOT APPLE)
 
 endif ()
 
+# Find the Readline library manually on Apple
+# This is necessary because the pkg-config file might not be provided on Apple
 if (NOT READLINE_FOUND AND APPLE)
     # Find library manually
     find_library(READLINE_LIBRARY REQUIRED
@@ -95,6 +97,7 @@ else ()
     message(FATAL_ERROR "Readline library not found.")
 endif ()
 
+# Print information about the Readline library
 function(print_readline_info)
     message(STATUS "Found Readline ${READLINE_VERSION}")
     message(STATUS "Readline include directories: ${READLINE_INCLUDE_DIR}")
