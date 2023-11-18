@@ -26,6 +26,7 @@
 #include <format>
 
 namespace fs = std::filesystem;
+constexpr std::size_t BUFFER_SIZE = 4096;
 
 /// \brief overwrites a file with random bytes.
 /// \param file output file stream object.
@@ -38,19 +39,32 @@ void overwriteRandom(std::ofstream &file, const std::size_t fileSize, int nPasse
     std::uniform_int_distribution<unsigned char> dist(0, 255);
 
     for (int i = 0; i < nPasses; ++i) {
-        // (Re)seed the Mersenne Twister engine in every pass
-        std::mt19937_64 gen(rd());
-
         // seek to the beginning of the file
         file.seekp(0, std::ios::beg);
 
+        // (Re)seed the Mersenne Twister engine in every pass
+        std::mt19937_64 gen(rd());
+
+        std::vector<unsigned char> buffer(BUFFER_SIZE);
+
         // Overwrite the file with random data
-        for (std::size_t pos = 0; pos < fileSize; ++pos) {
-            unsigned char randomByte = dist(gen);
-            file.write(reinterpret_cast<char *>(&randomByte), sizeof(decltype(randomByte)));
+        for (std::size_t pos = 0; pos < fileSize; pos += BUFFER_SIZE) {
+            // Generate a buffer filled with random data
+            for (auto &byte: buffer) {
+                byte = dist(gen);
+            }
+            // Adjust the buffer size for the last chunk of data, which may be smaller than the buffer size
+            if (pos + BUFFER_SIZE > fileSize) {
+                buffer.resize(fileSize - pos);
+            }
+
+            file.write(reinterpret_cast<char *>(buffer.data()), static_cast<std::streamsize>(buffer.size()));
+
+            if (!file) {
+                throw std::runtime_error("file write error");
+            }
         }
     }
-
 }
 
 /// \brief overwrites a file wih a constant byte.
@@ -59,12 +73,17 @@ void overwriteRandom(std::ofstream &file, const std::size_t fileSize, int nPasse
 /// \param byte the byte to overwrite the file with.
 /// \param fileSize the size of the file in bytes.
 template<typename T>
-void overwriteConstantByte(std::ofstream &file, T byte, const auto &fileSize) {
+void overwriteConstantByte(std::ofstream &file, T &byte, const auto &fileSize) {
     // seek to the beginning of the file
     file.seekp(0, std::ios::beg);
 
-    for (std::streamoff pos = 0; pos < fileSize; ++pos) {
-        file.write(reinterpret_cast<char *>(&byte), sizeof(T));
+    std::vector<T> buffer(BUFFER_SIZE, byte);
+
+    for (std::size_t pos = 0; pos < fileSize; pos += BUFFER_SIZE) {
+        if (pos + BUFFER_SIZE > fileSize) {
+            buffer.resize(fileSize - pos);
+        }
+        file.write(reinterpret_cast<char *>(buffer.data()), static_cast<std::streamsize>(buffer.size()));
     }
 }
 
@@ -268,7 +287,7 @@ unsigned int {
     Simple          = 1 << 0,   // Simple overwrite with random bytes
     Dod5220         = 1 << 1,   // DoD 5220.22-M Standard algorithm
     Dod5220_7       = 1 << 2,   // DoD 5220.22-M Standard algorithm with 7 passes
-WipeClusterTips = 1 << 3    // Wiping of the cluster tips
+    WipeClusterTips = 1 << 3    // Wiping of the cluster tips
 };
 
 /// \brief Adds write and write permissions to a file, if the user has authority.
