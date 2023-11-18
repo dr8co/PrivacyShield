@@ -11,7 +11,7 @@
 
 namespace fs = std::filesystem;
 
-const std::unordered_map<char, const char *const> COLOR = {
+static const std::unordered_map<char, const char *const> COLOR = {
         {'r', "\033[1;31m"}, // Red
         {'g', "\033[1;32m"}, // Green
         {'y', "\033[1;33m"}, // Yellow
