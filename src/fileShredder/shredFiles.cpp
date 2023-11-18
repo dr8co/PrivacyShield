@@ -150,6 +150,12 @@ inline void renameAndRemove(const std::string &filename, int numTimes = 1) {
     if (ec) std::cerr << "Failed to delete " << filename << ": " << ec.message() << '\n';
 }
 
+/// \struct FileDescriptor
+/// \brief Represents a file descriptor.
+///
+/// The FileDescriptor class provides a convenient way to manage a file descriptor. It automatically opens the file
+/// with the specified filename upon initialization, and closes the file when the object is destroyed. If the file
+/// open operation fails, a runtime_error exception is thrown.
 struct FileDescriptor {
     int fd{-1};
 
@@ -163,6 +169,12 @@ struct FileDescriptor {
     }
 };
 
+/// \struct FileStatInfo
+/// \brief Provides information about a file based on its file descriptor.
+///
+/// The FileStatInfo struct encapsulates the information obtained from the stat function
+/// for a given file descriptor. It provides a simple way to access file attributes such as
+/// file size, permissions, and timestamps.
 struct FileStatInfo {
     struct stat fileStat{};
 
