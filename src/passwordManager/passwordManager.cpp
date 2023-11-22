@@ -611,7 +611,9 @@ inline void analyzePasswords(privacy::vector<passwordRecords> &passwords) {
     for (const auto &entry: passwordMap) {
         const std::unordered_set<privacy::string> &sites = entry.second;
         if (const auto &x = sites.size(); x > 1) {
-            printColor(std::format("Password '{}' is reused on {} sites:", entry.first, x), 'y', true);
+            printColor("Password '", 'y');
+            printColor(entry.first, 'r');
+            printColor(std::format("' is reused on {} sites:", x), 'y', true);
             for (const auto &site: sites)
                 printColor(site + "\n", 'm');
 
@@ -676,7 +678,7 @@ void passwordManager() {
             encryptionKey = getSensitiveInfo("Enter the primary password: ");
             isCorrect = verifyPassword(encryptionKey, pwHash);
             if (!isCorrect && attempts < 2)
-                std::cerr << "Wrong password, try again." << std::endl;
+                printColor("Wrong password, please try again.", 'r', true, std::cerr);
 
         } while (!isCorrect && ++attempts < 3);
 
