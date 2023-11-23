@@ -139,10 +139,16 @@ encryptDecryptRange(privacy::vector<passwordRecords> &passwords, const privacy::
     if (start > end || end > passwords.size())
         throw std::range_error("Invalid range.");
 
-    // Encrypt/decrypt the password field
-    for (std::size_t i = start; i < end; ++i) {
-        std::get<2>(passwords[i]) = encrypt ? encryptStringWithMoreRounds(std::get<2>(passwords[i]), key)
-                                            : decryptStringWithMoreRounds(std::string{std::get<2>(passwords[i])}, key);
+    try {
+        // Encrypt/decrypt the password field
+        for (std::size_t i = start; i < end; ++i) {
+            std::get<2>(passwords[i]) = encrypt ? encryptStringWithMoreRounds(std::get<2>(passwords[i]), key)
+                                                : decryptStringWithMoreRounds(std::string{std::get<2>(passwords[i])},
+                                                                              key);
+        }
+    } catch (const std::exception &ex) {
+        printColor(std::format("Error: {}", ex.what()), 'r', true, std::cerr);
+        std::exit(1);
     }
 }
 
@@ -158,16 +164,21 @@ encryptDecryptRangeAllFields(privacy::vector<passwordRecords> &passwords, const 
     if (start > end || end > passwords.size())
         throw std::range_error("Invalid range.");
 
-    // Encrypt/decrypt all fields
-    for (std::size_t i = start; i < end; ++i) {
-        std::get<0>(passwords[i]) = encrypt ? encryptString(std::get<0>(passwords[i]), key)
-                                            : decryptString(std::string{std::get<0>(passwords[i])}, key);
+    try {
+        // Encrypt/decrypt all fields
+        for (std::size_t i = start; i < end; ++i) {
+            std::get<0>(passwords[i]) = encrypt ? encryptString(std::get<0>(passwords[i]), key)
+                                                : decryptString(std::string{std::get<0>(passwords[i])}, key);
 
-        std::get<1>(passwords[i]) = encrypt ? encryptString(std::get<1>(passwords[i]), key)
-                                            : decryptString(std::string{std::get<1>(passwords[i])}, key);
+            std::get<1>(passwords[i]) = encrypt ? encryptString(std::get<1>(passwords[i]), key)
+                                                : decryptString(std::string{std::get<1>(passwords[i])}, key);
 
-        std::get<2>(passwords[i]) = encrypt ? encryptString(std::get<2>(passwords[i]), key)
-                                            : decryptString(std::string{std::get<2>(passwords[i])}, key);
+            std::get<2>(passwords[i]) = encrypt ? encryptString(std::get<2>(passwords[i]), key)
+                                                : decryptString(std::string{std::get<2>(passwords[i])}, key);
+        }
+    } catch (const std::exception &ex) {
+        printColor(std::format("Error: {}", ex.what()), 'r', true, std::cerr);
+        std::exit(1);
     }
 }
 
@@ -238,7 +249,7 @@ bool savePasswords(privacy::vector<passwordRecords> &passwords, const std::strin
         } catch (const std::exception &ex) {
             std::cerr << ex.what() << std::endl;
 
-        } catch (...) {}
+        } catch (...) {}  // we're not 'swallowing' this, we just don't want to have a specific message for it.
 
         std::cerr << std::format("Failed to open the password file ({}) for writing.\n", filePath);
         return false;
