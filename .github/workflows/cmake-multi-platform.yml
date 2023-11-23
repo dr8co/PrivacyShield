@@ -58,15 +58,20 @@ jobs:
           sudo apt update
           sudo apt install -y cmake ninja-build gcc-13 g++-13 clang-17 lldb-17 lld-17 libc++-17-dev libc++abi-17-dev \
           libomp-17-dev libgcrypt20 openssl libreadline8 libsodium23 libsodium-dev
+          
+
+      - uses: actions/checkout@v3
 
       # Install BLAKE3
       - name: Build BLAKE3
         run: |
-          git clone https://github.com/BLAKE3-team/BLAKE3.git
-          cd BLAKE3/c
-          cmake -B build -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} -G Ninja
-          sudo cmake --build build --config Release --target install -j 4
-
+          OS=${{ matrix.os }}
+          COMMAND="./scripts/install-blake3.sh ${{ matrix.c_compiler }}"
+          if [ "$OS" == "macos-13" ]; then
+            $COMMAND
+          elif [ "$OS" == "ubuntu-latest" ]; then
+            sudo $COMMAND
+          fi
 
       - uses: actions/checkout@v3
 
