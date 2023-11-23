@@ -26,6 +26,7 @@
 #include <utility>
 #include <cmath>
 #include <random>
+#include <map>
 
 namespace fs = std::filesystem;
 using string = std::string;
@@ -69,6 +70,17 @@ inline constexpr void printPasswordDetails(const auto &pw, const bool &isStrong 
 
 }
 
+/// \brief This function computes the strength of each password in the provided list of passwords.
+///
+/// The function iterates over the list of passwords and for each password, it checks if the password is strong or not.
+/// The result of this check (a boolean value) is stored in the corresponding index in the pwStrengths vector.
+/// A password is considered strong if it meets certain criteria defined in the isPasswordStrong function.
+///
+/// \param passwords A vector of tuples, where each tuple represents a password record.
+/// \param pwStrengths A vector of boolean values where each element represents the strength of the corresponding password
+/// in the passwords vector. It is resized to match the size of the passwords vector.
+///
+/// \note This function is always inlined by the compiler.
 inline constexpr void computeStrengths
 #if __clang__
 [[clang::always_inline]]
@@ -504,6 +516,7 @@ inline void importPasswords(privacy::vector<passwordRecords> &passwords, std::ve
     privacy::vector<passwordRecords> duplicates;
     duplicates.reserve(imports.size());
 
+    // Find the passwords that already exist in the database
     std::ranges::set_intersection(imports, passwords, std::back_inserter(duplicates),
                                   [](const auto &pw1, const auto &pw2) {
                                       return comparator(pw1, pw2);
@@ -631,21 +644,31 @@ inline void analyzePasswords(privacy::vector<passwordRecords> &passwords, std::v
                    true);
     } else printColor("No weak passwords found. Keep it up!\n", 'g', true);
 
-    // Print sites with reused passwords
-    std::size_t reused{0};
-    for (const auto &entry: passwordMap) {
-        const std::unordered_set<privacy::string> &sites = entry.second;
-        if (const auto &x = sites.size(); x > 1) {
-            printColor("Password '", 'y');
-            printColor(entry.first, 'r');
-            printColor(std::format("' is reused on {} sites:", x), 'y', true);
-            for (const auto &site: sites)
-                printColor(site + "\n", 'm');
+    // Find reused passwords
+    using PasswordSites = std::pair<std::string, std::unordered_set<privacy::string>>;
+    std::multimap<std::size_t, PasswordSites, std::greater<>> countMap;
 
-            std::cout << std::endl;
-            ++reused;
+    for (const auto &entry: passwordMap) {
+        const auto &sites = entry.second;
+        if (const auto &x = sites.size(); x > 1) {
+            countMap.insert(std::make_pair(x, PasswordSites(entry.first, sites)));
         }
     }
+
+    // Print reused passwords in descending order of counts
+    std::size_t reused{0};
+    for (const auto &[count, password_sites]: countMap) {
+        printColor("Password '", 'y');
+        printColor(password_sites.first, 'r');
+        printColor(std::format("' is reused on {} sites:", count), 'y', true);
+        for (const auto &site: password_sites.second)
+            printColor(site + "\n", 'm');
+
+        std::cout << std::endl;
+        ++reused;
+    }
+
+    // Print summary
     if (reused) {
         printColor(std::format("{} password{} been reused.", reused,
                                reused == 1 ? " has" : "s have"), 'r', true);
