@@ -135,7 +135,7 @@ The primary password is verified using the [Argon2id algorithm](https://en.wikip
 which is a memory-hard password hashing algorithm,
 designed to resist side-channel attacks and slow down brute-force attacks.
 
-The primary password **must be a strong** and **must not be forgotten.**
+The primary password **must be strong** and **must not be forgotten.**
 **Forgetting the primary password will result in the loss of all passwords stored in the password manager.**
 
 **Note:** When typing a password, the characters are not displayed on the screen for security reasons,
@@ -261,7 +261,7 @@ Future versions of the program may support authenticated modes of encryption.
 
 The file shredder securely deletes your files by overwriting them with random bytes.
 
-The number of overwrites can be specified by the user.
+The user can specify the number of overwrites.
 The default is 3 overwrites.
 
 The file shredder supports the following overwriting methods:
@@ -342,9 +342,9 @@ or [LLVM Clang 17](https://clang.llvm.org/) (or later) is required.
 ### IMPORTANT: A note on installing/building BLAKE3
 
 BLAKE3 is not available in the package repositories of most Linux distributions,
-so you will need to build it from source and install it manually.
+so you will need to build it from the source and install it manually.
 
-You can run [install_blake3.sh](./install_blake3.sh) script to install BLAKE3 automatically,
+You can run [install-blake3.sh](./scripts/install-blake3.sh) script to install BLAKE3 automatically,
 Or you can follow the steps at [BLAKE3's GitHub page](https://github.com/BLAKE3-team/BLAKE3/blob/master/c/README.md#building)
 
 Another option is to install BLAKE3 using a package manager, such as [Vcpkg](https://vcpkg.io): `vcpkg install blake3`.
