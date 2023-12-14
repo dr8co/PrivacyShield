@@ -148,7 +148,7 @@ inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const Ope
     }
 
     // Determine if the output file can be written if it exists
-    if (auto file = fs::canonical(outFile).string(); fs::exists(outFile) && !(isWritable(file) && isReadable(file)))
+    if (auto file = fs::absolute(outFile).string(); fs::exists(outFile) && !(isWritable(file) && isReadable(file)))
         throw std::runtime_error(std::format("{} is not writable/readable.", file));
 
     // Check if there is enough space on the disk to save the output file.
@@ -347,7 +347,7 @@ void encryptDecrypt() {
                 printColor(algoDescription.find(cipher)->second, 'c');
                 printColor("...", 'g', true);
 
-                fileEncryptionDecryption(fs::canonical(inputPath).string(), fs::canonical(outputPath).string(),
+                fileEncryptionDecryption(fs::canonical(inputPath).string(), fs::absolute(outputPath).string(),
                                          password, static_cast<int>(cipher), static_cast<OperationMode>(choice));
                 std::cout << std::endl;
 
