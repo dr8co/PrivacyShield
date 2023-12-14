@@ -122,9 +122,7 @@ inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const Ope
         if (mode == OperationMode::Encryption) {
             outFile /= inFile.filename();
             outFile += ".enc";
-        } else if (inFile.extension() == ".enc") // Decryption: strip the '.enc' extension
-            outFile /= inFile.stem();
-        else outFile /= inFile.filename();
+        } else outFile /= inFile.extension() == ".enc" ? inFile.stem() : inFile.filename();
     }
 
     // If the output file is not specified, name it appropriately
@@ -177,9 +175,7 @@ inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const Ope
 /// \param destFile the destination file.
 inline void copyLastWrite(const std::string &srcFile, const std::string &destFile) noexcept {
     std::error_code ec;
-    auto srcTime = fs::last_write_time(srcFile, ec);
-    if (ec) ec.clear();
-    fs::last_write_time(destFile, srcTime, ec);
+    fs::last_write_time(destFile, fs::last_write_time(srcFile, ec), ec);
 }
 
 /// \brief Encrypts/Decrypts a file.
