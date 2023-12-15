@@ -272,7 +272,6 @@ void dod5220Shred(const std::string &filename, const int &nPasses = 3, bool wipe
 
         // Pass 3: Overwrite with random data
         overwriteRandom(file, fileSize);
-        file.close();
     };
 
     if (nPasses == 3) {
@@ -284,6 +283,8 @@ void dod5220Shred(const std::string &filename, const int &nPasses = 3, bool wipe
     } else throw std::runtime_error("\nInvalid number of passes: " + std::to_string(nPasses));
 
     if (file.is_open()) file.close();
+
+    // Wipe cluster tips, if required
     if (wipeClusterTip) wipeClusterTips(filename);
 
     // Restore last write time
