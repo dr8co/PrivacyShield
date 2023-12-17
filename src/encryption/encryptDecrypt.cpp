@@ -72,8 +72,8 @@ int {
         Decryption = 2
 };
 
-/// \brief A structure to aid algorithm selection.
-const struct {
+/// \brief An anonymous struct to aid algorithm selection.
+static const struct {
     const char *const AES      = "AES-256-CBC";
     const char *const Camellia = "CAMELLIA-256-CBC";
     const char *const Aria     = "ARIA-256-CBC";
@@ -235,7 +235,7 @@ void fileEncryptionDecryption(const std::string &inputFileName, const std::strin
         copyLastWrite(inputFileName, outputFileName);
 
     } catch (const std::exception &ex) {
-        std::cerr << "Error: " << ex.what() << std::endl;
+        printColor(std::format("Error: {}", ex.what()), 'r', true, std::cerr);
     }
 }
 
@@ -304,11 +304,12 @@ void encryptDecrypt() {
                 checkOutputFile(inputPath, outputPath, static_cast<OperationMode>(choice));
 
                 std::cout << "Choose a cipher (All are 256-bit):\n";
-                std::cout << "1. Advanced Encryption Standard (AES)\n";
-                std::cout << "2. Camellia\n";
-                std::cout << "3. Aria\n";
-                std::cout << "4. Serpent\n";
-                std::cout << "5. Twofish\n";
+                printColor("1. Advanced Encryption Standard (AES)\n", 'b');
+                printColor("2. Camellia\n", 'c');
+                printColor("3. Aria\n", 'g');
+                printColor("4. Serpent\n", 'y');
+                printColor("5. Twofish\n", 'm');
+
                 std::cout << "Leave blank to use the default (AES)" << std::endl;
 
                 int algo = getResponseInt();
