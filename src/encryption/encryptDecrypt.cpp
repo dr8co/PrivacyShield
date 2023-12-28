@@ -72,8 +72,8 @@ int {
         Decryption = 2
 };
 
-/// \brief A structure to aid algorithm selection.
-const struct {
+/// \brief An anonymous struct to aid algorithm selection.
+static const struct {
     const char *const AES      = "AES-256-CBC";
     const char *const Camellia = "CAMELLIA-256-CBC";
     const char *const Aria     = "ARIA-256-CBC";
@@ -122,9 +122,7 @@ inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const Ope
         if (mode == OperationMode::Encryption) {
             outFile /= inFile.filename();
             outFile += ".enc";
-        } else if (inFile.extension() == ".enc") // Decryption: strip the '.enc' extension
-            outFile /= inFile.stem();
-        else outFile /= inFile.filename();
+        } else outFile /= inFile.extension() == ".enc" ? inFile.stem() : inFile.filename();
     }
 
     // If the output file is not specified, name it appropriately
@@ -150,7 +148,7 @@ inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const Ope
     }
 
     // Determine if the output file can be written if it exists
-    if (auto file = fs::canonical(outFile).string(); fs::exists(outFile) && !(isWritable(file) && isReadable(file)))
+    if (auto file = fs::absolute(outFile).string(); fs::exists(outFile) && !(isWritable(file) && isReadable(file)))
         throw std::runtime_error(std::format("{} is not writable/readable.", file));
 
     // Check if there is enough space on the disk to save the output file.
@@ -177,9 +175,7 @@ inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const Ope
 /// \param destFile the destination file.
 inline void copyLastWrite(const std::string &srcFile, const std::string &destFile) noexcept {
     std::error_code ec;
-    auto srcTime = fs::last_write_time(srcFile, ec);
-    if (ec) ec.clear();
-    fs::last_write_time(destFile, srcTime, ec);
+    fs::last_write_time(destFile, fs::last_write_time(srcFile, ec), ec);
 }
 
 /// \brief Encrypts/Decrypts a file.
@@ -239,7 +235,7 @@ void fileEncryptionDecryption(const std::string &inputFileName, const std::strin
         copyLastWrite(inputFileName, outputFileName);
 
     } catch (const std::exception &ex) {
-        std::cerr << "Error: " << ex.what() << std::endl;
+        printColor(std::format("Error: {}", ex.what()), 'r', true, std::cerr);
     }
 }
 
@@ -308,11 +304,12 @@ void encryptDecrypt() {
                 checkOutputFile(inputPath, outputPath, static_cast<OperationMode>(choice));
 
                 std::cout << "Choose a cipher (All are 256-bit):\n";
-                std::cout << "1. Advanced Encryption Standard (AES)\n";
-                std::cout << "2. Camellia\n";
-                std::cout << "3. Aria\n";
-                std::cout << "4. Serpent\n";
-                std::cout << "5. Twofish\n";
+                printColor("1. Advanced Encryption Standard (AES)\n", 'b');
+                printColor("2. Camellia\n", 'c');
+                printColor("3. Aria\n", 'g');
+                printColor("4. Serpent\n", 'y');
+                printColor("5. Twofish\n", 'm');
+
                 std::cout << "Leave blank to use the default (AES)" << std::endl;
 
                 int algo = getResponseInt();
@@ -351,7 +348,7 @@ void encryptDecrypt() {
                 printColor(algoDescription.find(cipher)->second, 'c');
                 printColor("...", 'g', true);
 
-                fileEncryptionDecryption(fs::canonical(inputPath).string(), fs::canonical(outputPath).string(),
+                fileEncryptionDecryption(fs::canonical(inputPath).string(), fs::absolute(outputPath).string(),
                                          password, static_cast<int>(cipher), static_cast<OperationMode>(choice));
                 std::cout << std::endl;
 
