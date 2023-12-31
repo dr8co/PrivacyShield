@@ -141,7 +141,7 @@ bool clearFirefoxTracks(const std::string &configDir) {
     if (!defaultProfileDirs.empty()) {
         std::cout << "Deleting cookies and history for the following default profiles:" << std::endl;
         for (const auto &profile: defaultProfileDirs) {
-            std::cout << profile.filename() << std::endl;
+            printColor(profile.filename(), 'c', true);
             // Clearing cookies
             fs::remove(profile / "cookies.sqlite", ec);
             handleFileError(ec, "deleting", profile / "cookies.sqlite");
@@ -151,7 +151,7 @@ bool clearFirefoxTracks(const std::string &configDir) {
             handleFileError(ec, "deleting", profile / "places.sqlite");
 
         }
-    } else std::cout << "No default profiles found." << std::endl;
+    } else printColor("No default profiles found.", 'r', true);
 
     // Treat the other directories as profiles
     std::vector<fs::path> profileDirs;
@@ -183,14 +183,16 @@ bool clearFirefoxTracks(const std::string &configDir) {
                             if (ec)
                                 handleFileError(ec, "deleting", entry.path());
                             else {
-                                std::cout << "Found " << profile.filename() << std::endl;
+                                std::cout << "Found ";
+                                printColor(profile.filename(), 'c', true);
                                 ++nonDefaultProfiles;
                                 alreadyCounted = true;
                             }
                         }
                         if (entry.path().filename() == "places.sqlite") {
                             if (!alreadyCounted) {
-                                std::cout << "Found " << profile.filename() << std::endl;
+                                std::cout << "Found ";
+                                printColor(profile.filename(), 'c', true);
                                 ++nonDefaultProfiles;
                             }
                             fs::remove(entry.path(), ec);
@@ -201,8 +203,9 @@ bool clearFirefoxTracks(const std::string &configDir) {
             }
         }
     }
-    std::cout << (nonDefaultProfiles == 0 ? "Non-default profiles not found." : std::format(
-            "Deleted cookies and history for {} non-default profiles.", nonDefaultProfiles)) << std::endl;
+    printColor(nonDefaultProfiles ? std::format("Deleted cookies and history for {} non-default profiles.",
+                                                nonDefaultProfiles) : "Non-default profiles not found.",
+               nonDefaultProfiles ? 'g' : 'r', true);
 
     return true;
 }
@@ -242,7 +245,7 @@ bool clearChromiumTracks(const std::string &configDir) {
         // Clearing history
         fs::remove(defaultProfileDir / "History", ec);
         handleFileError(ec, "deleting", defaultProfileDir / "History");
-    } else std::cerr << "Default profile directory not found." << std::endl;
+    } else printColor("Default profile directory not found.", 'r', true, std::cerr);
 
     // Find other profile directories
     std::vector<fs::path> profileDirs;
@@ -276,7 +279,8 @@ bool clearChromiumTracks(const std::string &configDir) {
                             if (ec)
                                 handleFileError(ec, "deleting", entry.path());
                             else {
-                                std::cout << "Found " << profile.filename() << std::endl;
+                                std::cout << "Found ";
+                                printColor(profile.filename(), 'c', true);
                                 ++nonDefaultProfiles;
                                 alreadyCounted = true;
                             }
@@ -284,7 +288,8 @@ bool clearChromiumTracks(const std::string &configDir) {
                         // Clearing history
                         if (entry.path().filename() == "History") {
                             if (!alreadyCounted) {
-                                std::cout << "Found " << profile.filename() << std::endl;
+                                std::cout << "Found ";
+                                printColor(profile.filename(), 'c', true);
                                 ++nonDefaultProfiles;
                             }
                             fs::remove(entry.path(), ec);
@@ -295,8 +300,9 @@ bool clearChromiumTracks(const std::string &configDir) {
             }
         }
     }
-    std::cout << (nonDefaultProfiles == 0 ? "Non-default profiles not found." : std::format(
-            "Deleted cookies and history for {} non-default profiles.", nonDefaultProfiles)) << std::endl;
+    printColor(nonDefaultProfiles ? std::format("Deleted cookies and history for {} non-default profiles.",
+                                                nonDefaultProfiles) : "Non-default profiles not found.",
+               nonDefaultProfiles ? 'g' : 'r', true);
 
     return true;
 }
@@ -350,7 +356,7 @@ bool clearChromiumTracks() {
 #elif __APPLE__
     return clearChromiumTracks(getHomeDir() + "/Library/Application Support/Chromium");
 #else
-    std::cout << "This OS is not supported at the moment." << std::endl;
+    printColor("This OS is not supported at the moment.", 'r', true, std::cerr);
     return false;
 #endif
 }
@@ -363,7 +369,7 @@ bool clearChromeTracks() {
 #elif __APPLE__
     return clearChromiumTracks(getHomeDir() + "/Library/Application Support/Google/Chrome");
 #else
-    std::cout << "This OS is not supported at the moment." << std::endl;
+    printColor("This OS is not supported at the moment.", 'r', true, std::cerr);
     return false;
 #endif
 }
@@ -376,7 +382,7 @@ bool clearOperaTracks() {
 #elif __APPLE__
     return clearOperaTracks(getHomeDir() + "/Library/Application Support/com.operasoftware.Opera");
 #else
-    std::cout << "This OS is not supported at the moment." << std::endl;
+    printColor("This OS is not supported at the moment.", 'r', true, std::cerr);
     return false;
 #endif
 }
@@ -387,7 +393,7 @@ bool clearSafariTracks() {
 #if __APPLE__
     std::string cookiesPath = getHomeDir() + "/Library/Cookies";
     if (!fs::exists(cookiesPath)) {
-        std::cerr << "Safari cookies directory not found." << std::endl;
+        printColor("Safari cookies directory not found.", 'r', true, std::cerr);
         return false;
     }
 
@@ -403,7 +409,7 @@ bool clearSafariTracks() {
 
     std::string historyPath = getHomeDir() + "/Library/Safari";
     if (!fs::exists(historyPath)) {
-        std::cerr << "Safari history directory not found." << std::endl;
+        printColor("Safari history directory not found.", 'r', true, std::cerr);
         return false;
     }
 
@@ -421,7 +427,7 @@ bool clearSafariTracks() {
 
     return true;
 #else
-    std::cerr << "Safari is only available on macOS." << std::endl;
+    printColor("Safari is only available on macOS.", 'r', true, std::cerr);
     return false;
 #endif
 }
@@ -434,7 +440,7 @@ bool clearFirefoxTracks() {
 #elif __APPLE__
     return clearFirefoxTracks(getHomeDir() + "/Library/Application Support/Firefox");
 #else
-    std::cout << "This OS is not supported at the moment." << std::endl;
+    printColor("This OS is not supported at the moment.", 'r', true, std::cerr);
     return false;
 #endif
 }
@@ -449,34 +455,39 @@ bool clearTracks(unsigned int browsers) {
     if (browsers & static_cast<unsigned int>(Browser::Firefox)) {
         std::cout << "\nClearing Firefox tracks..." << std::endl;
         ret = clearFirefoxTracks();
-        std::cout << (ret ? "Firefox tracks cleared successfully." : "Failed to clear Firefox tracks.") << std::endl;
+        printColor(ret ? "Firefox tracks cleared successfully." : "Failed to clear Firefox tracks.", ret ? 'g' : 'r',
+                   true, ret ? std::cout : std::cerr);
     }
 
     if (browsers & static_cast<unsigned int>(Browser::Chrome)) {
         std::cout << "\nClearing Chrome tracks..." << std::endl;
         ret = clearChromeTracks();
-        std::cout << (ret ? "Chrome tracks cleared successfully." : "Failed to clear Chrome tracks.") << std::endl;
+        printColor(ret ? "Chrome tracks cleared successfully." : "Failed to clear Chrome tracks.", ret ? 'g' : 'r',
+                   true, ret ? std::cout : std::cerr);
     }
 
     if (browsers & static_cast<unsigned int>(Browser::Chromium)) {
         std::cout << "\nClearing Chromium tracks..." << std::endl;
         ret = clearChromiumTracks();
-        std::cout << (ret ? "Chromium tracks cleared successfully." : "Failed to clear Chromium tracks.") << std::endl;
+        printColor(ret ? "Chromium tracks cleared successfully." : "Failed to clear Chromium tracks.", ret ? 'g' : 'r',
+                   true, ret ? std::cout : std::cerr);
     }
 
     if (browsers & static_cast<unsigned int>(Browser::Opera)) {
         std::cout << "\nClearing Opera tracks..." << std::endl;
         ret = clearOperaTracks();
-        std::cout << (ret ? "Opera tracks cleared successfully." : "Failed to clear Opera tracks.") << std::endl;
+        printColor(ret ? "Opera tracks cleared successfully." : "Failed to clear Opera tracks.", ret ? 'g' : 'r', true,
+                   ret ? std::cout : std::cerr);
     }
 
     if (browsers & static_cast<unsigned int>(Browser::Safari)) {
 #if __APPLE__
         std::cout << "Clearing Safari tracks..." << std::endl;
         ret = clearSafariTracks();
-        std::cout << (ret ? "Safari tracks cleared successfully." : "Failed to clear Safari tracks.") << std::endl;
+        printColor(ret ? "Safari tracks cleared successfully." : "Failed to clear Safari tracks.", ret ? 'g' : 'r',
+                   true, ret ? std::cout : std::cerr);
 #else
-        std::cerr << "\nSafari is only available on macOS." << std::endl;
+        printColor("\nSafari is only available on macOS.", 'r', true, std::cerr);
         ret = false;
 #endif
     }
@@ -491,28 +502,32 @@ void clearPrivacyTracks() {
 
     unsigned int browsers = detectBrowsers();
     if (browsers == 0) {
-        std::cout << "No supported browsers found." << std::endl;
+        printColor("No supported browsers found.", 'r', true, std::cerr);
         return;
     } else [[likely]] {
-        std::cout << "Supported browsers found:" << std::endl;
+        printColor("Supported browsers found:", 'b', true);
         if (browsers & static_cast<unsigned int>(Browser::Firefox))
-            std::cout << "Firefox" << std::endl;
+            printColor("Firefox", 'c', true);
 
         if (browsers & static_cast<unsigned int>(Browser::Chrome))
-            std::cout << "Chrome" << std::endl;
+            printColor("Chrome", 'c', true);
 
         if (browsers & static_cast<unsigned int>(Browser::Chromium))
-            std::cout << "Chromium" << std::endl;
+            printColor("Chromium", 'c', true);
 
         if (browsers & static_cast<unsigned int>(Browser::Opera))
-            std::cout << "Opera" << std::endl;
+            printColor("Opera", 'c', true);
 
         if (browsers & static_cast<unsigned int>(Browser::Safari))
-            std::cout << "Safari" << std::endl;
+            printColor("Safari", 'c', true);
     }
-    std::cout << (validateYesNo(
-            "\nAll the cookies and browsing history of the above browsers will be deleted.\nContinue? (y/n):") ?
-                  clearTracks(browsers) ? "\nAll tracks cleared successfully." : "\nFailed to clear all tracks."
-                                                                                                               : "Aborted.")
-              << std::endl;
+    if (validateYesNo(
+            "\nAll the cookies and browsing history of the above browsers will be deleted.\nContinue? (y/n):")) {
+
+        auto cleared{clearTracks(browsers)};
+        printColor(cleared ? "\nAll tracks cleared successfully." : "\nFailed to clear all tracks.",
+                   cleared ? 'g' : 'r', true, cleared ? std::cout : std::cerr);
+
+    } else printColor("Aborted.", 'r', true);
+
 }
