@@ -41,7 +41,7 @@ unsigned int {
 /// \param path the path of the file in which the error occurred.
 inline void handleFileError(std::error_code &ec, const std::string &context = "", const std::string &path = "") {
     if (ec) {
-        std::cerr << std::format("Error {} {}: {}", context, path, ec.message()) << std::endl;
+        printColor(std::format("Error {} {}: {}", context, path, ec.message()), 'r', true, std::cerr);
         ec.clear();
     }
 }
@@ -54,7 +54,7 @@ unsigned int detectBrowsers(const std::string &pathEnv) {
 
     // Check if the passed string is empty
     if (pathEnv.empty()) {
-        std::cerr << "PATH environment variable not found." << std::endl;
+        printColor("PATH environment variable not found.", 'r', true, std::cerr);
         return detectedBrowsers;
     }
 
@@ -110,7 +110,7 @@ unsigned int detectBrowsers() {
     if (auto pathEnv = getEnv("PATH"); pathEnv)
         return detectBrowsers(*pathEnv);
     else {
-        std::cerr << "PATH environment variable not found." << std::endl;
+        printColor("PATH environment variable not found.", 'r', true, std::cerr);
         return 0;
     }
 }
@@ -120,7 +120,7 @@ unsigned int detectBrowsers() {
 /// \return true if successful, false otherwise.
 bool clearFirefoxTracks(const std::string &configDir) {
     if (!fs::exists(configDir)) {
-        std::cerr << "Firefox config directory not found." << std::endl;
+        printColor("Firefox config directory not found.", 'r', true, std::cerr);
         return false;
     }
 
@@ -212,8 +212,7 @@ bool clearFirefoxTracks(const std::string &configDir) {
 /// \return true if successful, false otherwise.
 bool clearChromiumTracks(const std::string &configDir) {
     if (!fs::exists(configDir)) {
-        std::cout << "Profile path: " << configDir << std::endl;
-        std::cerr << "Config directory not found." << std::endl;
+        printColor("Config directory not found.", 'r', true, std::cerr);
         return false;
     }
 
@@ -310,7 +309,7 @@ bool clearOperaTracks(const std::string &profilePath) {
 
     // Check if the Opera config directory exists
     if (!fs::exists(profilePath)) {
-        std::cerr << "Opera config directory not found." << std::endl;
+        printColor("Opera config directory not found.", 'r', true, std::cerr);
         return false;
     }
 
