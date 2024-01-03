@@ -95,13 +95,19 @@ int main(int argc, char **argv) {
             throw std::runtime_error("Failed to initialize libsodium.");
 
         // Display information about the program
-        std::cout << "\nPrivacy Shield 1.0.0\n"
-                     "Copyright (C) 2023 Ian Duncan.\n"
-                     "This program comes with ABSOLUTELY NO WARRANTY.\n"
-                     "This is a free software; you are free to change and redistribute it\n"
-                     "under the terms of the GNU General Public License v3 or later.\n"
-                     "For more information, see https://www.gnu.org/licenses/gpl.html.\n"
-                  << std::endl;
+        printColor("\nPrivacy Shield 1.0.0\n", 'c');
+        printColor("Copyright (C) 2023 Ian Duncan.\n", 'b');
+
+        printColor("This program comes with ", 'g');
+        printColor("ABSOLUTELY NO WARRANTY.", 'r');
+
+        printColor("\nThis is a free software; you are free to change and redistribute it\n"
+                   "under the terms of the ", 'g');
+        printColor("GNU General Public License v3 ", 'r');
+        printColor("or later.", 'g');
+
+        printColor("\nFor more information, see ", 'g');
+        printColor("https://www.gnu.org/licenses/gpl.html.\n", 'b', true);
 
         // All the available tools
         std::unordered_map<int, std::function<void(void)>> apps = {
@@ -114,14 +120,14 @@ int main(int argc, char **argv) {
 
         // Applications loop
         while (true) {
-            std::cout << "-------------------------------------\n";
-            std::cout << "1. Manage passwords\n";
-            std::cout << "2. Encrypt/decrypt files\n";
-            std::cout << "3. Shred files\n";
-            std::cout << "4. Clear browser privacy traces\n";
-            std::cout << "5. Find duplicate files\n";
-            std::cout << "6. Exit\n";
-            std::cout << "-------------------------------------" << std::endl;
+            printColor("-------------------------------------\n", 'c');
+            printColor("1. Manage passwords\n", 'b');
+            printColor("2. Encrypt/decrypt files\n", 'g');
+            printColor("3. Shred files\n", 'm');
+            printColor("4. Clear browser privacy traces\n", 'y');
+            printColor("5. Find duplicate files\n", 'b');
+            printColor("6. Exit\n", 'r');
+            printColor("-------------------------------------", 'c', true);
 
             int choice = getResponseInt("What would you like to do? (Enter 1 or 2, 3..)");
 
@@ -135,15 +141,15 @@ int main(int argc, char **argv) {
                 else printColor("Invalid choice!", 'r', true, std::cerr);
 
             } catch (const std::bad_function_call &bc) { // In case the std::function objects are called inappropriately
-                std::cerr << "Bad function call: " << bc.what() << std::endl;
+                printColor(std::format("Bad function call: {}", bc.what()), 'r', true, std::cerr);
                 continue;
 
             } catch (const std::exception &ex) {
-                std::cerr << "Error: " << ex.what() << std::endl;
+                printColor(std::format("Error: {}", ex.what()), 'r', true, std::cerr);
                 continue;
 
             } catch (...) { // All other exceptions, if any
-                std::cerr << "An error occurred." << std::endl;
+                printColor("An error occurred.", 'r', true, std::cerr);
                 continue;
             }
         }
@@ -151,11 +157,11 @@ int main(int argc, char **argv) {
         return 0;
 
     } catch (const std::exception &ex) {
-        std::cerr << "Error: " << ex.what() << std::endl;
+        printColor(std::format("Error: {}", ex.what()), 'r', true, std::cerr);
         return 1;
 
     } catch (...) {
-        std::cerr << "Something went wrong." << std::endl;
+        printColor("Something went wrong.", 'r', true, std::cerr);
         return 1;
     }
 
