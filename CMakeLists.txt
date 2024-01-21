@@ -23,7 +23,7 @@ project(privacyShield
 
 # If we are not on unix, we cannot build
 if (NOT UNIX)
-    message(FATAL_ERROR "This project can only be built on unix-like systems")
+    message(FATAL_ERROR "This project is only supported on unix-like systems.")
 endif ()
 
 # If the user does not specify a build type, default to Release
