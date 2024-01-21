@@ -1,5 +1,5 @@
 // Privacy Shield: A Suite of Tools Designed to Facilitate Privacy Management.
-// Copyright (C) 2023  Ian Duncan <dr8co@duck.com>
+// Copyright (C) 2024  Ian Duncan <dr8co@duck.com>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -96,7 +96,7 @@ int main(int argc, char **argv) {
 
         // Display information about the program
         printColor("\nPrivacy Shield 1.0.0\n", 'c');
-        printColor("Copyright (C) 2023 Ian Duncan.\n", 'b');
+        printColor("Copyright (C) 2024 Ian Duncan.\n", 'b');
 
         printColor("This program comes with ", 'g');
         printColor("ABSOLUTELY NO WARRANTY.", 'r');
