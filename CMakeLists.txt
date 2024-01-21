@@ -1,5 +1,5 @@
 # Privacy Shield: A Suite of Tools Designed to Facilitate Privacy Management.
-# Copyright (C) 2023  Ian Duncan <dr8co@duck.com>
+# Copyright (C) 2024  Ian Duncan <dr8co@duck.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 cmake_minimum_required(VERSION 3.25)
 
 project(privacyShield
-        VERSION 0.1.0
+        VERSION 1.0.0
         DESCRIPTION "A suite of tools for privacy and security"
         LANGUAGES CXX)
 

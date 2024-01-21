@@ -1,5 +1,5 @@
 // Privacy Shield: A Suite of Tools Designed to Facilitate Privacy Management.
-// Copyright (C) 2023  Ian Duncan <dr8co@duck.com>
+// Copyright (C) 2024  Ian Duncan <dr8co@duck.com>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -147,7 +147,11 @@ inline void renameAndRemove(const std::string &filename, int numTimes = 1) {
     }
 
     fs::remove(path, ec);
-    if (ec) std::cerr << "Failed to delete " << filename << ": " << ec.message() << '\n';
+    if (ec) {
+        printColor("Failed to delete ", 'r', false, std::cerr);
+        printColor(filename, 'm', false, std::cerr);
+        printColor(std::format(": {}", ec.message()), 'r', true, std::cerr);
+    }
 }
 
 /// \struct FileDescriptor
@@ -236,7 +240,6 @@ void simpleShred(const std::string &filename, const int &nPasses = 3, bool wipeC
 
     // Restore last write time
     fs::last_write_time(filename, initTime, ec);
-    if (ec) ec.clear();
 
     // Rename and remove the file
     renameAndRemove(filename, 3);
