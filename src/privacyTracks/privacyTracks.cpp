@@ -141,7 +141,7 @@ bool clearFirefoxTracks(const std::string &configDir) {
     if (!defaultProfileDirs.empty()) {
         std::cout << "Deleting cookies and history for the following default profiles:" << std::endl;
         for (const auto &profile: defaultProfileDirs) {
-            printColor(profile.filename(), 'c', true);
+            printColor(profile.filename().string(), 'c', true);
             // Clearing cookies
             fs::remove(profile / "cookies.sqlite", ec);
             handleFileError(ec, "deleting", profile / "cookies.sqlite");
@@ -521,13 +521,13 @@ void clearPrivacyTracks() {
         if (browsers & static_cast<unsigned int>(Browser::Safari))
             printColor("Safari", 'c', true);
     }
-    if (validateYesNo(
-            "\nAll the cookies and browsing history of the above browsers will be deleted.\nContinue? (y/n):")) {
+    printColor("\nAll the cookies and browsing history of the above browsers will be deleted.", 'r', true);
+    printColor("Continue? (y/n): ", 'c');
 
+    if (validateYesNo()) {
         auto cleared{clearTracks(browsers)};
         printColor(cleared ? "\nAll tracks cleared successfully." : "\nFailed to clear all tracks.",
                    cleared ? 'g' : 'r', true, cleared ? std::cout : std::cerr);
 
     } else printColor("Aborted.", 'r', true);
-
 }

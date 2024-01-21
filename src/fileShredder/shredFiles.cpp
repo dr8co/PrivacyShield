@@ -147,7 +147,11 @@ inline void renameAndRemove(const std::string &filename, int numTimes = 1) {
     }
 
     fs::remove(path, ec);
-    if (ec) std::cerr << "Failed to delete " << filename << ": " << ec.message() << '\n';
+    if (ec) {
+        printColor("Failed to delete ", 'r', false, std::cerr);
+        printColor(filename, 'm', false, std::cerr);
+        printColor(std::format(": {}", ec.message()), 'r', true, std::cerr);
+    }
 }
 
 /// \struct FileDescriptor
@@ -236,7 +240,6 @@ void simpleShred(const std::string &filename, const int &nPasses = 3, bool wipeC
 
     // Restore last write time
     fs::last_write_time(filename, initTime, ec);
-    if (ec) ec.clear();
 
     // Rename and remove the file
     renameAndRemove(filename, 3);
