@@ -106,10 +106,18 @@ inline void handleAccessError(const std::string &filename) {
 /// \param directoryPath the directory to process.
 /// \param files a vector to store the information from the files found in the directory.
 void traverseDirectory(const std::string &directoryPath, std::vector<FileInfo> &files) {
+    std::error_code ec;
 
     for (const auto &entry: fs::recursive_directory_iterator(directoryPath,
-                                                             fs::directory_options::skip_permission_denied)) {
-        if (entry.exists()) { // skip broken symlinks
+                                                             fs::directory_options::skip_permission_denied |
+                                                             fs::directory_options::follow_directory_symlink)) {
+        if (entry.exists(ec)) { // In case of broken symlinks
+            if (ec) {
+                printColor(std::format("Skipping '{}': {}.",
+                                       entry.path().string(), ec.message()), 'r', true, std::cerr);
+                ec.clear();
+                continue;
+            }
             // Make sure we can read the entry
             if (isReadable(entry.path())) [[likely]] {
 
