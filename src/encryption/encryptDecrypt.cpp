@@ -176,7 +176,7 @@ inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const Ope
             throw std::runtime_error("Operation aborted.");
 
         // Determine if the output file can be written if it exists
-        if (auto file = fs::absolute(outFile).string(); !(isWritable(file) && isReadable(file)))
+        if (auto file = fs::weakly_canonical(outFile).string(); !(isWritable(file) && isReadable(file)))
             throw std::runtime_error(std::format("{} is not writable/readable.", file));
     }
 
@@ -185,7 +185,7 @@ inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const Ope
     const auto fileSize = fs::file_size(inFile);
     if (std::cmp_less(availableSpace, fileSize)) {
         printColor("Not enough space to save ", 'r', false, std::cerr);
-        printColor(fs::absolute(outFile).string(), 'c', true, std::cerr);
+        printColor(fs::weakly_canonical(outFile).string(), 'c', true, std::cerr);
 
         printColor("Required:  ", 'y', false, std::cerr);
         printColor(FormatFileSize(fileSize), 'g', true, std::cerr);
@@ -372,7 +372,7 @@ void encryptDecrypt() {
                 printColor(algoDescription.find(cipher)->second, 'c');
                 printColor("...", 'g', true);
 
-                fileEncryptionDecryption(fs::canonical(inputPath).string(), fs::absolute(outputPath).string(),
+                fileEncryptionDecryption(fs::canonical(inputPath).string(), fs::weakly_canonical(outputPath).string(),
                                          password, static_cast<int>(cipher), static_cast<OperationMode>(choice));
                 std::cout << std::endl;
 

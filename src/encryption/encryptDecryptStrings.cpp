@@ -17,7 +17,6 @@
 #include "../utils/utils.hpp"
 #include "cryptoCipher.hpp"
 #include "encryptDecrypt.hpp"
-#include <iostream>
 #include <mutex>
 #include <sodium.h>
 #include <format>
