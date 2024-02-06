@@ -24,7 +24,6 @@
 #include <openssl/rand.h>
 #include <sodium.h>
 #include <format>
-#include <filesystem>
 #include <mutex>
 
 // OpenSSL's library context and property query string
@@ -133,7 +132,7 @@ void encryptFile(const std::string &inputFile, const std::string &outputFile, co
         throw std::runtime_error(std::format("Failed to open '{}' for reading.", inputFile));
 
     // Open the output file for writing
-    std::ofstream outFile(outputFile, std::ios::binary);
+    std::ofstream outFile(outputFile, std::ios::binary | std::ios::trunc);
     if (!outFile)
         throw std::runtime_error(std::format("Failed to open '{}' for writing.", outputFile));
 
@@ -216,7 +215,7 @@ void decryptFile(const std::string &inputFile, const std::string &outputFile, co
         throw std::runtime_error(std::format("Failed to open '{}' for reading.", inputFile));
 
     // Open the output file for writing
-    std::ofstream outFile(outputFile, std::ios::binary);
+    std::ofstream outFile(outputFile, std::ios::binary | std::ios::trunc);
     if (!outFile)
         throw std::runtime_error(std::format("Failed to open '{}' for writing.", outputFile));
 
@@ -323,7 +322,7 @@ encryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
         throw std::runtime_error(std::format("Failed to open '{}' for reading.", inputFilePath));
 
     // Open the output file for writing
-    std::ofstream outputFile(outputFilePath, std::ios::binary);
+    std::ofstream outputFile(outputFilePath, std::ios::binary | std::ios::trunc);
     if (!outputFile)
         throw std::runtime_error(std::format("Failed to open '{}' for writing.", outputFilePath));
 
@@ -397,8 +396,8 @@ decryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
     if (!inputFile)
         throw std::runtime_error(std::format("Failed to open '{}' for reading.", inputFilePath));
 
-    // Open the input file for reading
-    std::ofstream outputFile(outputFilePath, std::ios::binary);
+    // Open the output file for writing
+    std::ofstream outputFile(outputFilePath, std::ios::binary | std::ios::trunc);
     if (!outputFile)
         throw std::runtime_error(std::format("Failed to open '{}' for writing.", outputFilePath));
 
