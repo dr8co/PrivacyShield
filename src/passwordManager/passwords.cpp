@@ -242,16 +242,26 @@ inline void checkCommonErrors(const std::string &path) {
 bool savePasswords(privacy::vector<passwordRecords> &passwords, const std::string &filePath,
                    const privacy::string &encryptionKey) {
 
-    std::ofstream file(filePath, std::ios::trunc);
+    std::string tempFile = filePath + "XXXXXX";
+
+    // Create a temporary file
+    int tmpFileFd = mkstemp(tempFile.data());
+
+    // If the temporary file couldn't be created, use the original file path
+    if (tmpFileFd == -1)
+        tempFile = filePath;
+    else close(tmpFileFd); // Close the file descriptor
+
+    std::ofstream file(tempFile, std::ios::trunc);
     if (!file) {
         try {
-            checkCommonErrors(filePath);
+            checkCommonErrors(tempFile);
         } catch (const std::exception &ex) {
             std::cerr << ex.what() << std::endl;
 
-        } catch (...) {}  // we're not 'swallowing' this, we just don't want to have a specific message for it.
+        } catch (...) {} // Ignore any other exceptions as we're about to exit anyway
 
-        std::cerr << std::format("Failed to open the password file ({}) for writing.\n", filePath);
+        std::cerr << std::format("Failed to open the password file ({}) for writing.\n", tempFile);
         return false;
     }
 
@@ -278,7 +288,12 @@ bool savePasswords(privacy::vector<passwordRecords> &passwords, const std::strin
     }
     file.close();
 
-    return true;
+    std::error_code ec;
+    // Rename the temporary file to the original file
+    fs::rename(tempFile, filePath, ec);
+
+    if (ec) printColor(ec.message(), 'r', true, std::cerr);
+    return !ec;
 }
 
 /// \brief Loads the encrypted passwords from the disk, and decrypts them.
