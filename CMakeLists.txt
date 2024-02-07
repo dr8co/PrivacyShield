@@ -21,7 +21,7 @@ project(privacyShield
         DESCRIPTION "A suite of tools for privacy and security"
         LANGUAGES CXX)
 
-# If we are not on unix, we cannot build
+# If the user is not on a unix-like system, fail the build
 if (NOT UNIX)
     message(FATAL_ERROR "This project is only supported on unix-like systems.")
 endif ()

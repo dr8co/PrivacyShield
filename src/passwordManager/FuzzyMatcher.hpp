@@ -72,7 +72,7 @@ public:
         // Copy unique entries to the string list vector (wordList is sorted)
         stringList.emplace_back(*std::ranges::cbegin(wordList));
         for (const auto &el: wordList)
-            if (el != stringList.back())
+            if (el != stringList.back()) // Deduplicate
                 stringList.emplace_back(el);
     }
 

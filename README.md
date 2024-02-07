@@ -120,7 +120,7 @@ See [LICENSE](./LICENSE.md) for more information.
 
 ## The Tools in Detail
 
-Privacy Shield currently runs exclusively in the command line in interactive mode.
+Privacy Shield now runs exclusively in the command line in an interactive mode.
 
 All the commands/operations are presented in a menu-like interface,
 and are not saved in the shell command history.
@@ -155,7 +155,7 @@ The actual encryption is done in two steps:
 
 The keys (256-bit) for the two steps are derived from the primary password using the
 [PBKDF2 algorithm](https://en.wikipedia.org/wiki/PBKDF2), ([salted](https://en.wikipedia.org/wiki/Salt_(cryptography))
-with a random salt).
+with random bytes).
 
 No two password records are encrypted using the same key.
 To be precise, each field of a password record is encrypted independently using a different key.
