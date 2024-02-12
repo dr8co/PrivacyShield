@@ -40,13 +40,13 @@ Protect Your Privacy, Secure Your Digital World.
 <!-- omit in toc -->
 ## About
 
-Privacy Shield is a suite of simple tools to help you manage your privacy in the digital world.
-The tools included in Privacy Shield are:
+Privacy Shield is a suite of simple tools to help you manage your privacy.
+These tools include:
 
-* **[Password Manager](#password-manager)** – A simple password manager that stores your passwords in an encrypted file.
+* **[Password Manager](#password-manager)** – A simple password manager that encrypts your passwords for storage.
 * **[File Encryptor/Decryptor](#file-encryptordecryptor)** – A simple tool to encrypt/decrypt your files.
 * **[File Shredder](#file-shredder)** - A simple file shredder to securely delete your files.
-* **[Browser Privacy Tracks Cleaner](#browser-privacy-tracks-cleaner)** – A simple tool to clean browser cookies and history items.
+* **[Browser Privacy Tracks Cleaner](#browser-privacy-tracks-cleaner)** – Cleans browser cookies and history items.
 * **[File Deduplicator](#file-deduplicator)** – A bonus tool to help remove redundant files.
 
 <!-- omit in toc -->
@@ -86,14 +86,6 @@ empowering individuals like you to reclaim your privacy and fortify your digital
 Thus, the Privacy Shield was born—a culmination of my passion for technology and my unwavering commitment
 to safeguarding privacy.
 
-Are you ready to don your digital armor and become a guardian of your own privacy?
-Privacy Shield invites you to join the ranks of those who refuse to compromise on privacy.
-Take control of your digital destiny,
-revel in the peace of mind that fortified privacy brings, and protect what matters most—your personal information.
-
-Together, let's shape a world where privacy reigns supreme,
-and our digital sanctuaries remain impervious to prying eyes.
-
 ## Features
 
 * **Cross-Platform** – Privacy Shield is written in C++ and uses CMake as its build system,
@@ -107,7 +99,7 @@ If you find any security vulnerabilities, please report them, or better yet, sub
 
 * **Fast** – Privacy Shield is designed to be fast, with support for multi-threading and concurrency.
 
-* **Lightweight** and **Portable** – The design is simple and lightweight.
+* **Lightweight** and **Portable** – The design is straightforward and lightweight.
 
 * **Safe** – Privacy Shield supports safe operations, with support for cancellation and error handling.
 
@@ -202,7 +194,7 @@ The password manager also features the following tools:
 * **Analytics** – A simple analytics tool to analyze your passwords for strength and reuse.
 
 **A note on importation**\
-For importing passwords, the CSV file **must have three and only three columns**: name, username, and password (in that order).
+For importing passwords, the CSV file **must have three and only three columns**: _name_, _username_, and _password_ (in that order).
 The file can have a header row, but it is not required (the program will ask you if the file has a header row).
 **Non-conforming rows will be skipped**.
 
