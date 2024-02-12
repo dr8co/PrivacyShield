@@ -24,6 +24,7 @@
 #include <format>
 #include <algorithm>
 #include <thread>
+#include <unistd.h>
 
 namespace fs = std::filesystem;
 
