@@ -321,10 +321,12 @@ The hashes are computed in parallel using multiple threads to speed up the proce
 * A [Unix-like](https://en.wikipedia.org/wiki/List_of_Unix_systems#Unix-like_operating_systems)
 operating system, such as [Linux](https://en.wikipedia.org/wiki/Linux),
 [BSD](https://en.wikipedia.org/wiki/Berkeley_Software_Distribution), or [macOS](https://en.wikipedia.org/wiki/MacOS).
-* A C++ compiler with C++23 support. For this project, [GCC 13](https://gcc.gnu.org/gcc-13/) (or later),
-or [LLVM Clang 17](https://clang.llvm.org/) (or later) is required.
-* [CMake](https://cmake.org/) 3.25+
-* [Ninja](https://ninja-build.org/) 1.10+, or any other build system supported by CMake (Ninja is recommended)
+* A C++ compiler with [C++23](https://en.cppreference.com/w/cpp/23) support,
+and [C++20 Modules](https://en.cppreference.com/w/cpp/language/modules) support.
+For this project, [GCC 14](https://gcc.gnu.org/gcc-13/) (or newer),
+or [LLVM Clang 17](https://clang.llvm.org/) (or newer) is required.
+* [CMake](https://cmake.org/) 3.28+
+* [Ninja](https://ninja-build.org/) 1.11+, or any other build system compatible with CMake and C++20 Modules.
 * [OpenSSL](https://www.openssl.org/) 3+
 * [Sodium](https://libsodium.org/) 1.0.18+
 * [GCrypt](https://gnupg.org/software/libgcrypt/index.html) 1.10+
