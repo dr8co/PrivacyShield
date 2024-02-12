@@ -58,9 +58,6 @@ jobs:
           sudo apt update
           sudo apt install -y cmake ninja-build gcc-13 g++-13 clang-17 lldb-17 lld-17 libc++-17-dev libc++abi-17-dev \
           libomp-17-dev libgcrypt20 openssl libreadline8 libsodium23 libsodium-dev
-          
-
-      - uses: actions/checkout@v3
 
       # Install BLAKE3
       - name: Build BLAKE3
@@ -73,7 +70,7 @@ jobs:
             sudo $COMMAND
           fi
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set reusable strings
         id: strings
@@ -106,7 +103,7 @@ jobs:
       
       # Upload the built artifacts
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: "${{ matrix.os }}-${{ matrix.build_type }}.tar.gz"
           path: "${{ steps.strings.outputs.build-output-dir }}/privacyShield.tar.gz"
