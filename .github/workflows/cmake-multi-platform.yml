@@ -59,6 +59,9 @@ jobs:
           sudo apt install -y cmake ninja-build gcc-13 g++-13 clang-17 lldb-17 lld-17 libc++-17-dev libc++abi-17-dev \
           libomp-17-dev libgcrypt20 openssl libreadline8 libsodium23 libsodium-dev
 
+
+      - uses: actions/checkout@v4
+
       # Install BLAKE3
       - name: Build BLAKE3
         run: |
@@ -69,8 +72,6 @@ jobs:
           elif [ "$OS" == "ubuntu-latest" ]; then
             sudo $COMMAND
           fi
-
-      - uses: actions/checkout@v4
 
       - name: Set reusable strings
         id: strings
