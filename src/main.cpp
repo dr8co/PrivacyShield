@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
-#include "duplicateFinder/duplicateFinder.hpp"
 #include "encryption/encryptDecrypt.hpp"
 #include "fileShredder/shredFiles.hpp"
 #include "passwordManager/passwords.hpp"
@@ -28,6 +27,8 @@
 #include <unistd.h>
 #include <sys/resource.h>
 #include <iostream>
+
+import duplicateFinder;
 
 constexpr const char *const MINIMUM_LIBGCRYPT_VERSION = "1.10.0";
 

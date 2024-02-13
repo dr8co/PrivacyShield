@@ -64,6 +64,7 @@ target_sources(privacyShield
         FILE_SET CXX_MODULES FILES
         "${CMAKE_SOURCE_DIR}/src/secureAllocator.cppm"
         "${CMAKE_SOURCE_DIR}/src/utils/utils.cppm"
+        "${CMAKE_SOURCE_DIR}/src/duplicateFinder/duplicateFinder.cppm"
 )
 
 # Link dependencies

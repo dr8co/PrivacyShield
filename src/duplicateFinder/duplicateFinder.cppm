@@ -14,7 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
-#include "duplicateFinder.hpp"
+module;
+
 #include <iostream>
 #include <fstream>
 #include <system_error>
@@ -27,6 +28,8 @@
 #include <format>
 
 import utils;
+
+export module duplicateFinder;
 
 namespace fs = std::filesystem;
 
@@ -228,7 +231,7 @@ std::size_t findDuplicates(const std::string &directoryPath) {
 }
 
 /// \brief A simple duplicate file detective.
-void duplicateFinder() {
+export void duplicateFinder() {
     while (true) {
         std::cout << "\n-------------------";
         printColor(" Duplicate Finder ", 'm');
