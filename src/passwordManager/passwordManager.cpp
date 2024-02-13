@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
-#include "FuzzyMatcher.hpp"
 #include "passwords.hpp"
 #include <filesystem>
 #include <algorithm>
@@ -29,6 +28,7 @@
 #include <iostream>
 
 import utils;
+import FuzzyMatcher;
 
 namespace fs = std::filesystem;
 using string = std::string;

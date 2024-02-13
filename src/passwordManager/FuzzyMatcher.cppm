@@ -14,12 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
-#pragma once
+module;
 
 #include <string>
 #include <vector>
 
 import secureAllocator;
+
+export module FuzzyMatcher;
 
 template<typename T>
 /// \brief A concept describing a range of strings.
@@ -29,7 +31,7 @@ concept StringRange = std::ranges::input_range<T> &&
 
 
 /// \brief A simple case insensitive fuzzy matcher.
-class FuzzyMatcher {
+export class FuzzyMatcher {
 public:
     /// Default constructor
     constexpr FuzzyMatcher() noexcept = default;
