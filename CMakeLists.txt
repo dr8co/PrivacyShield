@@ -53,8 +53,7 @@ add_executable(privacyShield)
 
 # Add sources for the target
 file(GLOB_RECURSE PRIVACY_SHIELD_SOURCES
-        "${CMAKE_SOURCE_DIR}/src/*.cpp"
-        "${CMAKE_SOURCE_DIR}/src/*.hpp")
+        "${CMAKE_SOURCE_DIR}/src/*.cpp")
 
 target_sources(privacyShield PRIVATE ${PRIVACY_SHIELD_SOURCES})
 
