@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
-#include "fileShredder/shredFiles.hpp"
 #include <csignal>
 #include <sodium.h>
 #include <gcrypt.h>
@@ -29,6 +28,7 @@ import duplicateFinder;
 import privacyTracks;
 import encryption;
 import passwordManager;
+import fileShredder;
 import utils;
 
 constexpr const char *const MINIMUM_LIBGCRYPT_VERSION = "1.10.0";

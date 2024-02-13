@@ -14,7 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
-#include "shredFiles.hpp"
+module;
+
 #include<cstring>
 #include <iostream>
 #include <fstream>
@@ -26,6 +27,10 @@
 #include <format>
 
 import utils;
+
+using StatType = struct stat;
+
+export module fileShredder;
 
 namespace fs = std::filesystem;
 constexpr std::streamoff BUFFER_SIZE = 4096;
@@ -182,7 +187,7 @@ struct FileDescriptor {
 /// for a given file descriptor. It provides a simple way to access file attributes such as
 /// file size, permissions, and timestamps.
 struct FileStatInfo {
-    struct stat fileStat{};
+    StatType fileStat{};
 
     explicit FileStatInfo(int &fileDescriptor) {
         if (fstat(fileDescriptor, &fileStat) == -1)
@@ -438,7 +443,7 @@ bool shredFiles(const std::string &filePath, const unsigned int &options, const 
 }
 
 /// \brief A simple file shredder.
-void fileShredder() {
+export void fileShredder() {
     /// \brief Configures the shredding options.
     auto selectPreferences = [](unsigned int &preferences, int &simpleNumPass) {
         int moreChoices1 = getResponseInt("\n1. Continue with default shredding options\n"
