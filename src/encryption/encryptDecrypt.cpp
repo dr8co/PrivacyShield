@@ -109,15 +109,44 @@ inline void checkInputFile(fs::path &inFile, const OperationMode &mode) {
         throw std::runtime_error(std::format("{} is not readable.", file));
 }
 
+/// \brief Creates the directory path for a given file path if it does not exist. 
+/// \param filePath The file path for which the directory path needs to be created.
+/// \return True if the directory path is created successfully or already exists, false otherwise.
+inline bool createPath(const fs::path &filePath) noexcept {
+    std::error_code ec;
+
+    auto absolutePath = fs::weakly_canonical(filePath, ec);
+    if (ec) {
+        absolutePath = filePath;
+        ec.clear();
+    }
+
+    if (absolutePath.has_filename())
+        absolutePath.remove_filename();
+
+    if (exists(absolutePath, ec)) {
+        if (is_directory(absolutePath, ec) || is_regular_file(absolutePath, ec))
+            return true;
+        else return false;
+    }
+
+    return fs::create_directories(absolutePath, ec);
+}
+
 /// \brief Checks for issues with the output file, that may hinder encryption/decryption.
 /// \param inFile the input file, to be encrypted/decrypted.
 /// \param outFile the output file, to be saved.
 /// \param mode the mode of operation: encryption or decryption.
 inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const OperationMode &mode) {
+    std::error_code ec;
+
     if (mode != OperationMode::Encryption && mode != OperationMode::Decryption)
         throw std::invalid_argument("Invalid mode of operation.");
 
-    // Determine if the output file is a directory, and give it an appropriate name if so
+    if (!createPath(outFile))
+        throw std::runtime_error("Unable to create destination directory.");
+
+    // Check if the output file is a directory, and rename it appropriately if so
     if (fs::is_directory(outFile)) {
         if (mode == OperationMode::Encryption) {
             outFile /= inFile.filename();
@@ -140,23 +169,23 @@ inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const Ope
     }
 
     // If the output file exists, ask for confirmation for overwriting
-    if (fs::exists(outFile)) {
+    if (fs::exists(outFile, ec)) {
         printColor(fs::canonical(outFile).string(), 'b', false, std::cerr);
         printColor(" already exists. \nDo you want to overwrite it? (y/n): ", 'r', false, std::cerr);
         if (!validateYesNo())
             throw std::runtime_error("Operation aborted.");
-    }
 
-    // Determine if the output file can be written if it exists
-    if (auto file = fs::absolute(outFile).string(); fs::exists(outFile) && !(isWritable(file) && isReadable(file)))
-        throw std::runtime_error(std::format("{} is not writable/readable.", file));
+        // Determine if the output file can be written if it exists
+        if (auto file = fs::weakly_canonical(outFile).string(); !(isWritable(file) && isReadable(file)))
+            throw std::runtime_error(std::format("{} is not writable/readable.", file));
+    }
 
     // Check if there is enough space on the disk to save the output file.
     const auto availableSpace = getAvailableSpace(outFile);
     const auto fileSize = fs::file_size(inFile);
     if (std::cmp_less(availableSpace, fileSize)) {
         printColor("Not enough space to save ", 'r', false, std::cerr);
-        printColor(fs::absolute(outFile).string(), 'c', true, std::cerr);
+        printColor(fs::weakly_canonical(outFile).string(), 'c', true, std::cerr);
 
         printColor("Required:  ", 'y', false, std::cerr);
         printColor(FormatFileSize(fileSize), 'g', true, std::cerr);
@@ -295,12 +324,7 @@ void encryptDecrypt() {
                                        "\n(or leave it blank to save it in the same directory):",
                                        pre_l), 'c', true);
 
-                std::string outputFile = getResponseStr();
-
-                if ((outputFile.ends_with('/') || outputFile.ends_with('\\')) && outputFile.size() > 1)
-                    outputFile.erase(outputFile.size() - 1);
-
-                fs::path outputPath(outputFile);
+                fs::path outputPath(getResponseStr());
                 checkOutputFile(inputPath, outputPath, static_cast<OperationMode>(choice));
 
                 std::cout << "Choose a cipher (All are 256-bit):\n";
@@ -348,7 +372,7 @@ void encryptDecrypt() {
                 printColor(algoDescription.find(cipher)->second, 'c');
                 printColor("...", 'g', true);
 
-                fileEncryptionDecryption(fs::canonical(inputPath).string(), fs::absolute(outputPath).string(),
+                fileEncryptionDecryption(fs::canonical(inputPath).string(), fs::weakly_canonical(outputPath).string(),
                                          password, static_cast<int>(cipher), static_cast<OperationMode>(choice));
                 std::cout << std::endl;
 

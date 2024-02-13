@@ -34,7 +34,7 @@ constexpr std::streamoff BUFFER_SIZE = 4096;
 /// \param fileSize the size of the file in bytes.
 /// \param nPasses the number of passes to overwrite the file.
 void overwriteRandom(std::ofstream &file, const std::size_t fileSize, int nPasses = 1) {
-
+    if (!file.is_open()) throw std::runtime_error("File not open.");
     // Instantiate the random number generator
     std::random_device rd;
     std::uniform_int_distribution<unsigned char> dist(0, 255);
@@ -75,6 +75,7 @@ void overwriteRandom(std::ofstream &file, const std::size_t fileSize, int nPasse
 /// \param fileSize the size of the file in bytes.
 template<typename T>
 void overwriteConstantByte(std::ofstream &file, T &byte, const auto &fileSize) {
+    if (!file.is_open()) throw std::runtime_error("File not open.");
     // seek to the beginning of the file
     file.seekp(0, std::ios::beg);
 
@@ -85,6 +86,8 @@ void overwriteConstantByte(std::ofstream &file, T &byte, const auto &fileSize) {
             buffer.resize(fileSize - pos);
         }
         file.write(reinterpret_cast<char *>(buffer.data()), static_cast<std::streamsize>(buffer.size()));
+
+        if (!file) throw std::runtime_error("file write error.");
     }
 }
 
@@ -168,9 +171,7 @@ struct FileDescriptor {
             throw std::runtime_error("Failed to open file: " + filename + " (" + std::strerror(errno) + ")");
     }
 
-    ~FileDescriptor() {
-        if (fd != -1) close(fd);
-    }
+    ~FileDescriptor() { if (fd != -1) close(fd); }
 };
 
 /// \struct FileStatInfo
@@ -210,6 +211,7 @@ inline void wipeClusterTips(const std::string &fileName) {
     // Write zeros to the cluster tip
     std::vector<char> zeroBuffer(clusterTipSize, 0);
     auto bytesWritten = write(fileDescriptor.fd, zeroBuffer.data(), zeroBuffer.size());
+
     if (bytesWritten == static_cast<ssize_t>(-1)) {
         throw std::runtime_error(std::format("Failed to write zeros: ({})", std::strerror(errno)));
     }
@@ -263,7 +265,7 @@ void dod5220Shred(const std::string &filename, const int &nPasses = 3, bool wipe
     std::streamoff fileSize = file.tellp();
     file.seekp(0, std::ios::beg);
 
-    // The DoD 5220.22-M Standard algorithm (I'm avoiding recursion, hence the lambda)
+    // The DoD 5220.22-M Standard algorithm
     auto dod3Pass = [&file, &fileSize] -> void {
         unsigned char zeroByte = 0x00;
         unsigned char oneByte = 0xFF;
@@ -357,7 +359,8 @@ bool shredFiles(const std::string &filePath, const unsigned int &options, const 
         if (fs::is_empty(filePath, ec)) {
             if (ec) ec.clear();
             else {
-                printColor("The path is an empty directory.", 'y', true);
+                printColor(filePath, 'c');
+                printColor(" is an empty directory.", 'y', true);
                 return true;
             }
         }
@@ -365,7 +368,12 @@ bool shredFiles(const std::string &filePath, const unsigned int &options, const 
 
         // Shred all files in the directory and all subdirectories
         for (const auto &entry: fs::recursive_directory_iterator(filePath)) {
-            if (fs::exists(entry.status())) {
+            if (entry.exists(ec)) {
+                if (ec) {
+                    printColor(ec.message(), 'r', true, std::cerr);
+                    ec.clear();
+                    continue;
+                }
                 if (!fs::is_directory(entry.status())) {
                     printColor("Shredding ", 'c');
                     printColor(fs::canonical(entry.path()).string(), 'b');
@@ -377,14 +385,16 @@ bool shredFiles(const std::string &filePath, const unsigned int &options, const 
 
                         ++(shredded ? numShredded : numNotShredded);
 
-                    } catch (std::runtime_error &err) {
+                    } catch (const std::runtime_error &err) {
                         printColor("Shredding failed: ", 'y', false, std::cerr);
                         printColor(err.what(), 'r', true, std::cerr);
                     }
                 }
             }
         }
-        fs::remove_all(fs::canonical(filePath));
+        if (numNotShredded == 0) // All files in the directory and all subdirectories were shredded successfully.
+            fs::remove_all(fs::canonical(filePath));
+        else printColor("Failed to shred some files.", 'r', true, std::cerr);
 
         std::cout << "\nProcessed " << numShredded + numNotShredded << " files." << std::endl;
         if (numShredded) {

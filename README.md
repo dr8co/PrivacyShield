@@ -37,16 +37,19 @@ Protect Your Privacy, Secure Your Digital World.
 
 ```
 
+\
+[![CMake Build](https://github.com/dr8co/PrivacyShield/actions/workflows/cmake-multi-platform.yml/badge.svg)](https://github.com/dr8co/PrivacyShield/actions/workflows/cmake-multi-platform.yml)
+
 <!-- omit in toc -->
 ## About
 
-Privacy Shield is a suite of simple tools to help you manage your privacy in the digital world.
-The tools included in Privacy Shield are:
+Privacy Shield is a suite of simple tools to help you manage your privacy.
+These tools include:
 
-* **[Password Manager](#password-manager)** – A simple password manager that stores your passwords in an encrypted file.
+* **[Password Manager](#password-manager)** – A simple password manager that encrypts your passwords for storage.
 * **[File Encryptor/Decryptor](#file-encryptordecryptor)** – A simple tool to encrypt/decrypt your files.
 * **[File Shredder](#file-shredder)** - A simple file shredder to securely delete your files.
-* **[Browser Privacy Tracks Cleaner](#browser-privacy-tracks-cleaner)** – A simple tool to clean browser cookies and history items.
+* **[Browser Privacy Tracks Cleaner](#browser-privacy-tracks-cleaner)** – Cleans browser cookies and history items.
 * **[File Deduplicator](#file-deduplicator)** – A bonus tool to help remove redundant files.
 
 <!-- omit in toc -->
@@ -86,14 +89,6 @@ empowering individuals like you to reclaim your privacy and fortify your digital
 Thus, the Privacy Shield was born—a culmination of my passion for technology and my unwavering commitment
 to safeguarding privacy.
 
-Are you ready to don your digital armor and become a guardian of your own privacy?
-Privacy Shield invites you to join the ranks of those who refuse to compromise on privacy.
-Take control of your digital destiny,
-revel in the peace of mind that fortified privacy brings, and protect what matters most—your personal information.
-
-Together, let's shape a world where privacy reigns supreme,
-and our digital sanctuaries remain impervious to prying eyes.
-
 ## Features
 
 * **Cross-Platform** – Privacy Shield is written in C++ and uses CMake as its build system,
@@ -107,7 +102,7 @@ If you find any security vulnerabilities, please report them, or better yet, sub
 
 * **Fast** – Privacy Shield is designed to be fast, with support for multi-threading and concurrency.
 
-* **Lightweight** and **Portable** – The design is simple and lightweight.
+* **Lightweight** and **Portable** – The design is straightforward and lightweight.
 
 * **Safe** – Privacy Shield supports safe operations, with support for cancellation and error handling.
 
@@ -120,7 +115,7 @@ See [LICENSE](./LICENSE.md) for more information.
 
 ## The Tools in Detail
 
-Privacy Shield currently runs exclusively in the command line in interactive mode.
+Privacy Shield now runs exclusively in the command line in an interactive mode.
 
 All the commands/operations are presented in a menu-like interface,
 and are not saved in the shell command history.
@@ -155,7 +150,7 @@ The actual encryption is done in two steps:
 
 The keys (256-bit) for the two steps are derived from the primary password using the
 [PBKDF2 algorithm](https://en.wikipedia.org/wiki/PBKDF2), ([salted](https://en.wikipedia.org/wiki/Salt_(cryptography))
-with a random salt).
+with random bytes).
 
 No two password records are encrypted using the same key.
 To be precise, each field of a password record is encrypted independently using a different key.
@@ -202,7 +197,7 @@ The password manager also features the following tools:
 * **Analytics** – A simple analytics tool to analyze your passwords for strength and reuse.
 
 **A note on importation**\
-For importing passwords, the CSV file **must have three and only three columns**: name, username, and password (in that order).
+For importing passwords, the CSV file **must have three and only three columns**: _name_, _username_, and _password_ (in that order).
 The file can have a header row, but it is not required (the program will ask you if the file has a header row).
 **Non-conforming rows will be skipped**.
 
@@ -329,10 +324,12 @@ The hashes are computed in parallel using multiple threads to speed up the proce
 * A [Unix-like](https://en.wikipedia.org/wiki/List_of_Unix_systems#Unix-like_operating_systems)
 operating system, such as [Linux](https://en.wikipedia.org/wiki/Linux),
 [BSD](https://en.wikipedia.org/wiki/Berkeley_Software_Distribution), or [macOS](https://en.wikipedia.org/wiki/MacOS).
-* A C++ compiler with C++23 support. For this project, [GCC 13](https://gcc.gnu.org/gcc-13/) (or later),
-or [LLVM Clang 17](https://clang.llvm.org/) (or later) is required.
-* [CMake](https://cmake.org/) 3.25+
-* [Ninja](https://ninja-build.org/) 1.10+, or any other build system supported by CMake (Ninja is recommended)
+* A C++ compiler with [C++23](https://en.cppreference.com/w/cpp/23) support,
+and [C++20 Modules](https://en.cppreference.com/w/cpp/language/modules) support.
+For this project, [GCC 14](https://gcc.gnu.org/gcc-13/) (or newer),
+or [LLVM Clang 17](https://clang.llvm.org/) (or newer) is required.
+* [CMake](https://cmake.org/) 3.28+
+* [Ninja](https://ninja-build.org/) 1.11+, or any other build system compatible with CMake and C++20 Modules.
 * [OpenSSL](https://www.openssl.org/) 3+
 * [Sodium](https://libsodium.org/) 1.0.18+
 * [GCrypt](https://gnupg.org/software/libgcrypt/index.html) 1.10+
