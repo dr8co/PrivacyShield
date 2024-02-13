@@ -1,6 +1,5 @@
-#pragma once
+module;
 
-#include <cstdint>
 #include <optional>
 #include <iostream>
 #include <filesystem>
@@ -8,6 +7,8 @@
 #include <openssl/evp.h>
 #include <unordered_map>
 #include <vector>
+
+export module utils;
 
 import secureAllocator;
 
@@ -34,8 +35,8 @@ concept PrintableToStream = requires(std::ostream &os, const T &t) {
 /// \param color a character representing the desired color.
 /// \param printNewLine a flag to indicate whether a newline should be printed after the text.
 /// \param os the stream object to print to.
-void printColor(const PrintableToStream auto &text, const char &color = 'w', const bool &printNewLine = false,
-                std::ostream &os = std::cout) {
+export void printColor(const PrintableToStream auto &text, const char &color = 'w', const bool &printNewLine = false,
+                       std::ostream &os = std::cout) {
 
     // Print the text in the desired color
     os << (COLOR.count(color) ? COLOR.at(color) : "") << text << "\033[0m";
@@ -59,7 +60,7 @@ concept uCharVector = std::copy_constructible<T> && requires(T t, unsigned char 
 /// \brief Performs Base64 encoding of binary data into a string.
 /// \param input a vector of the binary data to be encoded.
 /// \return Base64-encoded string.
-std::string base64Encode(const uCharVector auto &input) {
+export std::string base64Encode(const uCharVector auto &input) {
     BIO *bio, *b64;
     BUF_MEM *bufferPtr;
 
@@ -85,24 +86,24 @@ std::string base64Encode(const uCharVector auto &input) {
     return encodedData;
 }
 
-std::vector<unsigned char> base64Decode(const std::string &encodedData);
+export std::vector<unsigned char> base64Decode(const std::string &encodedData);
 
-int getResponseInt(const std::string &prompt = "");
+export int getResponseInt(const std::string &prompt = "");
 
-std::string getResponseStr(const std::string &prompt = "");
+export std::string getResponseStr(const std::string &prompt = "");
 
-bool isWritable(const std::string &filename);
+export bool isWritable(const std::string &filename);
 
-bool isReadable(const std::string &filename);
+export bool isReadable(const std::string &filename);
 
-std::uintmax_t getAvailableSpace(const fs::path &path) noexcept;
+export std::uintmax_t getAvailableSpace(const fs::path &path) noexcept;
 
-bool copyFilePermissions(const std::string &srcFile, const std::string &destFile) noexcept;
+export bool copyFilePermissions(const std::string &srcFile, const std::string &destFile) noexcept;
 
-privacy::string getSensitiveInfo(const std::string &prompt = "");
+export privacy::string getSensitiveInfo(const std::string &prompt = "");
 
-bool validateYesNo(const std::string &prompt = "");
+export bool validateYesNo(const std::string &prompt = "");
 
-std::string getHomeDir() noexcept;
+export std::string getHomeDir() noexcept;
 
-std::optional<std::string> getEnv(const char *var);
+export std::optional<std::string> getEnv(const char *var);

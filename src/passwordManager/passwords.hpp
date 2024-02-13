@@ -1,7 +1,10 @@
 #pragma once
 
-#include "../utils/utils.hpp"
 #include <sodium.h>
+#include <tuple>
+#include <string>
+
+import utils;
 
 import secureAllocator;
 

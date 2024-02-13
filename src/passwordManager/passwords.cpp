@@ -15,7 +15,6 @@
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
 #include "../encryption/encryptDecrypt.hpp"
-#include "../utils/utils.hpp"
 #include "passwords.hpp"
 #include <iostream>
 #include <random>
@@ -25,6 +24,8 @@
 #include <algorithm>
 #include <thread>
 #include <unistd.h>
+
+import utils;
 
 namespace fs = std::filesystem;
 

@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
-#include "../utils/utils.hpp"
 #include "../passwordManager/passwords.hpp"
 #include "encryptDecrypt.hpp"
 #include <algorithm>
@@ -23,6 +22,12 @@
 #include <format>
 #include <cmath>
 #include <unordered_map>
+#include <filesystem>
+#include <iostream>
+
+namespace fs = std::filesystem;
+
+import utils;
 
 template<typename T>
 /// \brief A concept describing a type convertible and comparable with uintmax_t.

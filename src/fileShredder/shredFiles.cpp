@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
-#include "../utils/utils.hpp"
 #include "shredFiles.hpp"
 #include<cstring>
 #include <iostream>
@@ -25,6 +24,8 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <format>
+
+import utils;
 
 namespace fs = std::filesystem;
 constexpr std::streamoff BUFFER_SIZE = 4096;

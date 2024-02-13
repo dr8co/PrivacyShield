@@ -27,6 +27,7 @@
 #include <functional>
 #include <unistd.h>
 #include <sys/resource.h>
+#include <iostream>
 
 constexpr const char *const MINIMUM_LIBGCRYPT_VERSION = "1.10.0";
 

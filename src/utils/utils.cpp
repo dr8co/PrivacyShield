@@ -13,14 +13,25 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
+module;
 
-#include "utils.hpp"
 #include <charconv>
 #include <readline/readline.h>
 #include <unistd.h>
 #include <utility>
 #include <termios.h>
 #include <optional>
+#include <optional>
+#include <iostream>
+#include <filesystem>
+#include <openssl/buffer.h>
+#include <openssl/evp.h>
+#include <vector>
+
+module utils;
+
+import secureAllocator;
+
 
 /// \brief Performs Base64 decoding of a string into binary data.
 /// \param encodedData Base64 encoded string.
