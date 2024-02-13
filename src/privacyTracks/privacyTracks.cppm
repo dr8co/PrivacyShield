@@ -14,7 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
-#include "privacyTracks.hpp"
+module;
+
 #include <format>
 #include <iostream>
 #include <string>
@@ -22,6 +23,8 @@
 #include <filesystem>
 
 import utils;
+
+export module privacyTracks;
 
 namespace fs = std::filesystem;
 
@@ -498,7 +501,7 @@ bool clearTracks(unsigned int browsers) {
 
 /// \brief Clears all tracks for all supported browsers installed on the system.
 /// \note Only works for standard installations of the browsers.
-void clearPrivacyTracks() {
+export void clearPrivacyTracks() {
     std::cout << "Scanning your system for browsers..." << std::endl;
 
     unsigned int browsers = detectBrowsers();

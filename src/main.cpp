@@ -17,7 +17,6 @@
 #include "encryption/encryptDecrypt.hpp"
 #include "fileShredder/shredFiles.hpp"
 #include "passwordManager/passwords.hpp"
-#include "privacyTracks/privacyTracks.hpp"
 #include <csignal>
 #include <sodium.h>
 #include <gcrypt.h>
@@ -29,6 +28,7 @@
 #include <iostream>
 
 import duplicateFinder;
+import privacyTracks;
 
 constexpr const char *const MINIMUM_LIBGCRYPT_VERSION = "1.10.0";
 
