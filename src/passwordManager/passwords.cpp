@@ -225,7 +225,7 @@ encryptDecryptConcurrently(privacy::vector<passwordRecords> &passwordEntries, co
 
 /// \brief Checks for common errors when reading/writing to a file.
 /// \param path the path to the file.
-inline void checkCommonErrors(const std::string &path) {
+inline void checkCommonErrors(std::string_view path) {
     std::error_code ec;
     fs::file_status fileStatus = fs::status(path, ec);
     if (ec)
