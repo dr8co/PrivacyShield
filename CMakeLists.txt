@@ -59,20 +59,16 @@ file(GLOB_RECURSE PRIVACY_SHIELD_SOURCES
 target_sources(privacyShield PRIVATE ${PRIVACY_SHIELD_SOURCES})
 
 # C++20 Modules
+file(GLOB_RECURSE PRIVACY_SHIELD_MODULES
+        "${CMAKE_SOURCE_DIR}/src/*.cppm")
+
 target_sources(privacyShield
-        PUBLIC
+        PRIVATE
         FILE_SET CXX_MODULES FILES
-        "${CMAKE_SOURCE_DIR}/src/secureAllocator.cppm"
-        "${CMAKE_SOURCE_DIR}/src/utils/utils.cppm"
-        "${CMAKE_SOURCE_DIR}/src/duplicateFinder/duplicateFinder.cppm"
-        "${CMAKE_SOURCE_DIR}/src/privacyTracks/privacyTracks.cppm"
-        "${CMAKE_SOURCE_DIR}/src/passwordManager/FuzzyMatcher.cppm"
-        "${CMAKE_SOURCE_DIR}/src/encryption/cryptoCipher.cppm"
-        "${CMAKE_SOURCE_DIR}/src/encryption/encryption.cppm"
-        "${CMAKE_SOURCE_DIR}/src/passwordManager/passwordManager.cppm"
+        ${PRIVACY_SHIELD_MODULES}
 )
 
-# Link dependencies
+# Link libraries
 target_link_libraries(privacyShield
         PRIVATE OpenSSL::Crypto
         PRIVATE Readline::Readline
