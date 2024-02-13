@@ -14,15 +14,20 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
-#include "encryptDecrypt.hpp"
+module;
+
 #include <mutex>
 #include <sodium.h>
 #include <format>
 #include <vector>
+#include <openssl/evp.h>
+#include <gcrypt.h>
 
 import utils;
 import secureAllocator;
 import cryptoCipher;
+
+module encryption;
 
 /// \brief Encrypts a string using symmetric unauthenticated encryption.
 /// \param plaintext The string to be encrypted.

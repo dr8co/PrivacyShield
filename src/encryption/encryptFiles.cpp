@@ -14,7 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
-#include "encryptDecrypt.hpp"
+module;
+
 #include <iostream>
 #include <fstream>
 #include <memory>
@@ -25,15 +26,13 @@
 #include <format>
 #include <mutex>
 #include <vector>
+#include <gcrypt.h>
 
 import cryptoCipher;
+import secureAllocator;
 
-// OpenSSL's library context and property query string
-OSSL_LIB_CTX *libContext = nullptr;
-const char *propertyQuery = nullptr;
+module encryption;
 
-constexpr int SALT_SIZE = 32;                       // Default salt length (256 bits)
-constexpr int KEY_SIZE_256 = 32;                    // Default key size (256 bits)
 constexpr int MAX_KEY_SIZE = EVP_MAX_KEY_LENGTH;    // For bounds checking
 constexpr std::size_t CHUNK_SIZE = 4096;            // Read/Write files in chunks of 4 kB
 constexpr unsigned int PBKDF2_ITERATIONS = 100'000; // Iterations for PBKDF2 key derivation

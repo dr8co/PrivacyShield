@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
-#include "../encryption/encryptDecrypt.hpp"
 #include "passwords.hpp"
 #include <iostream>
 #include <random>
@@ -26,6 +25,7 @@
 #include <unistd.h>
 
 import utils;
+import encryption;
 
 namespace fs = std::filesystem;
 
