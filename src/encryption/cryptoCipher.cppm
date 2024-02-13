@@ -13,13 +13,14 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
-
-#pragma once
+module;
 
 #include <openssl/evp.h>
 
+export module cryptoCipher;
+
 /// \brief A class wrapper for OpenSSL cipher implementations and contexts.
-class CryptoCipher {
+export class CryptoCipher {
 public:
     // Default constructor
     constexpr CryptoCipher() noexcept = default;

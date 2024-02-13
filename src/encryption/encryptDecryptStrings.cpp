@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
-#include "cryptoCipher.hpp"
 #include "encryptDecrypt.hpp"
 #include <mutex>
 #include <sodium.h>
@@ -23,6 +22,7 @@
 
 import utils;
 import secureAllocator;
+import cryptoCipher;
 
 /// \brief Encrypts a string using symmetric unauthenticated encryption.
 /// \param plaintext The string to be encrypted.
