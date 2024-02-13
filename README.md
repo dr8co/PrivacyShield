@@ -36,6 +36,7 @@ X: `*88888%`     !  888E  888E   888E  8888.+"      888R    888E  888E
 Protect Your Privacy, Secure Your Digital World.                                         
 
 ```
+
 \
 [![CMake Build](https://github.com/dr8co/PrivacyShield/actions/workflows/cmake-multi-platform.yml/badge.svg)](https://github.com/dr8co/PrivacyShield/actions/workflows/cmake-multi-platform.yml)
 

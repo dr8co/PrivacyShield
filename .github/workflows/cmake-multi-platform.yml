@@ -108,4 +108,5 @@ jobs:
         with:
           name: "${{ matrix.os }}-${{ matrix.build_type }}.tar.gz"
           path: "${{ steps.strings.outputs.build-output-dir }}/privacyShield.tar.gz"
+          overwrite: true
 
