@@ -69,6 +69,7 @@ target_sources(privacyShield
         "${CMAKE_SOURCE_DIR}/src/passwordManager/FuzzyMatcher.cppm"
         "${CMAKE_SOURCE_DIR}/src/encryption/cryptoCipher.cppm"
         "${CMAKE_SOURCE_DIR}/src/encryption/encryption.cppm"
+        "${CMAKE_SOURCE_DIR}/src/passwordManager/passwordManager.cppm"
 )
 
 # Link dependencies

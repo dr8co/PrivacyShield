@@ -15,7 +15,6 @@
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
 #include "fileShredder/shredFiles.hpp"
-#include "passwordManager/passwords.hpp"
 #include <csignal>
 #include <sodium.h>
 #include <gcrypt.h>
@@ -29,6 +28,8 @@
 import duplicateFinder;
 import privacyTracks;
 import encryption;
+import passwordManager;
+import utils;
 
 constexpr const char *const MINIMUM_LIBGCRYPT_VERSION = "1.10.0";
 

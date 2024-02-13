@@ -14,7 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
-#include "passwords.hpp"
+module;
+
 #include <iostream>
 #include <random>
 #include <fstream>
@@ -23,9 +24,13 @@
 #include <algorithm>
 #include <thread>
 #include <unistd.h>
+#include <sodium.h>
 
 import utils;
 import encryption;
+import secureAllocator;
+
+module passwordManager;
 
 namespace fs = std::filesystem;
 

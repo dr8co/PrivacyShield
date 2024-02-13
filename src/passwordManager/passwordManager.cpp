@@ -14,7 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
-#include "passwords.hpp"
+module;
+
 #include <filesystem>
 #include <algorithm>
 #include <format>
@@ -29,6 +30,9 @@
 
 import utils;
 import FuzzyMatcher;
+import secureAllocator;
+
+module passwordManager;
 
 namespace fs = std::filesystem;
 using string = std::string;

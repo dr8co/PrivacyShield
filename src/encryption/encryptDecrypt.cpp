@@ -16,7 +16,6 @@
 
 module;
 
-#include "../passwordManager/passwords.hpp"
 #include <algorithm>
 #include <system_error>
 #include <utility>
@@ -26,8 +25,11 @@ module;
 #include <filesystem>
 #include <iostream>
 #include <gcrypt.h>
+#include <sodium.h>
 
 import utils;
+import secureAllocator;
+import passwordManager;
 
 module encryption;
 
