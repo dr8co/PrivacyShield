@@ -1,7 +1,9 @@
 #pragma once
 
 #include "../utils/utils.hpp"
-#include "../secureAllocator.hpp"
+#include <sodium.h>
+
+import secureAllocator;
 
 using passwordRecords = std::tuple<privacy::string, privacy::string, privacy::string>;
 

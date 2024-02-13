@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
-#pragma once
+module;
 
 #include <new>
 #include <limits>
@@ -22,7 +22,9 @@
 #include <sodium.h>
 #include <string>
 
-namespace privacy {
+export module secureAllocator;
+
+export namespace privacy {
 
     template<typename T>
     /// \brief Custom allocator for STL containers, which locks and zeroizes memory.

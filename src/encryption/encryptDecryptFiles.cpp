@@ -25,6 +25,7 @@
 #include <sodium.h>
 #include <format>
 #include <mutex>
+#include <vector>
 
 // OpenSSL's library context and property query string
 OSSL_LIB_CTX *libContext = nullptr;

@@ -16,9 +16,10 @@
 
 #pragma once
 
-#include "../secureAllocator.hpp"
 #include <string>
 #include <vector>
+
+import secureAllocator;
 
 template<typename T>
 /// \brief A concept describing a range of strings.

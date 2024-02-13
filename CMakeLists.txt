@@ -14,12 +14,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see https://www.gnu.org/licenses.
 
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.28)
 
 project(privacyShield
         VERSION 1.0.0
         DESCRIPTION "A suite of tools for privacy and security"
         LANGUAGES CXX)
+
+# C++23 support is required for this project
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # If the user is not on a unix-like system, fail the build
 if (NOT UNIX)
@@ -34,12 +38,8 @@ endif ()
 # Set the path to additional CMake modules
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
 
-# C++23 is required for this project
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
 # Check for extra compiler warnings and errors in debug config
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -pedantic")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wpedantic")
 
 # Find dependencies
 find_package(OpenSSL REQUIRED)
@@ -57,6 +57,13 @@ file(GLOB_RECURSE PRIVACY_SHIELD_SOURCES
         "${CMAKE_SOURCE_DIR}/src/*.hpp")
 
 target_sources(privacyShield PRIVATE ${PRIVACY_SHIELD_SOURCES})
+
+# C++20 Modules
+target_sources(privacyShield
+        PUBLIC
+        FILE_SET CXX_MODULES FILES
+        "${CMAKE_SOURCE_DIR}/src/secureAllocator.cppm"
+)
 
 # Link dependencies
 target_link_libraries(privacyShield

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../secureAllocator.hpp"
 #include <cstdint>
 #include <optional>
 #include <iostream>
@@ -8,6 +7,9 @@
 #include <openssl/buffer.h>
 #include <openssl/evp.h>
 #include <unordered_map>
+#include <vector>
+
+import secureAllocator;
 
 namespace fs = std::filesystem;
 
