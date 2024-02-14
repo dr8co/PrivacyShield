@@ -27,9 +27,8 @@ module;
 #include <blake3.h>
 #include <format>
 
-import utils;
-
 export module duplicateFinder;
+import utils;
 
 namespace fs = std::filesystem;
 

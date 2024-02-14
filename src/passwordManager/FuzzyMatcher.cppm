@@ -19,9 +19,9 @@ module;
 #include <string>
 #include <vector>
 
-import secureAllocator;
-
 export module FuzzyMatcher;
+
+import secureAllocator;
 
 template<typename T>
 /// \brief A concept describing a range of strings.

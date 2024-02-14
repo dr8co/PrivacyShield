@@ -4,11 +4,10 @@ module;
 #include <tuple>
 #include <string>
 
-import utils;
-
-import secureAllocator;
-
 export module passwordManager;
+
+import utils;
+import secureAllocator;
 
 using passwordRecords = std::tuple<privacy::string, privacy::string, privacy::string>;
 
@@ -17,17 +16,9 @@ privacy::vector <passwordRecords> loadPasswords(const std::string &filePath, con
 bool savePasswords(privacy::vector <passwordRecords> &passwords, const std::string &filePath,
                    const privacy::string &encryptionKey);
 
-export privacy::string hashPassword(const privacy::string &password,
-                                    const std::size_t &opsLimit = crypto_pwhash_OPSLIMIT_SENSITIVE,
-                                    const std::size_t &memLimit = crypto_pwhash_MEMLIMIT_SENSITIVE);
-
 bool isPasswordStrong(const privacy::string &password) noexcept;
 
 privacy::string generatePassword(int length);
-
-export bool verifyPassword(const privacy::string &password, const privacy::string &storedHash);
-
-export void passwordManager();
 
 bool changeMasterPassword(privacy::string &primaryPassword);
 
@@ -42,3 +33,12 @@ bool exportCsv(const privacy::vector <passwordRecords> &records, const std::stri
 void
 encryptDecryptConcurrently(privacy::vector <passwordRecords> &passwordEntries, const privacy::string &key,
                            bool encrypt = true, bool allFields = false);
+
+export {
+    privacy::string hashPassword(const privacy::string &password,
+                                 const std::size_t &opsLimit = crypto_pwhash_OPSLIMIT_SENSITIVE,
+                                 const std::size_t &memLimit = crypto_pwhash_MEMLIMIT_SENSITIVE);
+    void passwordManager();
+
+    bool verifyPassword(const privacy::string &password, const privacy::string &storedHash);
+}

@@ -22,9 +22,9 @@ module;
 #include <vector>
 #include <filesystem>
 
-import utils;
-
 export module privacyTracks;
+
+import utils;
 
 namespace fs = std::filesystem;
 

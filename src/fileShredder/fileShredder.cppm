@@ -26,14 +26,14 @@ module;
 #include <sys/stat.h>
 #include <format>
 
-import utils;
-
 using StatType = struct stat;
 
 export module fileShredder;
+import utils;
 
 namespace fs = std::filesystem;
 constexpr std::streamoff BUFFER_SIZE = 4096;
+
 
 /// \brief overwrites a file with random bytes.
 /// \param file output file stream object.
