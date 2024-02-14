@@ -53,8 +53,8 @@ inline bool comparator
 #endif
         (const auto &lhs, const auto &rhs) noexcept {
     // Compare the site and username members of the tuples
-    return std::tie(std::get<0>(lhs), std::get<1>(lhs)) <=>
-           std::tie(std::get<0>(rhs), std::get<1>(rhs)) < nullptr;
+    return std::tie(std::get<0>(lhs), std::get<1>(lhs)) <
+           std::tie(std::get<0>(rhs), std::get<1>(rhs));
 }
 
 /// \brief Prints the details of a password record.
@@ -93,7 +93,7 @@ inline constexpr void computeStrengths
 #elif __GNUC__
 [[gnu::always_inline]]
 #endif
-        (const privacy::vector<passwordRecords> &passwords, std::vector<bool> &pwStrengths) {
+        (const privacy::vector <passwordRecords> &passwords, std::vector<bool> &pwStrengths) {
     pwStrengths.resize(passwords.size());
     for (std::size_t i = 0; i < passwords.size(); ++i) {
         pwStrengths[i] = isPasswordStrong(std::get<2>(passwords[i]));
@@ -101,7 +101,7 @@ inline constexpr void computeStrengths
 }
 
 /// \brief Adds a new password to the saved records.
-inline void addPassword(privacy::vector<passwordRecords> &passwords, std::vector<bool> &strengths) {
+inline void addPassword(privacy::vector <passwordRecords> &passwords, std::vector<bool> &strengths) {
     privacy::string site{getResponseStr("Enter the name of the site/app: ")};
     // The site name must be non-empty
     if (site.empty()) {
@@ -165,7 +165,7 @@ inline void addPassword(privacy::vector<passwordRecords> &passwords, std::vector
 }
 
 /// \brief Generates a random password.
-inline void generatePassword(privacy::vector<passwordRecords> &, std::vector<bool> &) {
+inline void generatePassword(privacy::vector <passwordRecords> &, std::vector<bool> &) {
     int length = getResponseInt("Enter the length of the password to generate: ");
 
     int tries{0};
@@ -183,7 +183,7 @@ inline void generatePassword(privacy::vector<passwordRecords> &, std::vector<boo
 }
 
 /// \brief Shows all saved passwords.
-inline void viewAllPasswords(privacy::vector<passwordRecords> &passwords, std::vector<bool> &strengths) {
+inline void viewAllPasswords(privacy::vector <passwordRecords> &passwords, std::vector<bool> &strengths) {
     // We mustn't modify the password records in this function
     auto &&constPasswordsRef = std::as_const(passwords);
 
@@ -210,7 +210,7 @@ inline void viewAllPasswords(privacy::vector<passwordRecords> &passwords, std::v
 }
 
 /// \brief Handles fuzzy matching for update and deletion of passwords.
-inline void checkFuzzyMatches(auto &iter, privacy::vector<passwordRecords> &records, privacy::string &query) {
+inline void checkFuzzyMatches(auto &iter, privacy::vector <passwordRecords> &records, privacy::string &query) {
     // Fuzzy-match the query against the site names
     FuzzyMatcher matcher(records | std::ranges::views::elements<0>);
     auto fuzzyMatched{matcher.fuzzyMatch(query, 2)};
@@ -243,7 +243,7 @@ inline void checkFuzzyMatches(auto &iter, privacy::vector<passwordRecords> &reco
 }
 
 /// \brief Updates a password record.
-inline void updatePassword(privacy::vector<passwordRecords> &passwords, std::vector<bool> &strengths) {
+inline void updatePassword(privacy::vector <passwordRecords> &passwords, std::vector<bool> &strengths) {
     if (passwords.empty()) [[unlikely]] { // There is nothing to update
         printColor("No passwords saved yet.", 'r', true, std::cerr);
         return;
@@ -347,7 +347,7 @@ inline void updatePassword(privacy::vector<passwordRecords> &passwords, std::vec
 }
 
 /// \brief Deletes a password record.
-inline void deletePassword(privacy::vector<passwordRecords> &passwords, std::vector<bool> &strengths) {
+inline void deletePassword(privacy::vector <passwordRecords> &passwords, std::vector<bool> &strengths) {
     if (passwords.empty()) {
         printColor("No passwords saved yet.", 'r', true, std::cerr);
         return;
@@ -422,7 +422,7 @@ inline void deletePassword(privacy::vector<passwordRecords> &passwords, std::vec
 }
 
 /// \brief Finds a password record.
-inline void searchPasswords(privacy::vector<passwordRecords> &passwords, std::vector<bool> &) {
+inline void searchPasswords(privacy::vector <passwordRecords> &passwords, std::vector<bool> &) {
     if (passwords.empty()) [[unlikely]] { // There is nothing to search
         printColor("No passwords saved yet.", 'r', true, std::cerr);
         return;
@@ -496,10 +496,10 @@ inline void searchPasswords(privacy::vector<passwordRecords> &passwords, std::ve
 }
 
 /// \brief Imports passwords from a csv file.
-inline void importPasswords(privacy::vector<passwordRecords> &passwords, std::vector<bool> &strengths) {
+inline void importPasswords(privacy::vector <passwordRecords> &passwords, std::vector<bool> &strengths) {
     string fileName = getResponseStr("Enter the path to the csv file: ");
 
-    privacy::vector<passwordRecords> imports{importCsv(fileName)};
+    privacy::vector <passwordRecords> imports{importCsv(fileName)};
 
     if (imports.empty()) {
         printColor("No passwords imported.", 'y', true);
@@ -519,7 +519,7 @@ inline void importPasswords(privacy::vector<passwordRecords> &passwords, std::ve
     imports.erase(dups.begin(), dups.end());
 
     // Check if the imported passwords already exist in the database by constructing their set intersection
-    privacy::vector<passwordRecords> duplicates;
+    privacy::vector <passwordRecords> duplicates;
     duplicates.reserve(imports.size());
 
     // Find the passwords that already exist in the database
@@ -528,7 +528,7 @@ inline void importPasswords(privacy::vector<passwordRecords> &passwords, std::ve
                                       return comparator(pw1, pw2);
                                   });
 
-    privacy::vector<passwordRecords> recordsUnion;
+    privacy::vector <passwordRecords> recordsUnion;
     recordsUnion.reserve(passwords.size() + imports.size());
 
     bool overwrite{true};
@@ -554,7 +554,7 @@ inline void importPasswords(privacy::vector<passwordRecords> &passwords, std::ve
         // also preserving order.
         // So, if a record exists in both 'imports' and 'passwords' (it is guaranteed here that such a record
         // can be found only once in each range, as both have been deduplicated),
-        // then with 'imports' as the first argument, only 'imports'' version will be copied to the result.
+        // then with 'imports' as the first argument, only 'imports' version will be copied to the result.
         std::ranges::set_union(imports, passwords, std::back_inserter(recordsUnion),
                                [](const auto &pw1, const auto &pw2) {
                                    return comparator(pw1, pw2);
@@ -562,15 +562,15 @@ inline void importPasswords(privacy::vector<passwordRecords> &passwords, std::ve
     } else {
         printColor("Warning: Duplicate passwords will not be imported.", 'y', true);
 
-        // 'passwords' now come before 'imports,' in accordance with the discussion in the previous branch.
+        // 'passwords' now come before 'imports', in accordance with the discussion in the previous branch.
         std::ranges::set_union(passwords, imports, std::back_inserter(recordsUnion),
                                [](const auto &pw1, const auto &pw2) {
                                    return comparator(pw1, pw2);
                                });
     }
 
-    // Reassign the records
-    passwords.assign(recordsUnion.begin(), recordsUnion.end());
+    // Update the passwords
+    passwords = std::move(recordsUnion);
 
     // Recompute strengths
     computeStrengths(passwords, strengths);
@@ -583,7 +583,7 @@ inline void importPasswords(privacy::vector<passwordRecords> &passwords, std::ve
 }
 
 /// \brief Exports passwords to a csv file.
-inline void exportPasswords(privacy::vector<passwordRecords> &passwords, std::vector<bool> &) {
+inline void exportPasswords(privacy::vector <passwordRecords> &passwords, std::vector<bool> &) {
     auto &&passwordsConstRef = std::as_const(passwords);
 
     if (passwordsConstRef.empty()) [[unlikely]] {
@@ -605,7 +605,7 @@ inline void exportPasswords(privacy::vector<passwordRecords> &passwords, std::ve
 }
 
 /// \brief Analyzes the saved passwords for weak passwords and password reuse.
-inline void analyzePasswords(privacy::vector<passwordRecords> &passwords, std::vector<bool> &strengths) {
+inline void analyzePasswords(privacy::vector <passwordRecords> &passwords, std::vector<bool> &strengths) {
     if (passwords.empty()) {
         printColor("No passwords to analyze.", 'r', true);
         return;
@@ -618,7 +618,7 @@ inline void analyzePasswords(privacy::vector<passwordRecords> &passwords, std::v
     std::cout << "Analyzing passwords..." << std::endl;
 
     // Scan for weak passwords
-    privacy::vector<passwordRecords> weakPasswords;
+    privacy::vector <passwordRecords> weakPasswords;
     weakPasswords.reserve(total);
 
     for (std::size_t i = 0; i < passwords.size(); ++i) {
@@ -718,7 +718,7 @@ void passwordManager() {
         }
     }
 
-    privacy::vector<passwordRecords> passwords;
+    privacy::vector <passwordRecords> passwords;
 
     if (!newSetup) {
         // preprocess the passwordFile
@@ -758,7 +758,7 @@ void passwordManager() {
     }
 
     // A map of choices and their corresponding functions
-    std::unordered_map<int, void (*)(privacy::vector<passwordRecords> &, std::vector<bool> &)> choices = {
+    std::unordered_map<int, void (*)(privacy::vector <passwordRecords> &, std::vector<bool> &)> choices = {
             {1, addPassword},
             {2, updatePassword},
             {3, deletePassword},
