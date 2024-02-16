@@ -326,7 +326,7 @@ operating system, such as [Linux](https://en.wikipedia.org/wiki/Linux),
 [BSD](https://en.wikipedia.org/wiki/Berkeley_Software_Distribution), or [macOS](https://en.wikipedia.org/wiki/MacOS).
 * A C++ compiler with [C++23](https://en.cppreference.com/w/cpp/23) support,
 and [C++20 Modules](https://en.cppreference.com/w/cpp/language/modules) support.
-For this project, [GCC 14](https://gcc.gnu.org/gcc-13/) (or newer),
+For this project, [GCC 14](https://gcc.gnu.org/gcc-14/) (or newer),
 or [LLVM Clang 17](https://clang.llvm.org/) (or newer) is required.
 * [CMake](https://cmake.org/) 3.28+
 * [Ninja](https://ninja-build.org/) 1.11+, or any other build system compatible with CMake and C++20 Modules.
@@ -335,6 +335,23 @@ or [LLVM Clang 17](https://clang.llvm.org/) (or newer) is required.
 * [GCrypt](https://gnupg.org/software/libgcrypt/index.html) 1.10+
 * [BLAKE3](https://github.com/BLAKE3-team/BLAKE3) 1.4+ (see the note below)
 * [GNU Readline](https://tiswww.case.edu/php/chet/readline/rltop.html) 8+
+
+**Note:**\
+This project utilizes the [C++20 Modules](https://en.cppreference.com/w/cpp/language/modules) feature,
+which is not yet fully supported by all C++ compilers.
+
+The selected C++ compiler must support C++20 Modules, and must provide a way to discover
+the import graph dependencies.
+
+Only [LLVM Clang](https://clang.llvm.org/) 17+ (16 has an issue in CMake,
+where CMake extensions have to be turned off to use modules)
+support this feature via the `clang-scan-deps` tool
+at the time of writing.
+
+GCC 14 is expected to support this feature as well.
+
+Also, a generator that supports C++20 Modules is required.
+[Ninja](https://ninja-build.org/) 1.11+ is recommended.
 
 ### IMPORTANT: A note on installing/building BLAKE3
 
