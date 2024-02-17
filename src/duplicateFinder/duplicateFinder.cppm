@@ -26,13 +26,14 @@ module;
 #include <sodium.h>
 #include <blake3.h>
 #include <format>
+#include <ranges>
 
 export module duplicateFinder;
 import utils;
 
 namespace fs = std::filesystem;
 
-constexpr std::size_t CHUNK_SIZE = 4096;  // Read and process files in chunks of 4 kB
+constexpr std::size_t CHUNK_SIZE = 4096; // Read and process files in chunks of 4 kB
 
 
 /// \brief Represents a file by its path (canonical) and hash.
@@ -77,28 +78,28 @@ inline void handleAccessError(const std::string &filename) {
     errMsg.reserve(50);
 
     switch (errno) {
-        case EACCES:        // Permission denied
+        case EACCES: // Permission denied
             errMsg = "You do not have permission to access this item";
             break;
-        case EEXIST:        // File exists
+        case EEXIST: // File exists
             errMsg = "already exists";
             break;
-        case EISDIR:        // Is a directory
+        case EISDIR: // Is a directory
             errMsg = "is a directory";
             break;
-        case ELOOP:         // Too many symbolic links encountered
+        case ELOOP: // Too many symbolic links encountered
             errMsg = "is a loop";
             break;
-        case ENAMETOOLONG:  // The filename is too long
+        case ENAMETOOLONG: // The filename is too long
             errMsg = "the path is too long";
             break;
-        case ENOENT:        // No such file or directory
+        case ENOENT: // No such file or directory
             errMsg = "path does not exist";
             break;
-        case EROFS:         // Read-only file system
+        case EROFS: // Read-only file system
             errMsg = "the file system is read-only";
             break;
-        default:            // Success (most likely)
+        default: // Success (most likely)
             return;
     }
 
@@ -114,7 +115,8 @@ void traverseDirectory(const std::string &directoryPath, std::vector<FileInfo> &
     for (const auto &entry: fs::recursive_directory_iterator(directoryPath,
                                                              fs::directory_options::skip_permission_denied |
                                                              fs::directory_options::follow_directory_symlink)) {
-        if (entry.exists(ec)) { // In case of broken symlinks
+        if (entry.exists(ec)) {
+            // In case of broken symlinks
             if (ec) {
                 printColor(std::format("Skipping '{}': {}.",
                                        entry.path().string(), ec.message()), 'r', true, std::cerr);
@@ -123,20 +125,17 @@ void traverseDirectory(const std::string &directoryPath, std::vector<FileInfo> &
             }
             // Make sure we can read the entry
             if (isReadable(entry.path())) [[likely]] {
-
                 // process only regular files
                 if (entry.is_regular_file()) [[likely]] {
                     FileInfo fileInfo;
 
                     // Update the file details
                     fileInfo.path = entry.path().string();
-                    fileInfo.hash = "";  // the hash will be calculated later
+                    fileInfo.hash = ""; // the hash will be calculated later
                     files.emplace_back(fileInfo);
-
                 } else if (!entry.is_directory()) // Neither regular nor a directory
                     printColor(std::format("Skipping '{}': Not a regular file.",
                                            entry.path().string()), 'r', true, std::cerr);
-
             } else handleAccessError(entry.path().string());
         }
     }
@@ -146,7 +145,7 @@ void traverseDirectory(const std::string &directoryPath, std::vector<FileInfo> &
 /// \param files the files to process.
 /// \param start the index where processing starts.
 /// \param end the index where processing ends.
-void calculateHashes(std::vector<FileInfo> &files, std::size_t start, std::size_t end) {
+void calculateHashes(std::vector<FileInfo> &files, const std::size_t start, const std::size_t end) {
     // Check if the range is valid
     if (start > end || end > files.size())
         throw std::range_error("Invalid range.");
@@ -167,16 +166,16 @@ std::size_t findDuplicates(const std::string &directoryPath) {
     // Collect file information
     std::vector<FileInfo> files;
     traverseDirectory(directoryPath, files);
-    std::size_t filesProcessed = files.size();
+    const std::size_t filesProcessed = files.size();
     if (filesProcessed < 1) return 0;
 
     // Number of threads to use
-    unsigned int n{std::jthread::hardware_concurrency()};
+    const unsigned int n{std::jthread::hardware_concurrency()};
     const unsigned int numThreads{n ? n : 8}; // Use 8 threads if hardware_concurrency() fails
 
     // Divide the files among the threads
     std::vector<std::jthread> threads;
-    std::size_t filesPerThread = filesProcessed / numThreads;
+    const std::size_t filesPerThread = filesProcessed / numThreads;
     std::size_t start = 0;
 
     // Calculate the files' hashes in parallel
@@ -192,13 +191,10 @@ std::size_t findDuplicates(const std::string &directoryPath) {
         thread.join();
     }
     // A hash map to map the files to their corresponding hashes
-    std::unordered_map<std::string, std::vector<std::string>> hashMap;
+    std::unordered_map<std::string, std::vector<std::string> > hashMap;
 
     // Iterate over files and identify duplicates
-    for (const auto &fileInfo: files) {
-        const std::string &hash = fileInfo.hash;
-        const std::string &filePath = fileInfo.path;
-
+    for (const auto &[filePath, hash]: files) {
         hashMap[hash].push_back(filePath);
     }
 
@@ -206,9 +202,7 @@ std::size_t findDuplicates(const std::string &directoryPath) {
 
     // Display duplicate files
     std::cout << "Duplicates found:" << std::endl;
-    for (const auto &pair: hashMap) {
-        const std::vector<std::string> &duplicates = pair.second;
-
+    for (const auto &duplicates: hashMap | std::views::values) {
         if (duplicates.size() > 1) {
             ++duplicatesSet;
 
@@ -240,18 +234,17 @@ export void duplicateFinder() {
         std::cout << "--------------------------------------------------------" << std::endl;
 
         printColor("Enter your choice:", 'b');
-        int resp = getResponseInt();
 
-        if (resp == 1) {
+        if (const int resp = getResponseInt(); resp == 1) {
             try {
                 printColor("Enter the path to the directory to scan:", 'b');
                 std::string dirPath = getResponseStr();
 
-                if (auto len = dirPath.size(); len > 1 && (dirPath.ends_with('/') || dirPath.ends_with('\\')))
+                if (const auto len = dirPath.size(); len > 1 && (dirPath.ends_with('/') || dirPath.ends_with('\\')))
                     dirPath.erase(len - 1);
 
                 std::error_code ec;
-                fs::file_status fileStatus = fs::status(dirPath, ec);
+                const fs::file_status fileStatus = fs::status(dirPath, ec);
                 if (ec) {
                     printColor("Unable to determine ", 'y', false, std::cerr);
                     printColor(dirPath, 'b', false, std::cerr);
@@ -262,12 +255,12 @@ export void duplicateFinder() {
                     ec.clear();
                     continue;
                 }
-                if (!fs::exists(fileStatus)) {
+                if (!exists(fileStatus)) {
                     printColor(dirPath, 'c', false, std::cerr);
                     printColor(" does not exist.", 'r', true, std::cerr);
                     continue;
                 }
-                if (!fs::is_directory(fileStatus)) {
+                if (!is_directory(fileStatus)) {
                     printColor(dirPath, 'c', false, std::cerr);
                     printColor(" is not a directory.", 'r', true, std::cerr);
                     continue;
@@ -283,23 +276,18 @@ export void duplicateFinder() {
                 printColor("Scanning ", 'c');
                 printColor(fs::canonical(dirPath).string(), 'g');
                 printColor(" ...", 'c', true);
-                std::size_t duplicateFiles = findDuplicates(dirPath);
+                const std::size_t duplicateFiles = findDuplicates(dirPath);
 
                 std::cout << "Duplicates "
-                          << (duplicateFiles > 0 ? "found: " + std::to_string(duplicateFiles) : "not found.")
-                          << std::endl;
-
+                        << (duplicateFiles > 0 ? "found: " + std::to_string(duplicateFiles) : "not found.")
+                        << std::endl;
             } catch (const std::exception &ex) {
                 printColor("An error occurred: ", 'y', false, std::cerr);
                 printColor(ex.what(), 'r', true, std::cerr);
-                continue;
             }
-
         } else if (resp == 2) break;
         else {
             printColor("Invalid option!", 'r', true, std::cerr);
-            continue;
         }
     }
-
 }
