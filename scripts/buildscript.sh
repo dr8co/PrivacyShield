@@ -29,12 +29,18 @@ function install_dependencies() {
   add-apt-repository -y "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main"
   add-apt-repository -y ppa:ubuntu-toolchain-r/ppa
   apt update
-  apt install -y ninja-build gcc-13 g++-13 clang-18 lldb-18 lld-18 libc++-18-dev libc++abi-18-dev clang-tools-18 libgcrypt20 openssl libreadline8 libsodium23 libsodium-dev
+  apt install -y gcc-13 g++-13 clang-18 lldb-18 lld-18 libc++-18-dev libc++abi-18-dev clang-tools-18 libgcrypt20 openssl libreadline8 libsodium23 libsodium-dev
 
   # Install CMake 3.28.3
   if dpkg -s "cmake" >/dev/null 2>&1; then
     apt remove -y --purge --auto-remove cmake
     wget -qO- "https://github.com/Kitware/CMake/releases/download/v3.28.3/cmake-3.28.3-linux-x86_64.tar.gz" | tar --strip-components=1 -xz -C /usr/local
+  fi
+
+  # Install Ninja 1.11
+  if dpkg -s "ninja-build" >/dev/null 2>&1; then
+    apt remove -y --purge --auto-remove ninja-build
+    wget -qO- "https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip" | unzip -d /usr/local/bin
   fi
 }
 
