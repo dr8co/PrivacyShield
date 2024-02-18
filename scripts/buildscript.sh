@@ -47,6 +47,7 @@ function configure_cmake() {
 }
 
 function build_project() {
+  cd .. || abort
   cmake --build build --config Debug -j "$PARALLELISM_LEVEL"
 }
 
