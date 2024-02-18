@@ -39,6 +39,7 @@ function install_dependencies() {
 }
 
 function build_blake3() {
+  pwd
   ./install_blake3.sh clang-18
 }
 
