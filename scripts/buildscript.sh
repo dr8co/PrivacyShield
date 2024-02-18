@@ -40,7 +40,8 @@ function install_dependencies() {
   # Install Ninja 1.11
   if dpkg -s "ninja-build" >/dev/null 2>&1; then
     apt remove -y --purge --auto-remove ninja-build
-    wget -qO- "https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip" | unzip -d /usr/local/bin
+    wget -q "https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip"
+    unzip ninja-linux.zip -d /usr/local/bin
   fi
 }
 
