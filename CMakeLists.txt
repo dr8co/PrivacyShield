@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see https://www.gnu.org/licenses.
 
+# CMake 3.28+ is required for C++20 modules
 cmake_minimum_required(VERSION 3.28)
 
 project(privacyShield
@@ -25,12 +26,12 @@ project(privacyShield
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# If the user is not on a unix-like system, fail the build
+# If the target system is not UNIX, fail the build
 if (NOT UNIX)
     message(FATAL_ERROR "This project is only supported on unix-like systems.")
 endif ()
 
-# If the user does not specify a build type, default to Release
+# If the build type is not specified, default to Release
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif ()
@@ -38,10 +39,10 @@ endif ()
 # Set the path to additional CMake modules
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
 
-# Check for extra compiler warnings and errors in debug config
+# Additional checks for the Debug build
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wpedantic")
 
-# Find dependencies
+# Find the required packages
 find_package(OpenSSL REQUIRED)
 find_package(Sodium REQUIRED)
 find_package(Readline REQUIRED)
