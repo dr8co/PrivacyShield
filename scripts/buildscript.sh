@@ -5,7 +5,6 @@ set -e
 # This script is used to build the project on the Ubuntu Jammy (22.04) distribution.
 # It is not intended to be used on other distributions, and must be run from the project root.
 
-REQUIRED_PACKAGES="ninja-build gcc-13 g++-13 clang-18 lldb-18 lld-18 libc++-18-dev libc++abi-18-dev clang-tools-18 libgcrypt20 openssl libreadline8 libsodium23 libsodium-dev"
 PARALLELISM_LEVEL=4
 
 function check_root() {
@@ -30,7 +29,7 @@ function install_dependencies() {
   add-apt-repository -y "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main"
   add-apt-repository -y ppa:ubuntu-toolchain-r/ppa
   apt update
-  apt install -y "$REQUIRED_PACKAGES"
+  apt install -y ninja-build gcc-13 g++-13 clang-18 lldb-18 lld-18 libc++-18-dev libc++abi-18-dev clang-tools-18 libgcrypt20 openssl libreadline8 libsodium23 libsodium-dev
 
   # Install CMake 3.28.3
   if dpkg -s "cmake" >/dev/null 2>&1; then
