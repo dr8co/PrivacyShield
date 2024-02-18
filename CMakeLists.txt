@@ -77,7 +77,8 @@ target_link_libraries(privacyShield
         PRIVATE BLAKE3::blake3)
 
 # Install the binary (optional)
+include(GNUInstallDirs)
 install(TARGETS privacyShield
-        DESTINATION bin
+        DESTINATION ${CMAKE_INSTALL_BINDIR}
         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 )
