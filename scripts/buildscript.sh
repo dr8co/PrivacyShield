@@ -16,7 +16,7 @@ function check_root() {
 }
 
 function check_dependencies() {
-  for cmd in wget add-apt-repository cmake; do
+  for cmd in wget add-apt-repository; do
     if ! command -v $cmd &>/dev/null; then
       echo "$cmd could not be found"
       exit
@@ -34,15 +34,17 @@ function install_dependencies() {
   # Install CMake 3.28.3
   if dpkg -s "cmake" >/dev/null 2>&1; then
     apt remove -y --purge --auto-remove cmake
-    wget -qO- "https://github.com/Kitware/CMake/releases/download/v3.28.3/cmake-3.28.3-linux-x86_64.tar.gz" | tar --strip-components=1 -xz -C /usr/local
   fi
+
+  wget -qO- "https://github.com/Kitware/CMake/releases/download/v3.28.3/cmake-3.28.3-linux-x86_64.tar.gz" | tar --strip-components=1 -xz -C /usr/local
 
   # Install Ninja 1.11
   if dpkg -s "ninja-build" >/dev/null 2>&1; then
     apt remove -y --purge --auto-remove ninja-build
-    wget "https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip"
-    unzip ninja-linux.zip -d /usr/local/bin
   fi
+
+  wget -q "https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip"
+  unzip ninja-linux.zip -d /usr/local/bin
 }
 
 function build_blake3() {
