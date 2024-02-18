@@ -21,7 +21,6 @@ module;
 #include <utility>
 #include <termios.h>
 #include <optional>
-#include <optional>
 #include <iostream>
 #include <filesystem>
 #include <openssl/buffer.h>
@@ -37,47 +36,57 @@ import secureAllocator;
 /// \param encodedData Base64 encoded string.
 /// \return a vector of the decoded binary data.
 std::vector<unsigned char> base64Decode(const std::string &encodedData) {
-    BIO *bio, *b64;
-    int len;
-
+    // Allocate a buffer for the decoded data (the size of the decoded data is always less than the size of the encoded data)
     std::vector<unsigned char> decodedData(encodedData.size());
 
-    b64 = BIO_new(BIO_f_base64());
-    BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
-    bio = BIO_new_mem_buf(encodedData.data(), static_cast<int>(encodedData.size()));
+    // Custom deleter for BIO objects
+    auto bioDeleter = [](BIO *bio) -> void { BIO_free_all(bio); };
 
+    // Create a BIO object to decode the data
+    const std::unique_ptr<BIO, decltype(bioDeleter)> b64(BIO_new(BIO_f_base64()), bioDeleter);
+
+    // Don't use newlines to flush buffer
+    BIO_set_flags(b64.get(), BIO_FLAGS_BASE64_NO_NL);
+
+    // Create a memory BIO to store the encoded data
+    std::unique_ptr<BIO, decltype(bioDeleter)> bio(
+        BIO_new_mem_buf(encodedData.data(), static_cast<int>(encodedData.size())), bioDeleter);
+
+    // Check if memory allocation failed
     if (b64 == nullptr || bio == nullptr)
-        throw std::bad_alloc();  // Memory allocation failed
+        throw std::bad_alloc();
 
-    bio = BIO_push(b64, bio);
+    // Push the memory BIO to the base64 BIO
+    bio.reset(BIO_push(b64.get(), bio.get()));
 
-    len = BIO_read(bio, decodedData.data(), static_cast<int>(decodedData.size()));
+    // Decode the data
+    const int len = BIO_read(bio.get(), decodedData.data(), static_cast<int>(decodedData.size()));
 
+    // Check if the decoding failed
     if (len < 0)
         throw std::runtime_error("BIO_read() failed.");
 
-    BIO_free_all(bio);
-
-    decodedData.resize(len); // Resize to the actual length of the decoded data
+    // Resize to the actual length of the decoded data
+    decodedData.resize(len);
 
     return decodedData;
 }
 
 // This concept checks if the type provides the functionality of a string
 template<typename T>
-concept StringLike =
-std::same_as<T, std::basic_string<typename T::value_type, typename T::traits_type, typename T::allocator_type>>;
+concept StringLike = std::same_as<T, std::basic_string<typename T::value_type,
+    typename T::traits_type, typename T::allocator_type> >;
 
 /// \brief Trims space (whitespace) off the beginning and end of a string.
 /// \param str the string to trim.
-inline void trimSpace(StringLike auto &str) {
-    // Trim the leading space (my IDE finds the w-word offensive)
+void stripString(StringLike auto &str) noexcept {
+    // Trim the leading space
     std::input_iterator auto it = std::ranges::find_if_not(str.begin(), str.end(),
-                                                           [](char c) { return std::isspace(c); });
+                                                           [](const char c) { return std::isspace(c); });
     str.erase(str.begin(), it);
 
     // Trim the trailing space
-    it = std::ranges::find_if_not(str.rbegin(), str.rend(), [](char c) { return std::isspace(c); }).base();
+    it = std::ranges::find_if_not(str.rbegin(), str.rend(), [](const char c) { return std::isspace(c); }).base();
     str.erase(it, str.end());
 }
 
@@ -92,11 +101,12 @@ std::string getResponseStr(const std::string &prompt) {
     std::cout << prompt << std::endl;
     char *tmp = readline("> ");
     auto str = std::string{tmp};
+
     // Trim leading and trailing spaces
-    trimSpace(str);
+    stripString(str);
 
     // tmp must be freed
-    free(tmp);
+    std::free(tmp);
 
     return str;
 }
@@ -107,7 +117,7 @@ std::string getResponseStr(const std::string &prompt) {
 /// \return the user's input (an integer) on if it's convertible to integer, else 0.
 int getResponseInt(const std::string &prompt) {
     // A lambda to convert a string to an integer
-    constexpr auto toInt = [](std::string_view s) noexcept -> int {
+    constexpr auto toInt = [](const std::string_view s) noexcept -> int {
         int value;
         return std::from_chars(s.begin(), s.end(), value).ec == std::errc{} ? value : 0;
     };
@@ -133,7 +143,7 @@ privacy::string getSensitiveInfo(const std::string &prompt) {
     std::free(tmp);
 
     // Trim leading and trailing spaces
-    trimSpace(secret);
+    stripString(secret);
 
     // Restore terminal settings
     tcsetattr(STDIN_FILENO, TCSANOW, &oldSettings);
@@ -145,7 +155,7 @@ privacy::string getSensitiveInfo(const std::string &prompt) {
 /// \param prompt The confirmation prompt.
 /// \return True if the user confirms the action, else false.
 bool validateYesNo(const std::string &prompt) {
-    std::string resp = getResponseStr(prompt);
+    const std::string resp = getResponseStr(prompt);
     if (resp.empty()) return false;
     return std::tolower(resp.at(0)) == 'y';
 }
@@ -180,14 +190,14 @@ std::uintmax_t getAvailableSpace(const fs::path &path) noexcept {
     std::error_code ec; // For ignoring errors to avoid throwing
 
     // Find an existing component of the path
-    while ((!fs::exists(filePath, ec)) && filePath.has_parent_path())
+    while ((!exists(filePath, ec)) && filePath.has_parent_path())
         filePath = filePath.parent_path();
     if (ec) ec.clear();
 
-    const auto space = fs::space(fs::canonical(filePath, ec), ec);
+    auto [capacity, free, available] = space(canonical(filePath, ec), ec);
 
     // Return 0 in case of an error
-    return std::cmp_less(space.available, 0) || std::cmp_equal(space.available, UINTMAX_MAX) ? 0 : space.available;
+    return std::cmp_less(available, 0) || std::cmp_equal(available, UINTMAX_MAX) ? 0 : available;
 }
 
 

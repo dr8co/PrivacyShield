@@ -3,10 +3,10 @@ module;
 #include <optional>
 #include <iostream>
 #include <filesystem>
-#include <openssl/buffer.h>
-#include <openssl/evp.h>
 #include <unordered_map>
 #include <vector>
+#include <openssl/buffer.h>
+#include <openssl/evp.h>
 
 export module utils;
 
@@ -15,13 +15,13 @@ import secureAllocator;
 namespace fs = std::filesystem;
 
 static const std::unordered_map<char, const char *const> COLOR = {
-        {'r', "\033[1;31m"}, // Red
-        {'g', "\033[1;32m"}, // Green
-        {'y', "\033[1;33m"}, // Yellow
-        {'b', "\033[1;34m"}, // Blue
-        {'m', "\033[1;35m"}, // Magenta
-        {'c', "\033[1;36m"}, // Cyan
-        {'w', "\033[1;37m"}, // White
+    {'r', "\033[1;31m"}, // Red
+    {'g', "\033[1;32m"}, // Green
+    {'y', "\033[1;33m"}, // Yellow
+    {'b', "\033[1;34m"}, // Blue
+    {'m', "\033[1;35m"}, // Magenta
+    {'c', "\033[1;36m"}, // Cyan
+    {'w', "\033[1;37m"}, // White
 };
 
 template<typename T>
@@ -51,9 +51,8 @@ export {
     /// \param os the stream object to print to.
     void printColor(const PrintableToStream auto &text, const char &color = 'w', const bool &printNewLine = false,
                     std::ostream &os = std::cout) {
-
         // Print the text in the desired color
-        os << (COLOR.count(color) ? COLOR.at(color) : "") << text << "\033[0m";
+        os << (COLOR.contains(color) ? COLOR.at(color) : "") << text << "\033[0m";
 
         // Print a newline if requested
         if (printNewLine) os << std::endl;
@@ -63,27 +62,34 @@ export {
     /// \param input a vector of the binary data to be encoded.
     /// \return Base64-encoded string.
     std::string base64Encode(const uCharVector auto &input) {
-        BIO *bio, *b64;
-        BUF_MEM *bufferPtr;
+        // Custom deleter for BIO objects
+        auto bioDeleter = [](BIO *bio) { BIO_free_all(bio); };
 
-        b64 = BIO_new(BIO_f_base64());
-        BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
+        // Create a BIO object to encode the data
+        std::unique_ptr<BIO, decltype(bioDeleter)> b64(BIO_new(BIO_f_base64()), bioDeleter);
 
-        bio = BIO_new(BIO_s_mem());
+        // Don't use newlines to flush buffer
+        BIO_set_flags(b64.get(), BIO_FLAGS_BASE64_NO_NL);
 
+        // Create a memory BIO to store the encoded data
+        std::unique_ptr<BIO, decltype(bioDeleter)> bio(BIO_new(BIO_s_mem()), bioDeleter);
+
+        // Check if memory allocation failed
         if (b64 == nullptr || bio == nullptr)
-            throw std::bad_alloc();  // Memory allocation failed
+            throw std::bad_alloc();
 
-        b64 = BIO_push(b64, bio);
+        // Push the memory BIO to the base64 BIO
+        bio.reset(BIO_push(b64.get(), bio.release()));
 
-        if (BIO_write(b64, input.data(), static_cast<int>(input.size())) < 0)
+        if (BIO_write(bio.get(), input.data(), static_cast<int>(input.size())) < 0)
             throw std::runtime_error("BIO_write() failed.");
 
-        BIO_flush(b64);
-        BIO_get_mem_ptr(b64, &bufferPtr);
+        BIO_flush(bio.get());
+
+        BUF_MEM *bufferPtr;
+        BIO_get_mem_ptr(b64.get(), &bufferPtr);
 
         std::string encodedData(bufferPtr->data, bufferPtr->length);
-        BIO_free_all(b64);
 
         return encodedData;
     }
