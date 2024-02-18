@@ -47,7 +47,6 @@ function configure_cmake() {
 }
 
 function build_project() {
-  cd .. || abort
   cmake --build build --config Debug -j "$PARALLELISM_LEVEL"
 }
 
@@ -58,6 +57,7 @@ main() {
   cd "${0%/*}" || abort
   install_dependencies
   build_blake3
+  cd .. || abort
   configure_cmake
   build_project
 }
