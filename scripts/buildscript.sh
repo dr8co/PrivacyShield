@@ -40,7 +40,7 @@ function install_dependencies() {
 
 function build_blake3() {
   pwd
-  ./install_blake3.sh clang-18
+  ./scripts/install_blake3.sh clang-18
 }
 
 function configure_cmake() {
@@ -57,7 +57,6 @@ main() {
   check_dependencies
   cd "${0%/*}" || abort
   install_dependencies
-  cd .. || abort
   build_blake3
   configure_cmake
   build_project
