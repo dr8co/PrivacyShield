@@ -63,6 +63,7 @@ main() {
   check_dependencies
   cd "${0%/*}" || abort
   install_dependencies
+  echo "Ninja: $(ninja --version), CMake: $(cmake --version)"
   build_blake3
   cd .. || abort
   configure_cmake
