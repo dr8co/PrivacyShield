@@ -31,7 +31,7 @@ concept StringRange = std::ranges::input_range<T> &&
 
 
 /// \brief A simple case insensitive fuzzy matcher.
-export class FuzzyMatcher {
+export class FuzzyMatcher final {
 public:
     /// Default constructor
     constexpr FuzzyMatcher() noexcept = default;
@@ -88,16 +88,16 @@ public:
     /// \param pattern the pattern to match.
     /// \param maxDistance the maximum Levenshtein Distance to consider a match.
     /// \return a vector of strings matching the pattern.
-    std::vector<privacy::string> fuzzyMatch(const privacy::string &pattern, const int &maxDistance) {
+    [[nodiscard]] std::vector<privacy::string> fuzzyMatch(const privacy::string &pattern, const int &maxDistance) const {
         std::vector<privacy::string> matches{};
         matches.reserve(stringList.size());  // Worst case: every string in stringList is a match.
         // The maximum and minimum size of a string to be considered a match
-        auto maxSize{pattern.size() + maxDistance + 1};
-        auto minSize{pattern.size() - (maxDistance + 1)};
+        const auto maxSize{pattern.size() + maxDistance + 1};
+        const auto minSize{pattern.size() - (maxDistance + 1)};
 
         // Iterate over the string list and find matches
         for (const auto &str: stringList)
-            if (auto size{str.size()}; size <= maxSize && size >= minSize &&
+            if (const auto size{str.size()}; size <= maxSize && size >= minSize &&
                                        levenshteinDistance(pattern, str) <= maxDistance)
                 matches.emplace_back(str);
 
@@ -106,7 +106,7 @@ public:
     }
 
     /// Default destructor
-    virtual ~FuzzyMatcher() noexcept = default;
+    ~FuzzyMatcher() noexcept = default;
 
 
 private:
@@ -119,8 +119,8 @@ private:
     /// \note The Levenshtein distance calculated by this function is case insensitive,
     /// i.e the strings are converted to lowercase when calculating the edit distance.
     constexpr static int levenshteinDistance(const privacy::string &str1, const privacy::string &str2) {
-        int m = static_cast<int>(str1.length());
-        int n = static_cast<int>(str2.length());
+        const int m = static_cast<int>(str1.length());
+        const int n = static_cast<int>(str2.length());
 
         std::vector<std::vector<int>> dp(m + 1, std::vector<int>(n + 1));
 

@@ -43,7 +43,7 @@ const string DefaultPasswordFile = getHomeDir() + "/.privacyShield/passwords";
 /// \param lhs a password record tuple.
 /// \param rhs another record to be compared with lhs.
 /// \return true if lhs is less than (i.e. is ordered before) rhs, else false.
-inline bool comparator
+bool constexpr comparator
 // Avoid a gcc compiler error on ignored scoped attribute directives (-Werror=attributes is enabled in debug config),
 // while still encouraging both Clang and GCC compilers to inline the function.
 #if __clang__  // __clang__ is checked first since Clang might also define __GNUC__, but GCC never defines __clang__.
@@ -51,7 +51,7 @@ inline bool comparator
 #elif __GNUC__
 [[gnu::always_inline]]
 #endif
-        (const auto &lhs, const auto &rhs) noexcept {
+(const auto &lhs, const auto &rhs) noexcept {
     // Compare the site and username members of the tuples
     return std::tie(std::get<0>(lhs), std::get<1>(lhs)) <
            std::tie(std::get<0>(rhs), std::get<1>(rhs));
@@ -59,9 +59,11 @@ inline bool comparator
 
 /// \brief Prints the details of a password record.
 /// \param pw a password tuple.
-inline constexpr void printPasswordDetails(const auto &pw, const bool &isStrong = false) noexcept {
+/// \param isStrong a boolean value indicating if the password is strong or not.
+constexpr void printPasswordDetails(const auto &pw, const bool &isStrong = false) noexcept {
     const auto &[site, username, pass]{pw};
-    if (!site.empty()) { // Skip blank entries
+    if (!site.empty()) {
+        // Skip blank entries
         std::cout << "Site/app: ";
         printColor(site, 'c');
     }
@@ -73,7 +75,6 @@ inline constexpr void printPasswordDetails(const auto &pw, const bool &isStrong 
     // Highlight a weak password
     std::cout << "\nPassword: ";
     printColor(pass, isStrong ? 'g' : 'r', true);
-
 }
 
 /// \brief This function computes the strength of each password in the provided list of passwords.
@@ -87,13 +88,13 @@ inline constexpr void printPasswordDetails(const auto &pw, const bool &isStrong 
 /// in the passwords vector. It is resized to match the size of the passwords vector.
 ///
 /// \note This function is always inlined by the compiler.
-inline constexpr void computeStrengths
+constexpr void computeStrengths
 #if __clang__
 [[clang::always_inline]]
 #elif __GNUC__
 [[gnu::always_inline]]
 #endif
-        (const privacy::vector <passwordRecords> &passwords, std::vector<bool> &pwStrengths) {
+(const privacy::vector<passwordRecords> &passwords, std::vector<bool> &pwStrengths) {
     pwStrengths.resize(passwords.size());
     for (std::size_t i = 0; i < passwords.size(); ++i) {
         pwStrengths[i] = isPasswordStrong(std::get<2>(passwords[i]));
@@ -101,7 +102,7 @@ inline constexpr void computeStrengths
 }
 
 /// \brief Adds a new password to the saved records.
-inline void addPassword(privacy::vector <passwordRecords> &passwords, std::vector<bool> &strengths) {
+inline void addPassword(privacy::vector<passwordRecords> &passwords, std::vector<bool> &strengths) {
     privacy::string site{getResponseStr("Enter the name of the site/app: ")};
     // The site name must be non-empty
     if (site.empty()) {
@@ -111,10 +112,10 @@ inline void addPassword(privacy::vector <passwordRecords> &passwords, std::vecto
     privacy::string username{getResponseStr("Username (leave blank if N/A): ")};
 
     // Check if the record already exists in the database
-    auto it = std::ranges::lower_bound(passwords, std::tie(site, username, std::ignore),
-                                       [](const auto &tuple1, const auto &tuple2) {
-                                           return comparator(tuple1, tuple2);
-                                       });
+    const auto it = std::ranges::lower_bound(passwords, std::tie(site, username, std::ignore),
+                                             [](const auto &tuple1, const auto &tuple2) {
+                                                 return comparator(tuple1, tuple2);
+                                             });
 
     // If the record already exists, ask the user if they want to update it
     bool update{false};
@@ -143,8 +144,8 @@ inline void addPassword(privacy::vector <passwordRecords> &passwords, std::vecto
     // Always warn on weak passwords
     if (!isPasswordStrong(password)) {
         printColor(
-                "Weak password! A password should have at least 8 characters and include \nat least an "
-                "uppercase character, a lowercase, a punctuator, and a digit.", 'y', true);
+            "Weak password! A password should have at least 8 characters and include \nat least an "
+            "uppercase character, a lowercase, a punctuator, and a digit.", 'y', true);
         printColor("Please consider using a stronger one.", 'r', true);
     }
 
@@ -165,7 +166,7 @@ inline void addPassword(privacy::vector <passwordRecords> &passwords, std::vecto
 }
 
 /// \brief Generates a random password.
-inline void generatePassword(privacy::vector <passwordRecords> &, std::vector<bool> &) {
+inline void generatePassword(privacy::vector<passwordRecords> &, std::vector<bool> &) {
     int length = getResponseInt("Enter the length of the password to generate: ");
 
     int tries{0};
@@ -183,15 +184,10 @@ inline void generatePassword(privacy::vector <passwordRecords> &, std::vector<bo
 }
 
 /// \brief Shows all saved passwords.
-inline void viewAllPasswords(privacy::vector <passwordRecords> &passwords, std::vector<bool> &strengths) {
-    // We mustn't modify the password records in this function
-    auto &&constPasswordsRef = std::as_const(passwords);
-
+inline void viewAllPasswords(privacy::vector<passwordRecords> &passwords, std::vector<bool> &strengths) {
     // Check if there are any passwords saved
-    if (constPasswordsRef.empty()) {
+    if (auto &&constPasswordsRef = std::as_const(passwords); constPasswordsRef.empty()) {
         printColor("You haven't saved any password yet.", 'r', true);
-        return;
-
     } else {
         std::cout << "All passwords: (";
         printColor("red is weak", 'r');
@@ -210,13 +206,12 @@ inline void viewAllPasswords(privacy::vector <passwordRecords> &passwords, std::
 }
 
 /// \brief Handles fuzzy matching for update and deletion of passwords.
-inline void checkFuzzyMatches(auto &iter, privacy::vector <passwordRecords> &records, privacy::string &query) {
+void checkFuzzyMatches(auto &iter, privacy::vector<passwordRecords> &records, privacy::string &query) {
     // Fuzzy-match the query against the site names
-    FuzzyMatcher matcher(records | std::ranges::views::elements<0>);
-    auto fuzzyMatched{matcher.fuzzyMatch(query, 2)};
+    const FuzzyMatcher matcher(records | std::ranges::views::elements<0>);
 
     // If there is a single match, ask the user if they want to update the query
-    if (fuzzyMatched.size() == 1) {
+    if (const auto fuzzyMatched{matcher.fuzzyMatch(query, 2)}; fuzzyMatched.size() == 1) {
         const auto &match = fuzzyMatched.at(0);
 
         printColor("Did you mean '", 'c');
@@ -229,10 +224,11 @@ inline void checkFuzzyMatches(auto &iter, privacy::vector <passwordRecords> &rec
                                             [](const auto &lhs, const auto &rhs) noexcept -> bool {
                                                 return comparator(lhs, rhs);
                                             });
-            query = std::string{match}; // string constructed because 'match' is a reference and 'query' outlives it.
+            query = std::string{match};
+            // string constructed because 'match' is a reference and 'query' outlives it.
         }
-
-    } else if (!fuzzyMatched.empty()) { // multiple matches
+    } else if (!fuzzyMatched.empty()) {
+        // multiple matches
         printColor("Did you mean one of these?:", 'b', true);
         // Print all the matches
         for (const auto &el: fuzzyMatched) {
@@ -243,8 +239,9 @@ inline void checkFuzzyMatches(auto &iter, privacy::vector <passwordRecords> &rec
 }
 
 /// \brief Updates a password record.
-inline void updatePassword(privacy::vector <passwordRecords> &passwords, std::vector<bool> &strengths) {
-    if (passwords.empty()) [[unlikely]] { // There is nothing to update
+inline void updatePassword(privacy::vector<passwordRecords> &passwords, std::vector<bool> &strengths) {
+    if (passwords.empty()) [[unlikely]] {
+        // There is nothing to update
         printColor("No passwords saved yet.", 'r', true, std::cerr);
         return;
     }
@@ -271,12 +268,15 @@ inline void updatePassword(privacy::vector <passwordRecords> &passwords, std::ve
                                                 return std::get<0>(lhs) < std::get<0>(rhs);
                                             });
 
-    if (!matches.empty()) { // site found
-        if (matches.size() > 1) { // there are multiple accounts under the site
+    if (!matches.empty()) {
+        // site found
+        if (matches.size() > 1) {
+            // there are multiple accounts under the site
             std::cout << "Found the following usernames for " << std::quoted(site) << ":\n";
             for (const auto &[_, username, pass]: matches)
-                printColor(username.empty() ? "'' [no username, reply with a blank to select]"
-                                            : username, 'c', true);
+                printColor(username.empty()
+                               ? "'' [no username, reply with a blank to select]"
+                               : username, 'c', true);
 
             privacy::string username{getResponseStr("\nEnter one of the above usernames to update:")};
 
@@ -298,7 +298,7 @@ inline void updatePassword(privacy::vector <passwordRecords> &passwords, std::ve
 
         // Update the required fields
         privacy::string newUsername;
-        bool updateUsername{validateYesNo("Do you want to change the username? (y/n):")};
+        const bool updateUsername{validateYesNo("Do you want to change the username? (y/n):")};
 
         if (updateUsername) {
             newUsername = getResponseStr("Enter the new username (Leave blank to delete the current one):");
@@ -313,13 +313,15 @@ inline void updatePassword(privacy::vector <passwordRecords> &passwords, std::ve
             }
         }
 
-        privacy::string newPassword{getSensitiveInfo("Enter the new password (Leave blank to keep the current one): ")};
+        const privacy::string newPassword{
+            getSensitiveInfo("Enter the new password (Leave blank to keep the current one): ")
+        };
 
         // Warn if the password is weak
         if (!newPassword.empty() && !isPasswordStrong(newPassword)) {
             printColor(
-                    "Weak password! A password should have at least 8 characters and include \nat least an"
-                    " uppercase character, a lowercase, a punctuator, and a digit.", 'y', true);
+                "Weak password! A password should have at least 8 characters and include \nat least an"
+                " uppercase character, a lowercase, a punctuator, and a digit.", 'y', true);
             printColor("Please consider using a stronger one.", 'r', true);
         }
 
@@ -338,7 +340,6 @@ inline void updatePassword(privacy::vector <passwordRecords> &passwords, std::ve
             // Recompute strengths
             computeStrengths(passwords, strengths);
         } else printColor("Password not updated.", 'r', true, std::cerr);
-
     } else {
         printColor("'", 'r', false, std::cerr);
         printColor(site, 'c', false, std::cerr);
@@ -347,7 +348,7 @@ inline void updatePassword(privacy::vector <passwordRecords> &passwords, std::ve
 }
 
 /// \brief Deletes a password record.
-inline void deletePassword(privacy::vector <passwordRecords> &passwords, std::vector<bool> &strengths) {
+inline void deletePassword(privacy::vector<passwordRecords> &passwords, std::vector<bool> &strengths) {
     if (passwords.empty()) {
         printColor("No passwords saved yet.", 'r', true, std::cerr);
         return;
@@ -374,12 +375,14 @@ inline void deletePassword(privacy::vector <passwordRecords> &passwords, std::ve
                                                 return std::get<0>(lhs) < std::get<0>(rhs);
                                             });
 
-    if (!matches.empty()) { // site found
+    if (!matches.empty()) {
+        // site found
         if (matches.size() > 1) {
             std::cout << "Found the following usernames for " << std::quoted(site) << ":\n";
             for (const auto &[_, username, pass]: matches)
-                printColor(username.empty() ? "'' [no username, reply with a blank to select]"
-                                            : username, 'c', true);
+                printColor(username.empty()
+                               ? "'' [no username, reply with a blank to select]"
+                               : username, 'c', true);
 
             privacy::string username{getResponseStr("\nEnter one of the above usernames to delete:")};
 
@@ -413,7 +416,6 @@ inline void deletePassword(privacy::vector <passwordRecords> &passwords, std::ve
 
         // Recompute strengths
         computeStrengths(passwords, strengths);
-
     } else {
         printColor("'", 'r', false, std::cerr);
         printColor(site, 'c', false, std::cerr);
@@ -422,8 +424,9 @@ inline void deletePassword(privacy::vector <passwordRecords> &passwords, std::ve
 }
 
 /// \brief Finds a password record.
-inline void searchPasswords(privacy::vector <passwordRecords> &passwords, std::vector<bool> &) {
-    if (passwords.empty()) [[unlikely]] { // There is nothing to search
+inline void searchPasswords(privacy::vector<passwordRecords> &passwords, std::vector<bool> &) {
+    if (passwords.empty()) [[unlikely]] {
+        // There is nothing to search
         printColor("No passwords saved yet.", 'r', true, std::cerr);
         return;
     }
@@ -456,11 +459,10 @@ inline void searchPasswords(privacy::vector <passwordRecords> &passwords, std::v
         printColor(std::format("No matches found for '{}'", query), 'r', true);
 
         // Fuzzy-match the query against the site names
-        FuzzyMatcher matcher(constPasswordsRef | std::ranges::views::elements<0>);
-        auto fuzzyMatched{matcher.fuzzyMatch(query, 2)};
+        const FuzzyMatcher matcher(constPasswordsRef | std::ranges::views::elements<0>);
 
         // If there is a single match, ask the user if they want to view it
-        if (fuzzyMatched.size() == 1) {
+        if (const auto fuzzyMatched{matcher.fuzzyMatch(query, 2)}; fuzzyMatched.size() == 1) {
             const auto &match = fuzzyMatched.at(0);
 
             printColor("Did you mean '", 'c');
@@ -480,10 +482,9 @@ inline void searchPasswords(privacy::vector <passwordRecords> &passwords, std::v
                         printColor("-----------------------------------------------------", 'w', true);
                     }
                 }
-
             } else printColor("Sorry, '" + query + "' not found.", 'r', true);
-
-        } else if (!fuzzyMatched.empty()) { // multiple matches
+        } else if (!fuzzyMatched.empty()) {
+            // multiple matches
             printColor("Did you mean one of these?:", 'b', true);
             // Print all the matches
             for (const auto &el: fuzzyMatched) {
@@ -492,14 +493,13 @@ inline void searchPasswords(privacy::vector <passwordRecords> &passwords, std::v
             }
         }
     }
-
 }
 
 /// \brief Imports passwords from a csv file.
-inline void importPasswords(privacy::vector <passwordRecords> &passwords, std::vector<bool> &strengths) {
-    string fileName = getResponseStr("Enter the path to the csv file: ");
+inline void importPasswords(privacy::vector<passwordRecords> &passwords, std::vector<bool> &strengths) {
+    const string fileName = getResponseStr("Enter the path to the csv file: ");
 
-    privacy::vector <passwordRecords> imports{importCsv(fileName)};
+    privacy::vector<passwordRecords> imports{importCsv(fileName)};
 
     if (imports.empty()) {
         printColor("No passwords imported.", 'y', true);
@@ -519,7 +519,7 @@ inline void importPasswords(privacy::vector <passwordRecords> &passwords, std::v
     imports.erase(dups.begin(), dups.end());
 
     // Check if the imported passwords already exist in the database by constructing their set intersection
-    privacy::vector <passwordRecords> duplicates;
+    privacy::vector<passwordRecords> duplicates;
     duplicates.reserve(imports.size());
 
     // Find the passwords that already exist in the database
@@ -528,7 +528,7 @@ inline void importPasswords(privacy::vector <passwordRecords> &passwords, std::v
                                       return comparator(pw1, pw2);
                                   });
 
-    privacy::vector <passwordRecords> recordsUnion;
+    privacy::vector<passwordRecords> recordsUnion;
     recordsUnion.reserve(passwords.size() + imports.size());
 
     bool overwrite{true};
@@ -544,7 +544,7 @@ inline void importPasswords(privacy::vector <passwordRecords> &passwords, std::v
         overwrite = validateYesNo();
     }
 
-    std::size_t initSize{passwords.size()};
+    const std::size_t initSize{passwords.size()};
 
     if (overwrite) {
         // According to an unofficial language reference, https://en.cppreference.com/w/cpp/algorithm/ranges/set_union,
@@ -575,28 +575,24 @@ inline void importPasswords(privacy::vector <passwordRecords> &passwords, std::v
     // Recompute strengths
     computeStrengths(passwords, strengths);
 
-    auto imported = overwrite ? imports.size() : passwords.size() - initSize;
-
-    if (std::cmp_greater(imported, 0))
+    if (auto imported = overwrite ? imports.size() : passwords.size() - initSize; std::cmp_greater(imported, 0))
         printColor(std::format("Imported {} passwords successfully.", imported), 'g', true);
     else printColor("Passwords not imported.", 'r', true);
 }
 
 /// \brief Exports passwords to a csv file.
-inline void exportPasswords(privacy::vector <passwordRecords> &passwords, std::vector<bool> &) {
+inline void exportPasswords(privacy::vector<passwordRecords> &passwords, std::vector<bool> &) {
     auto &&passwordsConstRef = std::as_const(passwords);
 
     if (passwordsConstRef.empty()) [[unlikely]] {
         printColor("No passwords saved yet.", 'r', true, std::cerr);
         return;
     }
-    string fileName = getResponseStr("Enter the path to save the file (leave blank for default): ");
+    const string fileName = getResponseStr("Enter the path to save the file (leave blank for default): ");
 
     // Export the passwords to a csv file
-    bool exported = fileName.empty() ? exportCsv(passwordsConstRef) : exportCsv(passwordsConstRef,
-                                                                                fileName);
-
-    if (exported)
+    if (const bool exported = fileName.empty() ? exportCsv(passwordsConstRef) : exportCsv(passwordsConstRef, fileName);
+        exported)
         [[likely]]
                 // Warn the user about the security risk
                 printColor("WARNING: The exported file contains all your passwords in plain text."
@@ -605,20 +601,20 @@ inline void exportPasswords(privacy::vector <passwordRecords> &passwords, std::v
 }
 
 /// \brief Analyzes the saved passwords for weak passwords and password reuse.
-inline void analyzePasswords(privacy::vector <passwordRecords> &passwords, std::vector<bool> &strengths) {
+inline void analyzePasswords(privacy::vector<passwordRecords> &passwords, std::vector<bool> &strengths) {
     if (passwords.empty()) {
         printColor("No passwords to analyze.", 'r', true);
         return;
     }
 
-    auto total = passwords.size();
+    const auto total = passwords.size();
     auto &&constPasswordsRef = std::as_const(passwords);
 
     // Analyze the passwords
     std::cout << "Analyzing passwords..." << std::endl;
 
     // Scan for weak passwords
-    privacy::vector <passwordRecords> weakPasswords;
+    privacy::vector<passwordRecords> weakPasswords;
     weakPasswords.reserve(total);
 
     for (std::size_t i = 0; i < passwords.size(); ++i) {
@@ -627,7 +623,7 @@ inline void analyzePasswords(privacy::vector <passwordRecords> &passwords, std::
     }
 
     // Check for reused passwords
-    std::unordered_map<privacy::string, std::unordered_set<privacy::string>> passwordMap;
+    std::unordered_map<privacy::string, std::unordered_set<privacy::string> > passwordMap;
     for (const auto &record: constPasswordsRef) {
         const auto &site = std::get<0>(record);
         const auto &password = std::get<2>(record);
@@ -638,7 +634,7 @@ inline void analyzePasswords(privacy::vector <passwordRecords> &passwords, std::
 
     // Print the weak passwords
     auto weak{weakPasswords.size()};
-    if (!weakPasswords.empty())[[likely]] {
+    if (!weakPasswords.empty()) [[likely]] {
         printColor(std::format("Found {} account{} with weak passwords:", weak, weak == 1 ? "" : "s"), 'r', true);
         printColor("------------------------------------------------------", 'r', true);
         for (const auto &password: weakPasswords) {
@@ -646,18 +642,17 @@ inline void analyzePasswords(privacy::vector <passwordRecords> &passwords, std::
             printColor("------------------------------------------------------", 'r', true);
         }
         printColor(std::format("Please change the weak passwords above. "
-                               "\nYou can use the 'generate password' option to generate strong passwords.\n"), 'r',
+                       "\nYou can use the 'generate password' option to generate strong passwords.\n"), 'r',
                    true);
     } else printColor("No weak passwords found. Keep it up!\n", 'g', true);
 
     // Find reused passwords
-    using PasswordSites = std::pair<std::string, std::unordered_set<privacy::string>>;
-    std::multimap<std::size_t, PasswordSites, std::greater<>> countMap;
+    using PasswordSites = std::pair<std::string, std::unordered_set<privacy::string> >;
+    std::multimap<std::size_t, PasswordSites, std::greater<> > countMap;
 
-    for (const auto &entry: passwordMap) {
-        const auto &sites = entry.second;
+    for (const auto &[password, sites]: passwordMap) {
         if (const auto &x = sites.size(); x > 1) {
-            countMap.insert(std::make_pair(x, PasswordSites(entry.first, sites)));
+            countMap.insert(std::make_pair(x, PasswordSites(password, sites)));
         }
     }
 
@@ -685,8 +680,8 @@ inline void analyzePasswords(privacy::vector <passwordRecords> &passwords, std::
 
     // Print the statistics
     std::cout << "\nTotal passwords: " << total << std::endl;
-    if (weak > 0)[[likely]] {
-        char col{std::cmp_greater(weak, total / 4) ? 'r' : 'y'};
+    if (weak > 0) [[likely]] {
+        const char col{std::cmp_greater(weak, total / 4) ? 'r' : 'y'};
 
         printColor(std::format("{}% of your passwords are weak.",
                                std::round(static_cast<double>(weak) / static_cast<double>(total) * 100 * 100) /
@@ -707,22 +702,24 @@ void passwordManager() {
     if (!fs::exists(passwordFile) || !fs::is_regular_file(passwordFile) || fs::is_empty(passwordFile)) {
         auto [path, pass] = initialSetup();
 
-        if (path.empty() && pass.empty()) { // user exited
-            return;
-        } else if (path.empty()) [[likely]] { // user provided a new primary password
-            encryptionKey = pass;
+        // If both path and pass are empty, the user wants to exit
+        if (path.empty() && pass.empty()) return;
 
+        // The user provided a new primary password
+        if (path.empty()) [[likely]] {
+            encryptionKey = pass;
             newSetup = true;
-        } else {  // the user pointed us to an existing password records
+        } else {
+            // the user pointed us to an existing password records
             passwordFile = path;
         }
     }
 
-    privacy::vector <passwordRecords> passwords;
+    privacy::vector<passwordRecords> passwords;
 
     if (!newSetup) {
         // preprocess the passwordFile
-        privacy::string pwHash = getHash(passwordFile);
+        const privacy::string pwHash = getHash(passwordFile);
 
         int attempts{0};
         bool isCorrect;
@@ -733,7 +730,6 @@ void passwordManager() {
             isCorrect = verifyPassword(encryptionKey, pwHash);
             if (!isCorrect && attempts < 2)
                 printColor("Wrong password, please try again.", 'r', true, std::cerr);
-
         } while (!isCorrect && ++attempts < 3);
 
         // If the password is still incorrect, exit
@@ -758,26 +754,27 @@ void passwordManager() {
     }
 
     // A map of choices and their corresponding functions
-    std::unordered_map<int, void (*)(privacy::vector <passwordRecords> &, std::vector<bool> &)> choices = {
-            {1, addPassword},
-            {2, updatePassword},
-            {3, deletePassword},
-            {4, viewAllPasswords},
-            {5, searchPasswords},
-            {6, generatePassword},
-            {7, analyzePasswords},
-            {8, importPasswords},
-            {9, exportPasswords}
+    std::unordered_map<int, void (*)(privacy::vector<passwordRecords> &, std::vector<bool> &)> choices = {
+        {1, addPassword},
+        {2, updatePassword},
+        {3, deletePassword},
+        {4, viewAllPasswords},
+        {5, searchPasswords},
+        {6, generatePassword},
+        {7, analyzePasswords},
+        {8, importPasswords},
+        {9, exportPasswords}
     };
 
-    // A string of colors to choose from
-    constexpr auto colors = "rgbymcw";
     std::random_device rd; // get a random number from hardware
     std::mt19937 gen(rd()); // seed the generator
     std::uniform_int_distribution<int> dist(0, 6); // define the range
 
     while (true) {
+        // Colors to use for the menu
+        constexpr auto colors = "rgbymcw";
         auto color = colors[dist(gen)];
+
         printColor("-------------------------------------------", color, true);
         std::cout << "1. Add new password\n";
         std::cout << "2. Update password\n";
@@ -795,9 +792,7 @@ void passwordManager() {
         try {
             int choice = getResponseInt("Enter your choice: ");
 
-            auto iter = choices.find(choice);
-
-            if (iter != choices.end())
+            if (auto iter = choices.find(choice); iter != choices.end())
                 iter->second(passwords, passwordStrength);
             else if (choice == 10) {
                 if (changeMasterPassword(encryptionKey))
@@ -806,11 +801,8 @@ void passwordManager() {
             } else if (choice == 11)
                 break;
             else printColor("Invalid choice!", 'r', true, std::cerr);
-
         } catch (const std::exception &ex) {
             printColor(ex.what(), 'r', true, std::cerr);
-            continue;
-
         } catch (...) { throw std::runtime_error("An error occurred."); }
     }
 
@@ -819,7 +811,7 @@ void passwordManager() {
     // Create the password file if it doesn't exist
     if (!fs::exists(DefaultPasswordFile)) {
         std::error_code ec;
-        if (auto home{getHomeDir()}; fs::exists(home))
+        if (const auto home{getHomeDir()}; fs::exists(home))
             fs::create_directory(home + "/.privacyShield", home, ec);
         if (ec) {
             printColor(std::format("Failed to create '{}': ", DefaultPasswordFile), 'y', false, std::cerr);
@@ -830,5 +822,4 @@ void passwordManager() {
     if (savePasswords(passwords, DefaultPasswordFile, encryptionKey))
         printColor("Passwords saved successfully.", 'g', true);
     else printColor("Passwords not saved!", 'r', true, std::cerr);
-
 }

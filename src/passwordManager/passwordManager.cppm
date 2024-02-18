@@ -18,7 +18,7 @@ bool savePasswords(privacy::vector <passwordRecords> &passwords, const std::stri
 
 bool isPasswordStrong(const privacy::string &password) noexcept;
 
-privacy::string generatePassword(int length);
+privacy::string generatePassword(const int &length);
 
 bool changeMasterPassword(privacy::string &primaryPassword);
 
@@ -29,10 +29,6 @@ privacy::string getHash(const std::string &filePath);
 privacy::vector <passwordRecords> importCsv(const std::string &filePath);
 
 bool exportCsv(const privacy::vector <passwordRecords> &records, const std::string &filePath = getHomeDir());
-
-void
-encryptDecryptConcurrently(privacy::vector <passwordRecords> &passwordEntries, const privacy::string &key,
-                           bool encrypt = true, bool allFields = false);
 
 export {
     privacy::string hashPassword(const privacy::string &password,
