@@ -20,7 +20,7 @@ module;
 export module cryptoCipher;
 
 /// \brief A class wrapper for OpenSSL cipher implementations and contexts.
-export class CryptoCipher {
+export class CryptoCipher final {
 public:
     // Default constructor
     constexpr CryptoCipher() noexcept = default;
@@ -99,7 +99,7 @@ public:
     }
 
     // Destructor for cleanup
-    virtual ~CryptoCipher() {
+    ~CryptoCipher() {
         EVP_CIPHER_free(cipher);
         EVP_CIPHER_CTX_free(ctx);
     }

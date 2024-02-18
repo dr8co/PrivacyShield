@@ -33,23 +33,23 @@ import secureAllocator;
 
 module encryption;
 
-constexpr int MAX_KEY_SIZE = EVP_MAX_KEY_LENGTH;    // For bounds checking
-constexpr std::size_t CHUNK_SIZE = 4096;            // Read/Write files in chunks of 4 kB
+constexpr int MAX_KEY_SIZE = EVP_MAX_KEY_LENGTH; // For bounds checking
+constexpr std::size_t CHUNK_SIZE = 4096; // Read/Write files in chunks of 4 kB
 constexpr unsigned int PBKDF2_ITERATIONS = 100'000; // Iterations for PBKDF2 key derivation
 
 
 /// \brief Generates random bytes using a CSPRNG.
 /// \param saltSize number of bytes of salt to generate.
 /// \return the generated salt as a vector.
-privacy::vector<unsigned char> generateSalt(int saltSize) {
+privacy::vector<unsigned char> generateSalt(const int saltSize) {
     std::mutex m;
     privacy::vector<unsigned char> salt(saltSize);
 
     if (std::scoped_lock<std::mutex> lock(m); RAND_bytes(salt.data(), saltSize) != 1) {
         std::cerr << "Failed to seed OpenSSL's CSPRNG properly."
-                     "\nPlease check your system's randomness utilities." << std::endl;
+                "\nPlease check your system's randomness utilities." << std::endl;
 
-        randombytes_buf(salt.data(), salt.size());  // Use Sodium's random generator as a backup
+        randombytes_buf(salt.data(), salt.size()); // Use Sodium's random generator as a backup
     }
     return salt;
 }
@@ -89,17 +89,20 @@ deriveKey(const privacy::string &password, const privacy::vector<unsigned char> 
 
     /// ************* Set the required parameters *************
     // Set the password to derive the key from
-    *p++ = OSSL_PARAM_construct_octet_string(OSSL_KDF_PARAM_PASSWORD, (void *) password.data(), password.size());
+    *p++ = OSSL_PARAM_construct_octet_string(OSSL_KDF_PARAM_PASSWORD, const_cast<char *>(password.data()),
+                                             password.size());
 
     // Set the salt
-    *p++ = OSSL_PARAM_construct_octet_string(OSSL_KDF_PARAM_SALT, (void *) salt.data(), salt.size());
+    *p++ = OSSL_PARAM_construct_octet_string(OSSL_KDF_PARAM_SALT, const_cast<unsigned char *>(salt.data()),
+                                             salt.size());
 
     // Set the number of iterations
     unsigned int iterations{PBKDF2_ITERATIONS};
     *p++ = OSSL_PARAM_construct_uint(OSSL_KDF_PARAM_ITER, &iterations);
 
     // Use BLAKE2b512 as the hash function for the digest
-    *p++ = OSSL_PARAM_construct_utf8_string(OSSL_KDF_PARAM_DIGEST, (char *) "BLAKE2B512", 0);
+    char hashFn[] = "BLAKE2B512";
+    *p++ = OSSL_PARAM_construct_utf8_string(OSSL_KDF_PARAM_DIGEST, hashFn, 0);
 
     // Enable SP800-132 compliance checks (iterations >= 1000, salt >= 128 bits, key >= 112 bits)
     int pkcs5 = 0;
@@ -120,6 +123,7 @@ deriveKey(const privacy::string &password, const privacy::vector<unsigned char> 
 /// \param inputFile The file to be encrypted.
 /// \param outputFile The file to store the encrypted content.
 /// \param password The password used to encrypt the file.
+/// \param algo The cipher algorithm to use.
 ///
 /// \details Available ciphers: AES-256, Camellia-256, and Aria-256.
 /// \details Encryption mode: CBC.
@@ -208,6 +212,7 @@ void encryptFile(const std::string &inputFile, const std::string &outputFile, co
 /// \param inputFile The file to be decrypted.
 /// \param outputFile The file to store the decrypted content.
 /// \param password The password used to decrypt the file.
+/// \param algo The cipher algorithm used to encrypt the file.
 void decryptFile(const std::string &inputFile, const std::string &outputFile, const privacy::string &password,
                  const std::string &algo) {
     // Open the input file for reading
@@ -298,7 +303,7 @@ void decryptFile(const std::string &inputFile, const std::string &outputFile, co
 /// \brief Throws a thread-safe Gcrypt error.
 /// \param err Gcrypt error value.
 /// \param message the error message.
-inline void throwSafeError(gcry_error_t &err, const std::string &message) {
+inline void throwSafeError(const gcry_error_t &err, const std::string &message) {
     std::mutex m;
     std::scoped_lock<std::mutex> locker(m);
     throw std::runtime_error(std::format("{}: {}", message, gcry_strerror(err)));
@@ -308,6 +313,7 @@ inline void throwSafeError(gcry_error_t &err, const std::string &message) {
 /// \param inputFilePath the file to be encrypted.
 /// \param outputFilePath the file to save the ciphertext to.
 /// \param password the password used to encrypt the file.
+/// \param algorithm the cipher algorithm to use.
 ///
 /// \details Available ciphers: Serpent-256 and Twofish-256.
 /// \details Encryption mode: Counter (CTR).
@@ -327,7 +333,7 @@ encryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
     if (!outputFile)
         throw std::runtime_error(std::format("Failed to open '{}' for writing.", outputFilePath));
 
-    gcry_error_t err;   // error tracker
+    gcry_error_t err; // error tracker
 
     // Set up the encryption context
     gcry_cipher_hd_t cipherHandle;
@@ -341,7 +347,7 @@ encryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
 
     // Default the key size to 256 bits if the previous call failed
     if (keySize == 0) keySize = KEY_SIZE_256;
-    if (ctrSize == 0) ctrSize = 16;  // Default the counter size to 128 bits if we can't get the block length
+    if (ctrSize == 0) ctrSize = 16; // Default the counter size to 128 bits if we can't get the block length
 
     // Generate a random salt, and a random counter
     privacy::vector<unsigned char> salt = generateSalt(SALT_SIZE);
@@ -389,6 +395,7 @@ encryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
 /// \param inputFilePath The file to be decrypted.
 /// \param outputFilePath The file to store the decrypted content.
 /// \param password The password used to decrypt the file.
+/// \param algorithm The cipher algorithm used to encrypt the file.
 void
 decryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &outputFilePath,
                           const privacy::string &password, const gcry_cipher_algos &algorithm) {

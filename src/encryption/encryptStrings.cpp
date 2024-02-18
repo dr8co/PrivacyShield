@@ -32,6 +32,7 @@ module encryption;
 /// \brief Encrypts a string using symmetric unauthenticated encryption.
 /// \param plaintext The string to be encrypted.
 /// \param password The string to be used to derive the encryption key.
+/// \param algo The cipher to be used for encryption.
 /// \return Base64-encoded ciphertext (the encrypted data).
 ///
 /// \details Available ciphers: AES-256, Camellia-256, and Aria-256.
@@ -63,7 +64,7 @@ encryptString(const privacy::string &plaintext, const privacy::string &password,
     // Derive the encryption key using the generated salt
     privacy::vector<unsigned char> key = deriveKey(password, salt, keySize);
 
-    int block_size = EVP_CIPHER_get_block_size(cipher.getCipher());
+    const int block_size = EVP_CIPHER_get_block_size(cipher.getCipher());
     privacy::vector<unsigned char> ciphertext(plaintext.size() + block_size);
     int ciphertextLength = 0;
 
@@ -104,6 +105,7 @@ encryptString(const privacy::string &plaintext, const privacy::string &password,
 /// \brief Decrypts a string encrypted with the encryptString() function.
 /// \param encodedCiphertext Base64-encoded ciphertext to be decrypted.
 /// \param password The string to be used to derive the decryption key.
+/// \param algo The cipher used for encryption.
 /// \return The decrypted string (the plaintext).
 privacy::string
 decryptString(const std::string &encodedCiphertext, const privacy::string &password, const std::string &algo) {
@@ -128,9 +130,8 @@ decryptString(const std::string &encodedCiphertext, const privacy::string &passw
     privacy::vector<unsigned char> encryptedText;
 
     // Base64 decode the encoded ciphertext
-    std::vector<unsigned char> ciphertext = base64Decode(encodedCiphertext);
-
-    if (ciphertext.size() > (static_cast<std::size_t>(SALT_SIZE) + ivSize)) [[likely]] {
+    if (std::vector<unsigned char> ciphertext = base64Decode(encodedCiphertext);
+        ciphertext.size() > static_cast<std::size_t>(SALT_SIZE) + ivSize) [[likely]] {
         // Read the salt and IV from the ciphertext
         salt.assign(ciphertext.begin(), ciphertext.begin() + SALT_SIZE);
         iv.assign(ciphertext.begin() + SALT_SIZE, ciphertext.begin() + SALT_SIZE + ivSize);
@@ -142,7 +143,7 @@ decryptString(const std::string &encodedCiphertext, const privacy::string &passw
     // Derive the decryption key from the password, and the salt
     privacy::vector<unsigned char> key = deriveKey(password, salt, keySize);
 
-    int block_size = EVP_CIPHER_get_block_size(cipher.getCipher());
+    const int block_size = EVP_CIPHER_get_block_size(cipher.getCipher());
     privacy::vector<unsigned char> plaintext(encryptedText.size() + block_size);
     int plaintextLength = 0;
 
@@ -172,7 +173,7 @@ decryptString(const std::string &encodedCiphertext, const privacy::string &passw
     return decryptedText;
 }
 
-inline void throwSafeError(gcry_error_t &err, const std::string &message) {
+inline void throwSafeError(const gcry_error_t &err, const std::string &message) {
     std::mutex m;
     std::scoped_lock<std::mutex> locker(m);
     throw std::runtime_error(std::format("{}: {}", message, gcry_strerror(err)));
@@ -181,6 +182,7 @@ inline void throwSafeError(gcry_error_t &err, const std::string &message) {
 /// \brief Encrypts a string with ciphers with more rounds.
 /// \param plaintext The string to be encrypted.
 /// \param password The string to be used to derive the encryption key.
+/// \param algorithm The cipher to be used for encryption.
 /// \return Base64-encoded ciphertext (the encrypted data).
 ///
 /// \details Available ciphers: Serpent-256 and Twofish-256.
@@ -190,11 +192,9 @@ inline void throwSafeError(gcry_error_t &err, const std::string &message) {
 privacy::string
 encryptStringWithMoreRounds(const privacy::string &plaintext, const privacy::string &password,
                             const gcry_cipher_algos &algorithm) {
-    gcry_error_t err;   // error tracker
-
     // Set up the encryption context
     gcry_cipher_hd_t cipherHandle;
-    err = gcry_cipher_open(&cipherHandle, algorithm, GCRY_CIPHER_MODE_CTR, GCRY_CIPHER_SECURE);
+    gcry_error_t err = gcry_cipher_open(&cipherHandle, algorithm, GCRY_CIPHER_MODE_CTR, GCRY_CIPHER_SECURE);
     if (err)
         throwSafeError(err, "Failed to create the encryption cipher context");
 
@@ -204,7 +204,7 @@ encryptStringWithMoreRounds(const privacy::string &plaintext, const privacy::str
 
     // Default the key size to 256 bits if the previous call failed
     if (keySize == 0) keySize = KEY_SIZE_256;
-    if (ctrSize == 0) ctrSize = 16;  // Default the counter size to 128 bits if we can't get the block length
+    if (ctrSize == 0) ctrSize = 16; // Default the counter size to 128 bits if we can't get the block length
 
     // Generate a random salt, and a random counter
     privacy::vector<unsigned char> salt = generateSalt(SALT_SIZE);
@@ -251,6 +251,7 @@ encryptStringWithMoreRounds(const privacy::string &plaintext, const privacy::str
 /// \brief Decrypts a string encrypted by encryptStringWithMoreRounds() function.
 /// \param encodedCiphertext Base64-encoded ciphertext to be decrypted.
 /// \param password The string to be used to derive the decryption key.
+/// \param algorithm The cipher used for encryption.
 /// \return The decrypted string (the plaintext).
 privacy::string
 decryptStringWithMoreRounds(const std::string &encodedCiphertext, const privacy::string &password,
@@ -261,16 +262,15 @@ decryptStringWithMoreRounds(const std::string &encodedCiphertext, const privacy:
 
     // Default the key size to 256 bits if the previous call failed
     if (keySize == 0) keySize = KEY_SIZE_256;
-    if (ctrSize == 0) ctrSize = 16;  // Default the counter size to 128 bits if we can't get the block length
+    if (ctrSize == 0) ctrSize = 16; // Default the counter size to 128 bits if we can't get the block length
 
     privacy::vector<unsigned char> salt(SALT_SIZE);
     privacy::vector<unsigned char> ctr(ctrSize);
     privacy::vector<unsigned char> encryptedText;
 
     // Base64-decode the encoded ciphertext
-    std::vector<unsigned char> ciphertext = base64Decode(encodedCiphertext);
-
-    if (ciphertext.size() >= SALT_SIZE + ctrSize) [[likely]] {
+    if (std::vector<unsigned char> ciphertext = base64Decode(encodedCiphertext);
+        ciphertext.size() >= SALT_SIZE + ctrSize) [[likely]] {
         // Read the salt and the counter from the ciphertext
         salt.assign(ciphertext.begin(), ciphertext.begin() + SALT_SIZE);
         ctr.assign(ciphertext.begin() + SALT_SIZE, ciphertext.begin() + SALT_SIZE + static_cast<long>(ctrSize));
@@ -279,15 +279,14 @@ decryptStringWithMoreRounds(const std::string &encodedCiphertext, const privacy:
     } else
         throw std::runtime_error("Invalid ciphertext.");
 
-    std::size_t encryptedTextSize = encryptedText.size();
+    const std::size_t encryptedTextSize = encryptedText.size();
 
     // Derive the key
     privacy::vector<unsigned char> key = deriveKey(password, salt, static_cast<int>(keySize));
 
     // Set up the decryption context
-    gcry_error_t err;
     gcry_cipher_hd_t cipherHandle;
-    err = gcry_cipher_open(&cipherHandle, algorithm, GCRY_CIPHER_MODE_CTR, GCRY_CIPHER_SECURE);
+    gcry_error_t err = gcry_cipher_open(&cipherHandle, algorithm, GCRY_CIPHER_MODE_CTR, GCRY_CIPHER_SECURE);
     if (err)
         throwSafeError(err, "Failed to create the decryption cipher context");
 
