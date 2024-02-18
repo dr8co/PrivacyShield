@@ -56,6 +56,7 @@ main() {
   check_dependencies
   cd "${0%/*}" || abort
   install_dependencies
+  cd .. || abort
   build_blake3
   configure_cmake
   build_project
