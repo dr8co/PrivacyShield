@@ -34,7 +34,7 @@ import utils;
 constexpr const char *const MINIMUM_LIBGCRYPT_VERSION = "1.10.0";
 
 
-int main(int argc, char **argv) {
+int main(const int argc, const char **argv) {
     // The program should be launched in interactive mode
     if (!isatty(STDIN_FILENO)) {
         if (errno == ENOTTY) {
@@ -43,8 +43,7 @@ int main(int argc, char **argv) {
         }
     }
     // Disable core dumping for security reasons
-    rlimit coreLimit{0, 0};
-    if (setrlimit(RLIMIT_CORE, &coreLimit) != 0) {
+    if (constexpr rlimit coreLimit{0, 0}; setrlimit(RLIMIT_CORE, &coreLimit) != 0) {
         printColor("Failed to disable core dumps.", 'r', true, std::cerr);
         return 1;
     }
@@ -113,12 +112,12 @@ int main(int argc, char **argv) {
         printColor("https://www.gnu.org/licenses/gpl.html.\n", 'b', true);
 
         // All the available tools
-        std::unordered_map<int, std::function<void(void)>> apps = {
-                {1, passwordManager},
-                {2, encryptDecrypt},
-                {3, fileShredder},
-                {4, clearPrivacyTracks},
-                {5, duplicateFinder}
+        std::unordered_map<int, std::function<void()> > apps = {
+            {1, passwordManager},
+            {2, encryptDecrypt},
+            {3, fileShredder},
+            {4, clearPrivacyTracks},
+            {5, duplicateFinder}
         };
 
         // Applications loop
@@ -132,40 +131,31 @@ int main(int argc, char **argv) {
             printColor("6. Exit\n", 'r');
             printColor("-------------------------------------", 'c', true);
 
-            int choice = getResponseInt("What would you like to do? (Enter 1 or 2, 3..)");
+            const int choice = getResponseInt("What would you like to do? (Enter 1 or 2, 3..)");
 
             try {
-                auto iter = apps.find(choice);
-
-                if (iter != apps.end())
+                if (const auto iter = apps.find(choice); iter != apps.end())
                     iter->second();
                 else if (choice == 6)
                     break;
                 else printColor("Invalid choice!", 'r', true, std::cerr);
-
-            } catch (const std::bad_function_call &bc) { // In case the std::function objects are called inappropriately
+            } catch (const std::bad_function_call &bc) {
+                // In case the std::function objects are called inappropriately
                 printColor(std::format("Bad function call: {}", bc.what()), 'r', true, std::cerr);
-                continue;
-
             } catch (const std::exception &ex) {
                 printColor(std::format("Error: {}", ex.what()), 'r', true, std::cerr);
-                continue;
-
-            } catch (...) { // All other exceptions, if any
+            } catch (...) {
+                // All other exceptions, if any
                 printColor("An error occurred.", 'r', true, std::cerr);
-                continue;
             }
         }
 
         return 0;
-
     } catch (const std::exception &ex) {
         printColor(std::format("Error: {}", ex.what()), 'r', true, std::cerr);
         return 1;
-
     } catch (...) {
         printColor("Something went wrong.", 'r', true, std::cerr);
         return 1;
     }
-
 }
