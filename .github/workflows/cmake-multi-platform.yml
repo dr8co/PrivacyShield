@@ -103,14 +103,14 @@ jobs:
         if: matrix.os == 'macos-13'
         run: >
           export LDFLAGS="-L/usr/local/opt/gcc@13/lib/gcc/13 -Wl,-rpath,/usr/local/opt/gcc@13/lib/gcc/13";
-          export CPPFLAGS="-I/usr/local/opt/gcc@13/include/c++/13";
+          export CPPFLAGS="-I/usr/local/opt/gcc@13/include/c++/13 -I/usr/local/opt/gcc@13/include/c++/13/x86_64-apple-darwin22";
           export LD_LIBRARY_PATH="/usr/local/opt/gcc@13/lib/gcc/13";
           export DYLD_LIBRARY_PATH="/usr/local/opt/gcc@13/lib/gcc/13";
           
           cmake -B ${{ steps.strings.outputs.build-output-dir }}
           -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++
           -DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang
-          -DCMAKE_CXX_FLAGS="-I/usr/local/opt/gcc@13/include/c++/13 -L/usr/local/opt/gcc@13/lib/gcc/13 -Wl,-rpath,/usr/local/opt/gcc@13/lib/gcc/13"
+          -DCMAKE_CXX_FLAGS="-I/usr/local/opt/gcc@13/include/c++/13 -I/usr/local/opt/gcc@13/include/c++/13/x86_64-apple-darwin22 -L/usr/local/opt/gcc@13/lib/gcc/13 -Wl,-rpath,/usr/local/opt/gcc@13/lib/gcc/13"
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
           -S ${{ github.workspace }} -G Ninja
 
