@@ -90,6 +90,7 @@ jobs:
       - name: Configure CMake
         if: matrix.os == 'macos-13'
         run: >
+          echo "CPPFLAGS=${CPPFLAGS}\nLDFLAGS=${LDFLAGS}\nLD_LIBRARY_PATH=${LD_LIBRARY_PATH}\nDYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}\n"
           cmake -B ${{ steps.strings.outputs.build-output-dir }}
           -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++
           -DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang
