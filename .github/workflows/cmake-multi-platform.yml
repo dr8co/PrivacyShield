@@ -94,7 +94,6 @@ jobs:
           -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++
           -DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-          -DCMAKE_CXX_FLAGS="-lc++"
           -S ${{ github.workspace }} -G Ninja
 
       - name: Build
