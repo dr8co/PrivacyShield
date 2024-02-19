@@ -48,6 +48,7 @@ jobs:
           brew update
           brew install llvm cmake ninja gcc libgcrypt openssl@3 readline libsodium
           echo 'export PATH="/usr/local/opt/llvm/bin:$PATH"' >> ~/.bash_profile
+          echo 'export PATH="/usr/local/opt/gcc/bin:$PATH"' >> ~/.bash_profile
 
 #      - name: Install Dependencies
 #        if: matrix.os == 'ubuntu-latest'
@@ -67,6 +68,7 @@ jobs:
         shell: bash
         run: |
           echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+          ls /usr/local/opt
 
       # Build project
       - name: Build PrivacyShield
@@ -86,7 +88,7 @@ jobs:
         if: matrix.os == 'macos-13'
         run: |
           ./scripts/install-blake3.sh ${{ matrix.c_compiler }};
-          env
+          env | sort
 
       - name: Configure CMake
         if: matrix.os == 'macos-13'
@@ -99,6 +101,7 @@ jobs:
           cmake -B ${{ steps.strings.outputs.build-output-dir }}
           -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++
           -DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang
+          -DCMAKE_CXX_FLAGS="-stdlib=libstdc++"
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
           -S ${{ github.workspace }} -G Ninja
 
