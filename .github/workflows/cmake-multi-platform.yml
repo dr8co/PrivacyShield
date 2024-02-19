@@ -91,8 +91,10 @@ jobs:
         if: matrix.os == 'macos-13'
         run: |
           ./scripts/install-blake3.sh ${{ matrix.c_compiler }};
-          echo "GCC13:";
-          ls -R /usr/local/opt/gcc@13 | grep stdc;
+          echo "GCC13 lib:";
+          ls -R /usr/local/opt/gcc@13/lib;
+          echo "GCC13 include:";
+          ls -R /usr/local/opt/gcc@13/include;
 
       - name: Configure CMake
         if: matrix.os == 'macos-13'
@@ -105,6 +107,7 @@ jobs:
           cmake -B ${{ steps.strings.outputs.build-output-dir }}
           -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++
           -DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang
+          -DCMAKE_CXX_FLAGS="-I/usr/local/opt/llvm/include -I/usr/local/opt/gcc@13/include/c++/v1 -L/usr/local/opt/gcc@13/lib -Wl,-rpath,/usr/local/opt/gcc@13/lib"
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
           -S ${{ github.workspace }} -G Ninja
 
