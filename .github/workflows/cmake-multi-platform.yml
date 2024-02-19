@@ -91,10 +91,10 @@ jobs:
       - name: Configure CMake
         if: matrix.os == 'macos-13'
         run: >
-          LDFLAGS = "-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib" \
-          CPPFLAGS = "-I/usr/local/opt/llvm/include -I/usr/local/opt/llvm/include/c++/v1/" \
-          LD_LIBRARY_PATH = "/usr/local/opt/llvm/lib" \
-          DYLD_LIBRARY_PATH = "/usr/local/opt/llvm/lib" \
+          export LDFLAGS = "-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib" \
+          export CPPFLAGS = "-I/usr/local/opt/llvm/include -I/usr/local/opt/llvm/include/c++/v1/" \
+          export LD_LIBRARY_PATH = "/usr/local/opt/llvm/lib" \
+          export DYLD_LIBRARY_PATH = "/usr/local/opt/llvm/lib" \
           
           cmake -B ${{ steps.strings.outputs.build-output-dir }}
           -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++
