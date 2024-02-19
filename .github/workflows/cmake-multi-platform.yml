@@ -22,10 +22,10 @@ jobs:
             c_compiler: clang
             cpp_compiler: clang++
             env:
-              LDFLAGS=: -L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib
-              CPPFLAGS: -I/usr/local/opt/llvm/include I/usr/local/opt/llvm/include/c++/v1
-              LD_LIBRARY_PATH: /usr/local/opt/llvm/lib
-              DYLD_LIBRARY_PATH: /usr/local/opt/llvm/lib
+              LDFLAGS=: "-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib"
+              CPPFLAGS: "-I/usr/local/opt/llvm/include I/usr/local/opt/llvm/include/c++/v1"
+              LD_LIBRARY_PATH: "/usr/local/opt/llvm/lib"
+              DYLD_LIBRARY_PATH: "/usr/local/opt/llvm/lib"
 
 #          - os: ubuntu-latest
 #            c_compiler: gcc
@@ -86,15 +86,15 @@ jobs:
         if: matrix.os == 'macos-13'
         run: |
           ./scripts/install-blake3.sh ${{ matrix.c_compiler }}
-          echo "LDFLAGS = $LDFLAGS\nCPPFLAGS = $CPPFLAGS\nLD_LIBRARY_PATH = $LD_LIBRARY_PATH\nDYLD_LIBRARY_PATH = $DYLD_LIBRARY_PATH\n"
+          echo "LDFLAGS = $LDFLAGS \nCPPFLAGS = $CPPFLAGS \nLD_LIBRARY_PATH = $LD_LIBRARY_PATH\nDYLD_LIBRARY_PATH = $DYLD_LIBRARY_PATH\n"
 
       - name: Configure CMake
         if: matrix.os == 'macos-13'
         run: >
-          export LDFLAGS = "-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib" \
-          export CPPFLAGS = "-I/usr/local/opt/llvm/include -I/usr/local/opt/llvm/include/c++/v1/" \
-          export LD_LIBRARY_PATH = "/usr/local/opt/llvm/lib" \
-          export DYLD_LIBRARY_PATH = "/usr/local/opt/llvm/lib" \
+          export LDFLAGS = "-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib";
+          export CPPFLAGS = "-I/usr/local/opt/llvm/include -I/usr/local/opt/llvm/include/c++/v1/";
+          export LD_LIBRARY_PATH = "/usr/local/opt/llvm/lib";
+          export DYLD_LIBRARY_PATH = "/usr/local/opt/llvm/lib";
           
           cmake -B ${{ steps.strings.outputs.build-output-dir }}
           -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++
