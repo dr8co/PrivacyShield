@@ -23,7 +23,7 @@ jobs:
             cpp_compiler: clang++
             env:
               - LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib"
-              - CPPFLAGS="-I/usr/local/opt/llvm/include"
+              - CPPFLAGS="-I/usr/local/opt/llvm/include I/usr/local/opt/llvm/include/c++/v1"
               - LD_LIBRARY_PATH="/usr/local/opt/llvm/lib"
               - DYLD_LIBRARY_PATH="/usr/local/opt/llvm/lib"
 
