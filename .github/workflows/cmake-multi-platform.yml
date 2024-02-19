@@ -116,7 +116,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
         run: |
-          cpack
+          sudo cpack
 #
 #      # Upload the built artifacts
       - name: Upload Artifacts
