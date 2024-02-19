@@ -22,6 +22,8 @@ project(privacyShield
         DESCRIPTION "A suite of tools for privacy and security"
         LANGUAGES CXX)
 
+set(CMAKE_PROJECT_HOMEPAGE_URL "https://shield.boujee.tech")
+
 # C++23 support is required for this project
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -76,9 +78,11 @@ target_link_libraries(privacyShield
         PRIVATE Gcrypt::Gcrypt
         PRIVATE BLAKE3::blake3)
 
-# Install the binary (optional)
+# Install the binary (optional), with 0755 permissions
 include(GNUInstallDirs)
 install(TARGETS privacyShield
         DESTINATION ${CMAKE_INSTALL_BINDIR}
         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 )
+
+include(Packing)
