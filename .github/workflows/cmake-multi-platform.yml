@@ -84,12 +84,14 @@ jobs:
 
       - name: Install Blake3
         if: matrix.os == 'macos-13'
+        shell: bash
         run: |
           ./scripts/install-blake3.sh ${{ matrix.c_compiler }}
           echo "LDFLAGS = $LDFLAGS \nCPPFLAGS = $CPPFLAGS \nLD_LIBRARY_PATH = $LD_LIBRARY_PATH\nDYLD_LIBRARY_PATH = $DYLD_LIBRARY_PATH\n"
 
       - name: Configure CMake
         if: matrix.os == 'macos-13'
+        shell: bash
         run: >
           export LDFLAGS = "-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib";
           export CPPFLAGS = "-I/usr/local/opt/llvm/include -I/usr/local/opt/llvm/include/c++/v1/";
