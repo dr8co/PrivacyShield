@@ -11,22 +11,26 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
-      fail-fast: true
+      fail-fast: false
 
       matrix:
         os: [ ubuntu-latest, macos-13 ]
         build_type: [ Debug, Release ]
-        c_compiler: [clang] # [ gcc, clang ]
+        c_compiler: [ clang ]
         include:
           - os: macos-13
-            c_compiler: /usr/local/opt/llvm/bin/clang
-            cpp_compiler: /usr/local/opt/llvm/bin/clang++
+            c_compiler: clang
+            cpp_compiler: clang++
             env:
-              - LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib"
-              - CPPFLAGS="-I/usr/local/opt/llvm/include"
-              - LD_LIBRARY_PATH="/usr/local/opt/llvm/lib"
-              - DYLD_LIBRARY_PATH="/usr/local/opt/llvm/lib"
+              LDFLAGS=: "-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib"
+              CPPFLAGS: "-I/usr/local/opt/llvm/include I/usr/local/opt/llvm/include/c++/v1"
+              LD_LIBRARY_PATH: "/usr/local/opt/llvm/lib"
+              DYLD_LIBRARY_PATH: "/usr/local/opt/llvm/lib"
 
+#          - os: macos-13
+#            c_compiler: gcc
+#            cpp_compiler: g++-13
+#
 #          - os: ubuntu-latest
 #            c_compiler: gcc
 #            cpp_compiler: g++-13
@@ -36,9 +40,9 @@ jobs:
             cpp_compiler: clang++-17
 
         # Don't include the following configurations in the matrix
-#        exclude:
-#          - os: macos-13
-#            c_compiler: clang # LLVM Clang17+ required, and building it from the source will take longer
+        exclude:
+          - os: macos-13
+            build_type: Debug
 
     steps:
       # Install dependencies: cmake, ninja, gcc, libgcrypt, openssl, readline, and libsodium
@@ -48,8 +52,10 @@ jobs:
           brew update
           brew install llvm cmake ninja gcc libgcrypt openssl@3 readline libsodium
           echo 'export PATH="/usr/local/opt/llvm/bin:$PATH"' >> ~/.bash_profile
+          echo 'export PATH="/usr/local/opt/gcc@13/bin:$PATH"' >> ~/.bash_profile
+          echo 'export PATH="/usr/local/opt/gcc@13/lib/gcc/13:$PATH"' >> ~/.bash_profile      
 
-#      - name: Install Dependencies
+      #      - name: Install Dependencies
 #        if: matrix.os == 'ubuntu-latest'
 #        run: |
 #          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
@@ -61,7 +67,6 @@ jobs:
 
 
       - uses: actions/checkout@v4
-
 
       - name: Set reusable strings
         id: strings
@@ -91,9 +96,15 @@ jobs:
       - name: Configure CMake
         if: matrix.os == 'macos-13'
         run: >
+          export LDFLAGS="-L/usr/local/opt/gcc@13/lib/gcc/13 -Wl,-rpath,/usr/local/opt/gcc@13/lib/gcc/13";
+          export CPPFLAGS="-I/usr/local/opt/gcc@13/include/c++/13 -I/usr/local/opt/gcc@13/include/c++/13/x86_64-apple-darwin22";
+          export LD_LIBRARY_PATH="/usr/local/opt/gcc@13/lib/gcc/13";
+          export DYLD_LIBRARY_PATH="/usr/local/opt/gcc@13/lib/gcc/13";
+          
           cmake -B ${{ steps.strings.outputs.build-output-dir }}
-          -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
-          -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+          -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++
+          -DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang
+          -DCMAKE_CXX_FLAGS="-I/usr/local/opt/gcc@13/include/c++/13 -I/usr/local/opt/gcc@13/include/c++/13/x86_64-apple-darwin22 -L/usr/local/opt/gcc@13/lib/gcc/13 -Wl,-rpath,/usr/local/opt/gcc@13/lib/gcc/13 -stdlib=libstdc++"
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
           -S ${{ github.workspace }} -G Ninja
 
@@ -116,7 +127,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
         run: |
-          cpack
+          sudo cpack
 #
 #      # Upload the built artifacts
       - name: Upload Artifacts
