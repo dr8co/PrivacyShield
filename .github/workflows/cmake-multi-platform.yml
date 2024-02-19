@@ -85,7 +85,7 @@ jobs:
       - name: Install Blake3
         if: matrix.os == 'macos-13'
         run: |
-          ./scripts/install-blake3.sh ${{ matrix.c_compiler }}
+          ./scripts/install-blake3.sh ${{ matrix.c_compiler }};
           env
 
       - name: Configure CMake
