@@ -53,8 +53,9 @@ jobs:
           brew install llvm cmake ninja gcc libgcrypt openssl@3 readline libsodium
           echo 'export PATH="/usr/local/opt/llvm/bin:$PATH"' >> ~/.bash_profile
           echo 'export PATH="/usr/local/opt/gcc@13/bin:$PATH"' >> ~/.bash_profile
+          echo 'export PATH="/usr/local/opt/gcc@13/lib/gcc/13:$PATH"' >> ~/.bash_profile      
 
-#      - name: Install Dependencies
+      #      - name: Install Dependencies
 #        if: matrix.os == 'ubuntu-latest'
 #        run: |
 #          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
@@ -95,19 +96,21 @@ jobs:
           ls -R /usr/local/opt/gcc@13/lib;
           echo "GCC13 include:";
           ls -R /usr/local/opt/gcc@13/include;
+          echo "GCC13 bin:";
+          ls -R /usr/local/opt/gcc@13/bin;
 
       - name: Configure CMake
         if: matrix.os == 'macos-13'
         run: >
-          export LDFLAGS="-L/usr/local/opt/gcc@13/lib -Wl,-rpath,/usr/local/opt/gcc@13/lib";
-          export CPPFLAGS="-I/usr/local/opt/gcc@13/include -I/usr/local/opt/gcc@13/include/c++/v1";
-          export LD_LIBRARY_PATH="/usr/local/opt/gcc@13/lib";
-          export DYLD_LIBRARY_PATH="/usr/local/opt/gcc@13/lib";
+          export LDFLAGS="-L/usr/local/opt/gcc@13/lib/gcc/13 -Wl,-rpath,/usr/local/opt/gcc@13/lib/gcc/13";
+          export CPPFLAGS="-I/usr/local/opt/gcc@13/include/c++/13";
+          export LD_LIBRARY_PATH="/usr/local/opt/gcc@13/lib/gcc/13";
+          export DYLD_LIBRARY_PATH="/usr/local/opt/gcc@13/lib/gcc/13";
           
           cmake -B ${{ steps.strings.outputs.build-output-dir }}
           -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++
           -DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang
-          -DCMAKE_CXX_FLAGS="-I/usr/local/opt/llvm/include -I/usr/local/opt/gcc@13/include/c++/v1 -L/usr/local/opt/gcc@13/lib -Wl,-rpath,/usr/local/opt/gcc@13/lib"
+          -DCMAKE_CXX_FLAGS="-I/usr/local/opt/gcc@13/include/c++/13 -L/usr/local/opt/gcc@13/lib/gcc/13 -Wl,-rpath,/usr/local/opt/gcc@13/lib/gcc/13"
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
           -S ${{ github.workspace }} -G Ninja
 
