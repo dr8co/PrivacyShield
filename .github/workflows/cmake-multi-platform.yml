@@ -105,7 +105,6 @@ jobs:
           cmake -B ${{ steps.strings.outputs.build-output-dir }}
           -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++
           -DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang
-#          -DCMAKE_CXX_FLAGS="-I/usr/local/opt/gcc@13/include -I/usr/local/opt/gcc@13/include/c++/v1 -L/usr/local/opt/gcc@13/lib -Wl,-rpath,/usr/local/opt/gcc@13/lib -stdlib=libstdc++"
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
           -S ${{ github.workspace }} -G Ninja
 
