@@ -151,7 +151,9 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           export GPG_TTY=$(tty)
-          gpg --passphrase ${{ secrets.GPG_PASS }} --sign --default-key dr8co@duck.com Packages/*
+          touch gpg_log.txt
+          gpg --batch --status-file ~/gpg_log.txt --passphrase ${{ secrets.GPG_PASS }} --sign --default-key dr8co@duck.com Packages/* \
+          || (cat ~/gpg_log.txt && exit 1)
 #
 #      # Upload the built artifacts
       - name: Upload Artifacts
