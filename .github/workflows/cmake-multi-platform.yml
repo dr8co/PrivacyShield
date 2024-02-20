@@ -142,6 +142,7 @@ jobs:
       - name: Import GPG Key
         if: matrix.build_type == 'Release'
         run: |
+          export GPG_TTY=$(tty)
           echo "$PRIVATE_KEY" | gpg --import
           gpg --list-secret-keys --keyid-format LONG
 
