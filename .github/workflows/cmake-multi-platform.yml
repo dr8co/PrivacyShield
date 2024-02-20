@@ -118,13 +118,13 @@ jobs:
 #        run: ctest --build-config ${{ matrix.build_type }}
 #
       - name: Package
-        if: matrix.os == 'macos-13'
+        if: matrix.os == 'macos-13' && matrix.build_type == 'Release'
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
         run: |
           cpack -G DragNDrop
 
       - name: Package
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest' && matrix.build_type == 'Release'
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
         run: |
           sudo cpack
