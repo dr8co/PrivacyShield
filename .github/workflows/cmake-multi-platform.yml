@@ -143,6 +143,7 @@ jobs:
         run: |
           export GPG_TTY=$(tty)
           mktemp -d --tmpdir
+          addgnupghome $USER
           gpgconf --kill gpg-agent
           sudo gpg-connect-agent updatestartuptty /bye >/dev/null
           echo "$PRIVATE_KEY" | gpg --import
@@ -153,6 +154,7 @@ jobs:
         if: matrix.build_type == 'Release' && matrix.os == 'ubuntu-latest'
         run: |
           export GPG_TTY=$(tty)
+          addgnupghome $USER
           gpgconf --kill gpg-agent
           gpg-connect-agent updatestartuptty /bye >/dev/null
           echo "pinentry-program /usr/bin/pinentry-tty" > ~/.gnupg/gpg-agent.conf
