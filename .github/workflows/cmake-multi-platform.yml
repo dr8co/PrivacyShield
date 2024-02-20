@@ -142,7 +142,7 @@ jobs:
         if: matrix.build_type == 'Release' && matrix.os == 'macos-13'
         run: |
           export GPG_TTY=$(tty)
-          mktemp -d --tmpdir
+          mktemp -p --tmpdir
           addgnupghome $USER
           gpgconf --kill gpg-agent
           sudo gpg-connect-agent updatestartuptty /bye >/dev/null
