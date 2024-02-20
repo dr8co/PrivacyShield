@@ -142,7 +142,7 @@ jobs:
         if: matrix.build_type == 'Release'
         uses: crazy-max/ghaction-import-gpg@v6
         with:
-          gpg_private_key: $PRIVATE_KEY
+          gpg_private_key: ${{ secrets.GPG_SIGNING_KEY }}
           passphrase: ${{ secrets.GPG_PASS }}
           trust_level: 5
 
