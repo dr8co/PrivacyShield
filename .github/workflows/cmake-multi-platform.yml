@@ -139,9 +139,18 @@ jobs:
           PRIVATE_KEY: op://Projects-Signing/GPG-Key/signing_key.asc
 
       - name: Import GPG Key
-        if: matrix.build_type == 'Release'
+        if: matrix.build_type == 'Release' && matrix.os == 'macos-13'
         run: |
           export GPG_TTY=$(tty)
+          gpg-connect-agent updatestartuptty /bye 
+          echo "$PRIVATE_KEY" | gpg --import
+          gpg --list-secret-keys --keyid-format LONG
+
+      - name: Import GPG Key
+        if: matrix.build_type == 'Release' && matrix.os == 'ubuntu-latest'
+        run: |
+          export GPG_TTY=$(tty)
+          echo "pinentry-program /usr/bin/pinentry-tty" > ~/.gnupg/gpg-agent.conf
           gpg-connect-agent updatestartuptty /bye >/dev/null
           echo "$PRIVATE_KEY" | gpg --import
           gpg --list-secret-keys --keyid-format LONG
@@ -150,6 +159,7 @@ jobs:
         if: matrix.build_type == 'Release'
         working-directory: ${{ github.workspace }}
         run: |
+          export GPG_TTY=$(tty)
           gpg --passphrase ${{ secrets.GPG_PASS }} --sign --default-key dr8co@duck.com Packages/*
 #
 #      # Upload the built artifacts
