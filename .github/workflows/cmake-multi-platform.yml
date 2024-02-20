@@ -50,7 +50,7 @@ jobs:
         if: matrix.os == 'macos-13'
         run: |
           brew update
-          brew install llvm cmake ninja gcc libgcrypt openssl@3 readline libsodium gnupg pinentry
+          brew install llvm cmake ninja gcc libgcrypt openssl@3 readline libsodium gnupg pinentry expect
           echo 'export PATH="/usr/local/opt/llvm/bin:$PATH"' >> ~/.bash_profile
           echo 'export PATH="/usr/local/opt/gcc@13/bin:$PATH"' >> ~/.bash_profile
           echo 'export PATH="/usr/local/opt/gcc@13/lib/gcc/13:$PATH"' >> ~/.bash_profile      
@@ -142,10 +142,12 @@ jobs:
         if: matrix.build_type == 'Release' && matrix.os == 'macos-13'
         run: |
           export GPG_TTY=$(tty)
+          mktemp -d --tmpdir
           gpgconf --kill gpg-agent
           sudo gpg-connect-agent updatestartuptty /bye >/dev/null
-          gpg --import "$PRIVATE_KEY"
+          echo "$PRIVATE_KEY" | gpg --import
           gpg --list-secret-keys --keyid-format LONG
+          expect -c "spawn gpg --edit-key dr8co@duck.com trust quit; send \"5\ry\r\"; expect eof"
 
       - name: Import GPG Key
         if: matrix.build_type == 'Release' && matrix.os == 'ubuntu-latest'
@@ -156,6 +158,7 @@ jobs:
           echo "pinentry-program /usr/bin/pinentry-tty" > ~/.gnupg/gpg-agent.conf
           gpg --import "$PRIVATE_KEY"
           gpg --list-secret-keys --keyid-format LONG
+          expect -c "spawn gpg --edit-key dr8co@duck.com trust quit; send \"5\ry\r\"; expect eof"
 
       - name: Sign Package
         if: matrix.build_type == 'Release'
