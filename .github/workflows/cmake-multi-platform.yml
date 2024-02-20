@@ -129,15 +129,6 @@ jobs:
         run: |
           sudo cpack
 
-      - name: Load GPG Key
-        if: matrix.build_type == 'Release'
-        uses: 1password/load-secrets-action@v1
-        with:
-          export-env: true
-        env:
-          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          PRIVATE_KEY: op://Projects-Signing/GPG-Key/signing_key_ascii
-
       - name: Import GPG Key
         if: matrix.build_type == 'Release'
         uses: crazy-max/ghaction-import-gpg@v6
@@ -152,7 +143,7 @@ jobs:
         run: |
           # export GPG_TTY=$(tty)
           for file in Packages/*; do
-            gpg --batch --status-file ~/gpg_log.txt --passphrase ${{ secrets.GPG_PASS }} --default-key dr8co@duck.com --sign "$file" \
+            sudo gpg --batch --status-file ~/gpg_log.txt --passphrase ${{ secrets.GPG_PASS }} --default-key dr8co@duck.com --sign "$file" \
               || (cat ~/gpg_log.txt && exit 1)
           done
 #
