@@ -141,6 +141,7 @@ jobs:
         if: matrix.build_type == 'Release'
         working-directory: ${{ github.workspace }}
         run: |
+          export GPG_TTY=$(tty)
           for file in Packages/*; do
             gpg --batch --status-file ~/gpg_log.txt --passphrase ${{ secrets.GPG_PASS }} --default-key dr8co@duck.com \
               --pinentry-mode=loopback --sign "$file" || (cat ~/gpg_log.txt && exit 1)
