@@ -143,8 +143,8 @@ jobs:
         run: |
           export GPG_TTY=$(tty)
           gpgconf --kill gpg-agent
-          gpg-connect-agent updatestartuptty /bye >/dev/null
-          echo "$PRIVATE_KEY" | gpg --import
+          sudo gpg-connect-agent updatestartuptty /bye >/dev/null
+          gpg --import "$PRIVATE_KEY"
           gpg --list-secret-keys --keyid-format LONG
 
       - name: Import GPG Key
@@ -154,7 +154,7 @@ jobs:
           gpgconf --kill gpg-agent
           gpg-connect-agent updatestartuptty /bye >/dev/null
           echo "pinentry-program /usr/bin/pinentry-tty" > ~/.gnupg/gpg-agent.conf
-          echo "$PRIVATE_KEY" | gpg --import
+          gpg --import "$PRIVATE_KEY"
           gpg --list-secret-keys --keyid-format LONG
 
       - name: Sign Package
