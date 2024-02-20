@@ -142,7 +142,8 @@ jobs:
         if: matrix.build_type == 'Release' && matrix.os == 'macos-13'
         run: |
           export GPG_TTY=$(tty)
-          gpg-connect-agent updatestartuptty /bye 
+          gpgconf --kill gpg-agent
+          gpg-connect-agent updatestartuptty /bye >/dev/null
           echo "$PRIVATE_KEY" | gpg --import
           gpg --list-secret-keys --keyid-format LONG
 
@@ -151,6 +152,7 @@ jobs:
         run: |
           export GPG_TTY=$(tty)
           echo "pinentry-program /usr/bin/pinentry-tty" > ~/.gnupg/gpg-agent.conf
+          gpgconf --kill gpg-agent
           gpg-connect-agent updatestartuptty /bye >/dev/null
           echo "$PRIVATE_KEY" | gpg --import
           gpg --list-secret-keys --keyid-format LONG
