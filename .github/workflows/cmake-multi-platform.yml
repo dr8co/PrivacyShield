@@ -121,15 +121,15 @@ jobs:
         if: matrix.os == 'macos-13' && matrix.build_type == 'Release'
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
         run: |
-          ls -l
           cpack -G DragNDrop
+          ls -l
 
       - name: Package
         if: matrix.os == 'ubuntu-latest' && matrix.build_type == 'Release'
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
         run: |
-          ls -l
           sudo cpack
+          ls -l
 
       - name: Import GPG Key
         if: matrix.build_type == 'Release'
