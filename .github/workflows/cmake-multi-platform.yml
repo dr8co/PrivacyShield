@@ -127,6 +127,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest' && matrix.build_type == 'Release'
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
         run: |
+          ls -l
           sudo cpack
 
       - name: Import GPG Key
