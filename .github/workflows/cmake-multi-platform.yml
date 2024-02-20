@@ -122,7 +122,6 @@ jobs:
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
         run: |
           cpack -G DragNDrop
-          ls -l "${{ github.workspace }}/Packages"
 
       - name: Package
         if: matrix.os == 'ubuntu-latest' && matrix.build_type == 'Release'
@@ -130,7 +129,6 @@ jobs:
         run: |
           sudo cpack
           sudo chown -R $USER:$USER "${{ github.workspace }}/Packages"
-          ls -l "${{ github.workspace }}/Packages"
 
       - name: Import GPG Key
         if: matrix.build_type == 'Release'
@@ -144,7 +142,6 @@ jobs:
         if: matrix.build_type == 'Release'
         working-directory: ${{ github.workspace }}
         run: |
-          export GPG_TTY=$(tty)
           for file in Packages/*; do
             gpg --batch --status-file ~/gpg_log.txt --passphrase ${{ secrets.GPG_PASS }} --default-key dr8co@duck.com \
               --pinentry-mode=loopback --sign "$file" || (cat ~/gpg_log.txt && exit 1)
