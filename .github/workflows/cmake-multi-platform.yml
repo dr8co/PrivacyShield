@@ -40,9 +40,9 @@ jobs:
             cpp_compiler: clang++-17
 
         # Don't include the following configurations in the matrix
-#        exclude:
-#          - os: macos-13
-#            c_compiler: clang # LLVM Clang17+ required, and building it from the source will take longer
+        exclude:
+          - os: macos-13
+            build_type: Debug
 
     steps:
       # Install dependencies: cmake, ninja, gcc, libgcrypt, openssl, readline, and libsodium
@@ -91,13 +91,7 @@ jobs:
       - name: Install Blake3
         if: matrix.os == 'macos-13'
         run: |
-          ./scripts/install-blake3.sh ${{ matrix.c_compiler }};
-          echo "GCC13 lib:";
-          ls -R /usr/local/opt/gcc@13/lib;
-          echo "GCC13 include:";
-          ls -R /usr/local/opt/gcc@13/include;
-          echo "GCC13 bin:";
-          ls -R /usr/local/opt/gcc@13/bin;
+          ./scripts/install-blake3.sh ${{ matrix.c_compiler }}
 
       - name: Configure CMake
         if: matrix.os == 'macos-13'
