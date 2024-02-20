@@ -136,7 +136,7 @@ jobs:
           export-env: true
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          PRIVATE_KEY: op://Projects-Signing/GPG-Key/signing_key.asc
+          PRIVATE_KEY: op://Projects-Signing/GPG-Key/signing_key_ascii
 
       - name: Import GPG Key
         if: matrix.build_type == 'Release'
@@ -144,7 +144,7 @@ jobs:
         with:
           gpg_private_key: $PRIVATE_KEY
           passphrase: ${{ secrets.GPG_PASS }}
-          trust: 5
+          trust_level: 5
 
       - name: Sign Package
         if: matrix.build_type == 'Release'
