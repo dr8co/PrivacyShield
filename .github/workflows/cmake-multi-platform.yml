@@ -143,6 +143,7 @@ jobs:
         if: matrix.build_type == 'Release'
         run: |
           export GPG_TTY=$(tty)
+          gpg-connect-agent updatestartuptty /bye >/dev/null
           echo "$PRIVATE_KEY" | gpg --import
           gpg --list-secret-keys --keyid-format LONG
 
@@ -150,7 +151,7 @@ jobs:
         if: matrix.build_type == 'Release'
         working-directory: ${{ github.workspace }}
         run: |
-          gpg --sign --default-key dr8co@duck.com Packages/*
+          gpg --passphrase ${{ secrets.GPG_PASS }} --sign --default-key dr8co@duck.com Packages/*
 #
 #      # Upload the built artifacts
       - name: Upload Artifacts
