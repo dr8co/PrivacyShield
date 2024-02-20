@@ -138,9 +138,12 @@ jobs:
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
           PRIVATE_KEY: op://Projects-Signing/GPG-Key/signing_key.asc
+
+      - name: Import GPG Key
+        if: matrix.build_type == 'Release'
         run: |
-            echo "$PRIVATE_KEY" | gpg --import
-            gpg --list-secret-keys --keyid-format LONG            
+          echo "$PRIVATE_KEY" | gpg --import
+          gpg --list-secret-keys --keyid-format LONG
 
       - name: Sign Package
         if: matrix.build_type == 'Release'
