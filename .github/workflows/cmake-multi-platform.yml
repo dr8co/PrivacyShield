@@ -92,6 +92,7 @@ jobs:
         if: matrix.os == 'macos-13'
         run: |
           ./scripts/install-blake3.sh ${{ matrix.c_compiler }}
+          ls /tmp
 
       - name: Configure CMake
         if: matrix.os == 'macos-13'
@@ -142,8 +143,7 @@ jobs:
         if: matrix.build_type == 'Release' && matrix.os == 'macos-13'
         run: |
           export GPG_TTY=$(tty)
-          mktemp -p --tmpdir
-          addgnupghome $USER
+          sudo addgnupghome $USER
           gpgconf --kill gpg-agent
           sudo gpg-connect-agent updatestartuptty /bye >/dev/null
           echo "$PRIVATE_KEY" | gpg --import
@@ -154,7 +154,7 @@ jobs:
         if: matrix.build_type == 'Release' && matrix.os == 'ubuntu-latest'
         run: |
           export GPG_TTY=$(tty)
-          addgnupghome $USER
+          sudo addgnupghome $USER
           gpgconf --kill gpg-agent
           gpg-connect-agent updatestartuptty /bye >/dev/null
           echo "pinentry-program /usr/bin/pinentry-tty" > ~/.gnupg/gpg-agent.conf
