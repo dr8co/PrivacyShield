@@ -50,7 +50,7 @@ jobs:
         if: matrix.os == 'macos-13'
         run: |
           brew update
-          brew install llvm cmake ninja gcc libgcrypt openssl@3 readline libsodium gnupg pinentry expect
+          brew install llvm cmake ninja gcc libgcrypt openssl@3 readline libsodium gnupg pinentry
           echo 'export PATH="/usr/local/opt/llvm/bin:$PATH"' >> ~/.bash_profile
           echo 'export PATH="/usr/local/opt/gcc@13/bin:$PATH"' >> ~/.bash_profile
           echo 'export PATH="/usr/local/opt/gcc@13/lib/gcc/13:$PATH"' >> ~/.bash_profile      
@@ -139,29 +139,12 @@ jobs:
           PRIVATE_KEY: op://Projects-Signing/GPG-Key/signing_key.asc
 
       - name: Import GPG Key
-        if: matrix.build_type == 'Release' && matrix.os == 'macos-13'
-        run: |
-          export GPG_TTY=$(tty)
-          gpgconf --kill gpg-agent
-          ls -R ~/.gnupg
-          sudo gpg-connect-agent updatestartuptty /bye >/dev/null
-          sudo addgnupghome $USER
-          echo "$PRIVATE_KEY" | gpg --import
-          gpg --list-secret-keys --keyid-format LONG
-          expect -c "spawn gpg --edit-key dr8co@duck.com trust quit; send \"5\ry\r\"; expect eof"
-
-      - name: Import GPG Key
-        if: matrix.build_type == 'Release' && matrix.os == 'ubuntu-latest'
-        run: |
-          export GPG_TTY=$(tty)
-          gpgconf --kill gpg-agent
-          ls -R ~/.gnupg
-          gpg-connect-agent updatestartuptty /bye >/dev/null
-          sudo addgnupghome $USER
-          echo "pinentry-program /usr/bin/pinentry-tty" > ~/.gnupg/gpg-agent.conf
-          gpg --import "$PRIVATE_KEY"
-          gpg --list-secret-keys --keyid-format LONG
-          expect -c "spawn gpg --edit-key dr8co@duck.com trust quit; send \"5\ry\r\"; expect eof"
+        if: matrix.build_type == 'Release'
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: $PRIVATE_KEY
+          passphrase: ${{ secrets.GPG_PASS }}
+          trust: 5
 
       - name: Sign Package
         if: matrix.build_type == 'Release'

@@ -29,7 +29,7 @@ function install_dependencies() {
   add-apt-repository -y "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main"
   add-apt-repository -y ppa:ubuntu-toolchain-r/ppa
   apt update
-  apt install -y unzip gcc-13 g++-13 clang-18 lldb-18 lld-18 libc++-18-dev libc++abi-18-dev clang-tools-18 libgcrypt20 openssl libreadline8 libsodium23 libsodium-dev pinentry-tty gpg expect
+  apt install -y unzip gcc-13 g++-13 clang-18 lldb-18 lld-18 libc++-18-dev libc++abi-18-dev clang-tools-18 libgcrypt20 openssl libreadline8 libsodium23 libsodium-dev pinentry-tty gpg
 
   # Install CMake 3.28.3
   if dpkg -s "cmake" >/dev/null 2>&1; then
