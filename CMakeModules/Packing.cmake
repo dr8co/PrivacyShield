@@ -53,6 +53,6 @@ set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
 # Use the resource file for the license
 set(CPACK_DMG_SLA_USE_RESOURCE_FILE_LICENSE ON)
 
-set(CPACK_PACKAGE_CHECKSUM "SHA256")
+set(CPACK_PACKAGE_CHECKSUM "SHA512")
 
 include(CPack)

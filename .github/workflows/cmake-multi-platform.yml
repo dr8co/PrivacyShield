@@ -50,7 +50,7 @@ jobs:
         if: matrix.os == 'macos-13'
         run: |
           brew update
-          brew install llvm cmake ninja gcc libgcrypt openssl@3 readline libsodium
+          brew install llvm cmake ninja gcc libgcrypt openssl@3 readline libsodium gnupg pinentry
           echo 'export PATH="/usr/local/opt/llvm/bin:$PATH"' >> ~/.bash_profile
           echo 'export PATH="/usr/local/opt/gcc@13/bin:$PATH"' >> ~/.bash_profile
           echo 'export PATH="/usr/local/opt/gcc@13/lib/gcc/13:$PATH"' >> ~/.bash_profile      
@@ -128,6 +128,23 @@ jobs:
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
         run: |
           sudo cpack
+
+      - name: Import GPG Key
+        if: matrix.build_type == 'Release'
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_SIGNING_KEY }}
+          passphrase: ${{ secrets.GPG_PASS }}
+          trust_level: 5
+
+      - name: Sign Package
+        if: matrix.build_type == 'Release'
+        working-directory: ${{ github.workspace }}
+        run: |
+          for file in Packages/*; do
+            sudo gpg --batch --status-file ~/gpg_log.txt --passphrase ${{ secrets.GPG_PASS }} --default-key dr8co@duck.com --sign "$file" \
+              || (cat ~/gpg_log.txt && exit 1)
+          done
 #
 #      # Upload the built artifacts
       - name: Upload Artifacts
@@ -138,4 +155,3 @@ jobs:
           path: "${{ github.workspace }}/Packages"
           overwrite: true
           if-no-files-found: 'warn'
-
