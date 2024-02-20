@@ -1,8 +1,29 @@
+# Privacy Shield: A Suite of Tools Designed to Facilitate Privacy Management.
+# Copyright (C) 2024  Ian Duncan <dr8co@duck.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see https://www.gnu.org/licenses.
+#
+#################################################################################
+#
+# A CMake module to generate a package for Privacy Shield
+#
+
 # Set the CPack variables
 set(CPACK_PACKAGE_NAME "PrivacyShield")
 set(CPACK_PACKAGE_VENDOR "Ian Duncan")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "A suite of tools for privacy and security")
-set(CPACK_PACKAGE_VERSION "1.0.0")
+set(CPACK_PACKAGE_VERSION "2.0.0")
 set(CPACK_PACKAGE_CONTACT "dr8co@duck.com")
 
 SET(CPACK_OUTPUT_FILE_PREFIX "${CMAKE_SOURCE_DIR}/Packages")
