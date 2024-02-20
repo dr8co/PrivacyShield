@@ -122,13 +122,15 @@ jobs:
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
         run: |
           cpack -G DragNDrop
+          ls -l "${{ github.workspace }}/Packages"
 
       - name: Package
         if: matrix.os == 'ubuntu-latest' && matrix.build_type == 'Release'
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
         run: |
           sudo cpack
-          sudo chown -R $USER:$USER ${{ github.workspace }}/Packages
+          sudo chown -R $USER:$USER "${{ github.workspace }}/Packages"
+          ls -l "${{ github.workspace }}/Packages"
 
       - name: Import GPG Key
         if: matrix.build_type == 'Release'
