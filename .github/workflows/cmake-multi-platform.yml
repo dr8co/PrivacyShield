@@ -11,22 +11,26 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
-      fail-fast: true
+      fail-fast: false
 
       matrix:
-        os: [ubuntu-latest] # [ ubuntu-latest, macos-13 ]
+        os: [ ubuntu-latest, macos-13 ]
         build_type: [ Debug, Release ]
-        c_compiler: [clang] # [ gcc, clang ]
+        c_compiler: [ clang ]
         include:
+          - os: macos-13
+            c_compiler: clang
+            cpp_compiler: clang++
+            env:
+              LDFLAGS=: "-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib"
+              CPPFLAGS: "-I/usr/local/opt/llvm/include I/usr/local/opt/llvm/include/c++/v1"
+              LD_LIBRARY_PATH: "/usr/local/opt/llvm/lib"
+              DYLD_LIBRARY_PATH: "/usr/local/opt/llvm/lib"
+
 #          - os: macos-13
 #            c_compiler: gcc
 #            cpp_compiler: g++-13
-#            env:
-#              - LDFLAGS="-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib"
-#              - CPPFLAGS="-I/usr/local/opt/llvm/include"
-#              - LD_LIBRARY_PATH="/usr/local/opt/llvm/lib"
-#              - DYLD_LIBRARY_PATH="/usr/local/opt/llvm/lib"
-
+#
 #          - os: ubuntu-latest
 #            c_compiler: gcc
 #            cpp_compiler: g++-13
@@ -36,20 +40,22 @@ jobs:
             cpp_compiler: clang++-17
 
         # Don't include the following configurations in the matrix
-#        exclude:
-#          - os: macos-13
-#            c_compiler: clang # LLVM Clang17+ required, and building it from the source will take longer
+        exclude:
+          - os: macos-13
+            build_type: Debug
 
     steps:
       # Install dependencies: cmake, ninja, gcc, libgcrypt, openssl, readline, and libsodium
-#      - name: Install Dependencies
-#        if: matrix.os == 'macos-13'
-#        run: |
-#          brew update
-#          brew install cmake ninja gcc libgcrypt openssl@3 readline libsodium
-#          echo 'export PATH="/usr/local/opt/llvm/bin:$PATH"' >> ~/.bash_profile
+      - name: Install Dependencies
+        if: matrix.os == 'macos-13'
+        run: |
+          brew update
+          brew install llvm cmake ninja gcc libgcrypt openssl@3 readline libsodium
+          echo 'export PATH="/usr/local/opt/llvm/bin:$PATH"' >> ~/.bash_profile
+          echo 'export PATH="/usr/local/opt/gcc@13/bin:$PATH"' >> ~/.bash_profile
+          echo 'export PATH="/usr/local/opt/gcc@13/lib/gcc/13:$PATH"' >> ~/.bash_profile      
 
-#      - name: Install Dependencies
+      #      - name: Install Dependencies
 #        if: matrix.os == 'ubuntu-latest'
 #        run: |
 #          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
@@ -62,52 +68,92 @@ jobs:
 
       - uses: actions/checkout@v4
 
+      - name: Set reusable strings
+        id: strings
+        shell: bash
+        run: |
+          echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+
       # Build project
       - name: Build PrivacyShield
+        if: matrix.os == 'ubuntu-latest'
         run: |
           sudo ./scripts/buildscript.sh
-#          OS=${{ matrix.os }}
-#          COMMAND="./scripts/install-blake3.sh ${{ matrix.c_compiler }}"
-#          if [ "$OS" == "macos-13" ]; then
-#            $COMMAND
-#          elif [ "$OS" == "ubuntu-latest" ]; then
-#            sudo $COMMAND
-#          fi
-#
-#      - name: Set reusable strings
-#        id: strings
-#        shell: bash
-#        run: |
-#          echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
-#
-#      - name: Configure CMake
-#        run: >
-#          cmake -B ${{ steps.strings.outputs.build-output-dir }}
-#          -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
-#          -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
-#          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-#          -S ${{ github.workspace }} -G Ninja
-#
-#      - name: Build
-#        run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }} -j 4
+      #          OS=${{ matrix.os }}
+      #          COMMAND="./scripts/install-blake3.sh ${{ matrix.c_compiler }}"
+      #          if [ "$OS" == "macos-13" ]; then
+      #            $COMMAND
+      #          elif [ "$OS" == "ubuntu-latest" ]; then
+      #            sudo $COMMAND
+      #          fi
+      #
+
+      - name: Install Blake3
+        if: matrix.os == 'macos-13'
+        run: |
+          ./scripts/install-blake3.sh ${{ matrix.c_compiler }}
+
+      - name: Configure CMake
+        if: matrix.os == 'macos-13'
+        run: >
+          export LDFLAGS="-L/usr/local/opt/gcc@13/lib/gcc/13 -Wl,-rpath,/usr/local/opt/gcc@13/lib/gcc/13";
+          export CPPFLAGS="-I/usr/local/opt/gcc@13/include/c++/13 -I/usr/local/opt/gcc@13/include/c++/13/x86_64-apple-darwin22";
+          export LD_LIBRARY_PATH="/usr/local/opt/gcc@13/lib/gcc/13";
+          export DYLD_LIBRARY_PATH="/usr/local/opt/gcc@13/lib/gcc/13";
+          
+          cmake -B ${{ steps.strings.outputs.build-output-dir }}
+          -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++
+          -DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang
+          -DCMAKE_CXX_FLAGS="-I/usr/local/opt/gcc@13/include/c++/13 -I/usr/local/opt/gcc@13/include/c++/13/x86_64-apple-darwin22 -L/usr/local/opt/gcc@13/lib/gcc/13 -Wl,-rpath,/usr/local/opt/gcc@13/lib/gcc/13 -stdlib=libstdc++"
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          -S ${{ github.workspace }} -G Ninja
+
+      - name: Build
+        if: matrix.os == 'macos-13'
+        run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }} -j 4
 #
 #      - name: Test
 #        working-directory: ${{ steps.strings.outputs.build-output-dir }}
 #        # Execute tests defined by the CMake configuration
 #        run: ctest --build-config ${{ matrix.build_type }}
 #
-#      # Add execution permission to the binary and tar it
-#      - name: Package
-#        working-directory: ${{ steps.strings.outputs.build-output-dir }}
-#        run: |
-#          chmod +x privacyShield
-#          tar -czvf privacyShield.tar.gz privacyShield
+      - name: Package
+        if: matrix.os == 'macos-13' && matrix.build_type == 'Release'
+        working-directory: ${{ steps.strings.outputs.build-output-dir }}
+        run: |
+          cpack -G DragNDrop
+
+      - name: Package
+        if: matrix.os == 'ubuntu-latest' && matrix.build_type == 'Release'
+        working-directory: ${{ steps.strings.outputs.build-output-dir }}
+        run: |
+          sudo cpack
+          sudo chown -R $USER:$USER "${{ github.workspace }}/Packages"
+
+      - name: Import GPG Key
+        if: matrix.build_type == 'Release'
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_SIGNING_KEY }}
+          passphrase: ${{ secrets.GPG_PASS }}
+          trust_level: 5
+
+      - name: Sign Package
+        if: matrix.build_type == 'Release'
+        working-directory: ${{ github.workspace }}
+        run: |
+          for file in Packages/*; do
+            gpg --batch --status-file ~/gpg_log.txt --passphrase ${{ secrets.GPG_PASS }} --default-key dr8co@duck.com \
+              --pinentry-mode=loopback --detach-sign "$file" || (cat ~/gpg_log.txt && exit 1)
+          done
 #
 #      # Upload the built artifacts
-#      - name: Upload Artifacts
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: "${{ matrix.os }}-${{ matrix.build_type }}.tar.gz"
-#          path: "${{ steps.strings.outputs.build-output-dir }}/privacyShield.tar.gz"
-#          overwrite: true
+      - name: Upload Artifacts
+        if: matrix.build_type == 'Release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: "${{ matrix.os }}-${{ matrix.build_type }}"
+          path: "${{ github.workspace }}/Packages"
+          overwrite: true
+          if-no-files-found: 'warn'
 
