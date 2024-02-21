@@ -64,10 +64,15 @@ These tools include:
   * [File Shredder](#file-shredder)
   * [Browser Privacy Tracks Cleaner](#browser-privacy-tracks-cleaner)
   * [Duplicate File detector](#file-deduplicator)
-* [Getting Started](#getting-started)
+* [Building and Installation](#building-and-installation)
   * [Prerequisites](#prerequisites)
-  * [Installation/Building](#installationbuilding)
+  * [Building from Source](#building-from-source)
+  * [Installation](#installation)
+    * [Pre-built Packages](#pre-built-packages)
+    * [Manual Installation](#manual-installation)
   * [Uninstallation](#uninstallation)
+    * [Package Managers](#package-managers)
+    * [Manual](#manual)
 * [Usage](#usage)
   * [Command Line Interface](#command-line-interface)
 * [Contributing](#contributing)
@@ -107,7 +112,7 @@ If you find any security vulnerabilities, please report them, or better yet, sub
 * **Safe** – Privacy Shield supports safe operations, with support for cancellation and error handling.
 
 * **Free** – Privacy Shield is free and open-source software, licensed under the GNU General Public License v3.0.
-See [LICENSE](./LICENSE.md) for more information.
+See [LICENSE](./LICENSE) for more information.
 
 * **No Ads**, **Tracking**, and **Telemetry** – Privacy Shield is free of all these things.
 
@@ -317,7 +322,7 @@ BLAKE3 is a fast and secure hash function that is resistant to extension attacks
 
 The hashes are computed in parallel using multiple threads to speed up the process.
 
-## Getting Started
+## Building and Installation
 
 ### Prerequisites
 
@@ -329,7 +334,7 @@ and [C++20 Modules](https://en.cppreference.com/w/cpp/language/modules) support.
 For this project, [GCC 14](https://gcc.gnu.org/gcc-14/) (or newer),
 or [LLVM Clang 17](https://clang.llvm.org/) (or newer) is required.
 * [CMake](https://cmake.org/) 3.28+
-* [Ninja](https://ninja-build.org/) 1.11+, or any other build system compatible with CMake and C++20 Modules.
+* [Ninja](https://ninja-build.org/) 1.11+, or any other build system compatible with CMake and **C++20 Modules**.
 * [OpenSSL](https://www.openssl.org/) 3+
 * [Sodium](https://libsodium.org/) 1.0.18+
 * [GCrypt](https://gnupg.org/software/libgcrypt/index.html) 1.10+
@@ -353,7 +358,7 @@ GCC 14 is expected to support this feature as well.
 Also, a generator that supports C++20 Modules is required.
 [Ninja](https://ninja-build.org/) 1.11+ is recommended.
 
-### IMPORTANT: A note on installing/building BLAKE3
+#### IMPORTANT: A note on installing/building BLAKE3
 
 BLAKE3 is not available in the package repositories of most Linux distributions,
 so you will need to build it from the source and install it manually.
@@ -365,7 +370,7 @@ Another option is to install BLAKE3 using a package manager, such as [Vcpkg](htt
 
 **Installing with the script is recommended, as it will also set up the required CMake module for BLAKE3 automatically.**
 
-### Installation/Building
+### Building from Source
 
 After installing the prerequisites, you can install Privacy Shield by following the steps below:
 
@@ -373,43 +378,89 @@ After installing the prerequisites, you can install Privacy Shield by following 
 # Clone the repository (or download the source code)
 git clone https://github.com/dr8co/PrivacyShield.git
 
+# Build from the main branch
+git checkout main
+
 # Change directory to the project root
 cd PrivacyShield
 
 # Configure the project
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-13 -G Ninja
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang++-18 -G Ninja
 
 # Build the project
 cmake --build build --config Release -j 4
 
 # Install the program (optional)
-cmake --install build --config Release # Might need sudo
+cmake --install build # Might need sudo
 ```
 
-Remember to replace `g++-13` with your C++ compiler, and `4` with the number of CPU cores you have (for faster builds).\
+Remember to replace `clang++-18` with your C++ compiler, and `4` with the number of CPU cores you have (for faster builds).\
 Also, replace `Ninja` with your build system if you are not using Ninja.
 
-You can also install to a custom location by adding `-DCMAKE_INSTALL_PREFIX=/path/to/install` to the `configure` step.
-
-If you have installed Privacy Shield, you can run the program by typing `privacyShield` in your terminal
-(if you've installed to a custom location,
-you will need to add that installation location to your `PATH` environment variable)
-
-If not, you can run the compiled target directly:
+You can then run the program from the build directory:
 
 ```bash
 # Assuming you are in the project root
 ./build/privacyShield
 ```
 
+### Installation
+
+#### Pre-built Packages
+
+You can download a package for your platform from the
+[releases page](https://github.com/dr8co/PrivacyShield/releases).
+
+The package will contain the built executable, and you can install it using the package manager of your platform.
+
+For the macOS package, you can simply drag the .dmg file to your Applications folder.
+
+For the Linux package, you can install the .deb or .rpm file using the package manager of your distribution.\
+Internet connection might be required to install the dependencies.
+
+For instance, on Ubuntu, you can install the .deb file using the following command:
+
+```bash
+sudo dpkg -i privacyshield_2.0.0_amd64.deb # Replace with the actual file path
+# You can also use apt to install it:
+sudo apt install ./privacyshield_2.0.0_amd64.deb # Replace with the actual file path
+```
+
+On RPM-based distributions like Fedora, you can install the .rpm file using the following command:
+
+```bash
+sudo rpm -i privacyshield-2.0.0-1.x86_64.rpm # Replace with the actual file path
+```
+
+The packages can be verified using the [GnuPG](https://gnupg.org/) signature files provided.
+
+#### Manual Installation
+
+After building from the source, you can install the built executable to a custom location by adding
+`-DCMAKE_INSTALL_PREFIX=/path/to/install` option to the configuration step when building from the source.
+
+The program can then be run by typing `privacyShield` in your terminal
+(if you've installed to a custom location, you might need to add that installation location to your `PATH`
+environment variable)
+
 ### Uninstallation
 
-If you have installed Privacy Shield, you can uninstall it by running the following command:
+#### Package Managers
+
+The package manager used to install the package can be used to uninstall it.
+
+The specific commands to uninstall the package will depend on the package manager and the platform.
+
+#### Manual
+
+If you have installed Privacy Shield manually, you can uninstall it by running the following command:
 
 ```bash
 # From the project root, run:
 xargs rm -f < build/install_manifest.txt # Might need sudo
 ```
+
+Or, just remove everything listed in the `build/install_manifest.txt` file.
 
 ## Usage
 
@@ -473,6 +524,6 @@ However, the feeling of empowered privacy protection is a strong possibility!
 
 [![GPLv3](./media/gpl-v3-logo.png)](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
-This project is licensed under the GNU GPLv3 License—see the [LICENSE](./LICENSE.md) file for details.
+This project is licensed under the GNU GPLv3 License—see the [LICENSE](./LICENSE) file for details.
 
 All third party libraries are licensed under their respective licenses.
