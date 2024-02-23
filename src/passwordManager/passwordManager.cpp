@@ -44,9 +44,9 @@ const string DefaultPasswordFile = getHomeDir() + "/.privacyShield/passwords";
 /// \param rhs another record to be compared with lhs.
 /// \return true if lhs is less than (i.e. is ordered before) rhs, else false.
 bool constexpr comparator
-// Avoid a gcc compiler error on ignored scoped attribute directives (-Werror=attributes is enabled in debug config),
+// Avoid a compiler error on ignored scoped attribute directives (-Werror=attributes is enabled in debug config),
 // while still encouraging both Clang and GCC compilers to inline the function.
-#if __clang__  // __clang__ is checked first since Clang might also define __GNUC__, but GCC never defines __clang__.
+#if __clang__
 [[clang::always_inline]]
 #elif __GNUC__
 [[gnu::always_inline]]
@@ -765,9 +765,8 @@ void passwordManager() {
         {8, importPasswords},
         {9, exportPasswords}
     };
-
-    std::random_device rd; // get a random number from hardware
-    std::mt19937 gen(rd()); // seed the generator
+    // A fast, lightweight random number generator
+    std::minstd_rand gen(std::random_device{}()); // seed the generator
     std::uniform_int_distribution<int> dist(0, 6); // define the range
 
     while (true) {
