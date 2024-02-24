@@ -36,33 +36,27 @@ import secureAllocator;
 /// \param encodedData Base64 encoded string.
 /// \return a vector of the decoded binary data.
 std::vector<unsigned char> base64Decode(const std::string &encodedData) {
-    // Allocate a buffer for the decoded data (the size of the decoded data is always less than the size of the encoded data)
-    std::vector<unsigned char> decodedData(encodedData.size());
-
-    // Custom deleter for BIO objects
-    auto bioDeleter = [](BIO *bio) -> void { BIO_free_all(bio); };
-
     // Create a BIO object to decode the data
-    const std::unique_ptr<BIO, decltype(bioDeleter)> b64(BIO_new(BIO_f_base64()), bioDeleter);
+    std::unique_ptr<BIO, decltype(&BIO_free_all)> bio(
+        BIO_new_mem_buf(encodedData.data(), static_cast<int>(encodedData.size())), &BIO_free_all);
+    if (bio == nullptr)
+        throw std::bad_alloc(); // Memory allocation failed
+
+    // Create a base64 BIO
+    BIO *b64 = BIO_new(BIO_f_base64());
+    if (b64 == nullptr)
+        throw std::bad_alloc(); // Memory allocation failed
 
     // Don't use newlines to flush buffer
-    BIO_set_flags(b64.get(), BIO_FLAGS_BASE64_NO_NL);
+    BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
 
-    // Create a memory BIO to store the encoded data
-    std::unique_ptr<BIO, decltype(bioDeleter)> bio(
-        BIO_new_mem_buf(encodedData.data(), static_cast<int>(encodedData.size())), bioDeleter);
+    // Push the base64 BIO to the memory BIO
+    bio.reset(BIO_push(b64, bio.release())); // Transfer ownership to bio
 
-    // Check if memory allocation failed
-    if (b64 == nullptr || bio == nullptr)
-        throw std::bad_alloc();
-
-    // Push the memory BIO to the base64 BIO
-    bio.reset(BIO_push(b64.get(), bio.get()));
+    std::vector<unsigned char> decodedData(encodedData.size());
 
     // Decode the data
     const int len = BIO_read(bio.get(), decodedData.data(), static_cast<int>(decodedData.size()));
-
-    // Check if the decoding failed
     if (len < 0)
         throw std::runtime_error("BIO_read() failed.");
 
