@@ -84,9 +84,9 @@ enum class OperationMode : std::uint_fast8_t {
 
 /// \brief An anonymous struct to aid algorithm selection.
 constexpr struct {
-    const char *const AES      = "AES-256-CBC";
+    const char *const AES = "AES-256-CBC";
     const char *const Camellia = "CAMELLIA-256-CBC";
-    const char *const Aria     = "ARIA-256-CBC";
+    const char *const Aria = "ARIA-256-CBC";
     const gcry_cipher_algos Serpent = GCRY_CIPHER_SERPENT256;
     const gcry_cipher_algos Twofish = GCRY_CIPHER_TWOFISH;
 } AlgoSelection;
@@ -154,45 +154,45 @@ inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const Ope
     if (mode != OperationMode::Encryption && mode != OperationMode::Decryption)
         throw std::invalid_argument("Invalid mode of operation.");
 
-    if (!outFile.string().empty() && !createPath(outFile))
+    // Create parent directories, if necessary.
+    if (!createPath(outFile))
         throw std::runtime_error("Unable to create destination directory. Check the path");
 
-    // Check if the output file is a directory, and rename it appropriately if so
-    if (is_directory(outFile)) {
-        if (mode == OperationMode::Encryption) {
-            outFile /= inFile.filename();
-            outFile += ".enc";
-        } else outFile /= inFile.extension() == ".enc" ? inFile.stem() : inFile.filename();
-    }
+    if (std::error_code ec; exists(outFile, ec)) {
+        // If the output file is not specified, name it appropriately
+        if (equivalent(fs::current_path(), outFile)) {
+            outFile = inFile;
+            if (inFile.extension() == ".enc") {
+                outFile.replace_extension("");
+            } else if (mode == OperationMode::Encryption) {
+                outFile += ".enc";
+            } else {
+                outFile.replace_extension("");
+                outFile += "_decrypted";
+                outFile += inFile.extension();
+            }
+        } else if (is_directory(outFile)) {
+            // If the output file is a directory, rename it appropriately.
+            if (mode == OperationMode::Encryption) {
+                outFile /= inFile.filename();
+                outFile += ".enc";
+            } else outFile /= inFile.extension() == ".enc" ? inFile.stem() : inFile.filename();
+        }
+        // If the output file exists, ask for confirmation for overwriting
+        if (exists(outFile, ec)) {
+            printColor(canonical(outFile).string(), 'b', false, std::cerr);
+            printColor(" already exists. \nDo you want to overwrite it? (y/n): ", 'r', false, std::cerr);
+            if (!validateYesNo())
+                throw std::runtime_error("Operation aborted.");
 
-    // If the output file is not specified, name it appropriately
-    if (outFile.string().empty()) {
-        outFile = inFile;
-        if (inFile.extension() == ".enc") {
-            outFile.replace_extension("");
-        } else if (mode == OperationMode::Encryption) {
-            outFile += ".enc";
-        } else {
-            outFile.replace_extension("");
-            outFile += "_decrypted";
-            outFile += inFile.extension();
+            // Determine if the output file can be written if it exists
+            if (auto file = weakly_canonical(outFile).string(); !(isWritable(file) && isReadable(file)))
+                throw std::runtime_error(std::format("{} is not writable/readable.", file));
         }
     }
 
-    // If the output file exists, ask for confirmation for overwriting
-    if (std::error_code ec; exists(outFile, ec)) {
-        printColor(canonical(outFile).string(), 'b', false, std::cerr);
-        printColor(" already exists. \nDo you want to overwrite it? (y/n): ", 'r', false, std::cerr);
-        if (!validateYesNo())
-            throw std::runtime_error("Operation aborted.");
-
-        // Determine if the output file can be written if it exists
-        if (auto file = weakly_canonical(outFile).string(); !(isWritable(file) && isReadable(file)))
-            throw std::runtime_error(std::format("{} is not writable/readable.", file));
-    }
-
     // Check if there is enough space on the disk to save the output file.
-    const auto availableSpace = getAvailableSpace(outFile);
+    const auto availableSpace = getAvailableSpace(weakly_canonical(outFile));
     if (const auto fileSize = file_size(inFile); std::cmp_less(availableSpace, fileSize)) {
         printColor("Not enough space to save ", 'r', false, std::cerr);
         printColor(weakly_canonical(outFile).string(), 'c', true, std::cerr);
@@ -333,13 +333,17 @@ void encryptDecrypt() {
                     inputFile.erase(inputFile.size() - 1);
 
                 fs::path inputPath(inputFile);
+                if (!inputPath.is_absolute()) // The path should be absolute
+                    inputPath = fs::current_path() / inputPath;
                 checkInputFile(inputPath, static_cast<OperationMode>(choice));
 
                 printColor(std::format("Enter the path to save the {}crypted file "
                                        "\n(or leave it blank to save it in the same directory):",
                                        pre_l), 'c', true);
 
-                fs::path outputPath(getResponseStr());
+                fs::path outputPath{getResponseStr()};
+                if (!outputPath.is_absolute()) // If the path is not absolute
+                    outputPath = fs::current_path() / outputPath;
                 checkOutputFile(inputPath, outputPath, static_cast<OperationMode>(choice));
 
                 std::cout << "Choose a cipher (All are 256-bit):\n";
