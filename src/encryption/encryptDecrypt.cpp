@@ -68,18 +68,18 @@ private:
 };
 
 /// \brief Available encryption/decryption ciphers.
-enum class Algorithms : unsigned int {
-        AES      = 1 << 0,
-        Camellia = 1 << 1,
-        Aria     = 1 << 2,
-        Serpent  = 1 << 3,
-        Twofish  = 1 << 4
+enum class Algorithms : std::uint_fast8_t {
+    AES      = 1 << 0,
+    Camellia = 1 << 1,
+    Aria     = 1 << 2,
+    Serpent  = 1 << 3,
+    Twofish  = 1 << 4
 };
 
 /// \brief Operation modes: encryption or decryption.
-enum class OperationMode : unsigned int {
-        Encryption = 1,
-        Decryption = 2
+enum class OperationMode : std::uint_fast8_t {
+    Encryption = 1,
+    Decryption = 2
 };
 
 /// \brief An anonymous struct to aid algorithm selection.
@@ -120,10 +120,12 @@ inline void checkInputFile(const fs::path &inFile, const OperationMode &mode) {
         throw std::runtime_error(std::format("{} is not readable.", file));
 }
 
-/// \brief Creates the directory path for a given file path if it does not exist.
+/// \brief Creates non-existing parent directories for a file.
 /// \param filePath The file path for which the directory path needs to be created.
 /// \return True if the directory path is created successfully or already exists, false otherwise.
 inline bool createPath(const fs::path &filePath) noexcept {
+    if (filePath.string().empty()) return false; // Can't create empty paths
+
     std::error_code ec;
 
     auto absolutePath = weakly_canonical(filePath, ec);
@@ -152,8 +154,8 @@ inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const Ope
     if (mode != OperationMode::Encryption && mode != OperationMode::Decryption)
         throw std::invalid_argument("Invalid mode of operation.");
 
-    if (!createPath(outFile))
-        throw std::runtime_error("Unable to create destination directory.");
+    if (!outFile.string().empty() && !createPath(outFile))
+        throw std::runtime_error("Unable to create destination directory. Check the path");
 
     // Check if the output file is a directory, and rename it appropriately if so
     if (is_directory(outFile)) {
@@ -222,7 +224,7 @@ inline void copyLastWrite(const std::string &srcFile, const std::string &destFil
 /// \param algo the algorithm to use for encryption/decryption.
 /// \param mode the mode of operation: encryption or decryption.
 void fileEncryptionDecryption(const std::string &inputFileName, const std::string &outputFileName,
-                              const privacy::string &password, const unsigned int &algo, const OperationMode &mode) {
+                              const privacy::string &password, const Algorithms &algo, const OperationMode &mode) {
     // The mode must be valid: must be either encryption or decryption
     if (mode != OperationMode::Encryption && mode != OperationMode::Decryption) [[unlikely]] {
         printColor("Invalid mode of operation.", 'r', true, std::cerr);
@@ -247,16 +249,23 @@ void fileEncryptionDecryption(const std::string &inputFileName, const std::strin
         };
 
         // Encrypt/decrypt with the specified algorithm
-        if (algo & static_cast<unsigned int>(Algorithms::AES))
-            encryptDecrypt(AlgoSelection.AES);
-        else if (algo & static_cast<unsigned int>(Algorithms::Camellia))
-            encryptDecrypt(AlgoSelection.Camellia);
-        else if (algo & static_cast<unsigned int>(Algorithms::Aria))
-            encryptDecrypt(AlgoSelection.Aria);
-        else if (algo & static_cast<unsigned int>(Algorithms::Serpent))
-            encryptDecryptMoreRounds(AlgoSelection.Serpent);
-        else if (algo & static_cast<unsigned int>(Algorithms::Twofish))
-            encryptDecryptMoreRounds(AlgoSelection.Twofish);
+        switch (algo) {
+            case Algorithms::Camellia:
+                encryptDecrypt(AlgoSelection.Camellia);
+                break;
+            case Algorithms::Aria:
+                encryptDecrypt(AlgoSelection.Aria);
+                break;
+            case Algorithms::Serpent:
+                encryptDecryptMoreRounds(AlgoSelection.Serpent);
+                break;
+            case Algorithms::Twofish:
+                encryptDecryptMoreRounds(AlgoSelection.Twofish);
+                break;
+            case Algorithms::AES: [[fallthrough]];
+            default:
+                encryptDecrypt(AlgoSelection.AES);
+        }
 
         // If we reach here, the operation was successful
         auto pre = mode == OperationMode::Encryption ? "En" : "De";
@@ -349,7 +358,7 @@ void encryptDecrypt() {
                     continue;
                 }
 
-                auto it = algoChoice.find(algo);
+                const auto it = algoChoice.find(algo);
                 auto cipher = it != algoChoice.end() ? it->second : Algorithms::AES;
 
                 privacy::string password{getSensitiveInfo("Enter the password: ")};
@@ -380,7 +389,7 @@ void encryptDecrypt() {
                 printColor("...", 'g', true);
 
                 fileEncryptionDecryption(canonical(inputPath).string(), weakly_canonical(outputPath).string(),
-                                         password, static_cast<int>(cipher), static_cast<OperationMode>(choice));
+                                         password, cipher, static_cast<OperationMode>(choice));
                 std::cout << std::endl;
             } catch (const std::exception &ex) {
                 printColor("Error: ", 'y', false, std::cerr);
