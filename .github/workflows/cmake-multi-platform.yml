@@ -49,6 +49,7 @@ jobs:
       - name: Install Dependencies
         if: matrix.os == 'macos-13'
         run: |
+          export HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=TRUE
           brew update
           brew install llvm cmake ninja gcc libgcrypt openssl@3 readline libsodium
           echo 'export PATH="/usr/local/opt/llvm/bin:$PATH"' >> ~/.bash_profile
