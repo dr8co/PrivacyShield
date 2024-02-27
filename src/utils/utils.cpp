@@ -26,10 +26,13 @@ module;
 #include <openssl/buffer.h>
 #include <openssl/evp.h>
 #include <vector>
+#include <sodium.h>
 
 module utils;
 
 import secureAllocator;
+
+constexpr int MAX_PASSPHRASE_LEN = 1024; // Maximum length of a passphrase
 
 
 /// \brief Performs Base64 decoding of a string into binary data.
@@ -122,27 +125,62 @@ int getResponseInt(const std::string &prompt) {
 /// \brief Reads sensitive input from a terminal without echoing them.
 /// \param prompt the prompt to display.
 /// \return the user's input.
+/// \throws std::bad_alloc if memory allocation fails.
+/// \throws std::runtime_error if memory locking/unlocking fails.
 privacy::string getSensitiveInfo(const std::string &prompt) {
-    termios oldSettings{}, newSettings{};
+    // Allocate a buffer for the password
+    auto *buffer = static_cast<char *>(sodium_malloc(MAX_PASSPHRASE_LEN));
+    if (buffer == nullptr)
+        throw std::bad_alloc(); // Memory allocation failed
+
+    // Lock the memory to prevent swapping
+    if (sodium_mlock(buffer, MAX_PASSPHRASE_LEN) == -1) {
+        sodium_free(buffer);
+        throw std::runtime_error("Failed to lock memory.");
+    }
 
     // Turn off terminal echoing
+    termios oldSettings{}, newSettings{};
+
     tcgetattr(STDIN_FILENO, &oldSettings);
     newSettings = oldSettings;
     newSettings.c_lflag &= ~ECHO;
     tcsetattr(STDIN_FILENO, TCSANOW, &newSettings);
 
-    // Read password from input
-    char *tmp = readline(prompt.c_str());
-    privacy::string secret{tmp};
-    std::free(tmp);
+    // Prompt the user for the password
+    std::cout << prompt;
 
-    // Trim leading and trailing spaces
-    stripString(secret);
+    int index = 0; // current position in the buffer
+    char ch;
+    while (std::cin.get(ch) && ch != '\n') {
+        if (ch == '\b') { // check for backspace
+            if (index > 0) {
+                --index; // move back one position in the buffer
+            }
+        } else {
+            if (index < MAX_PASSPHRASE_LEN - 1) { // Check if buffer is not full
+                buffer[index++] = ch;
+            }
+        }
+    }
+    buffer[index] = '\0'; // Null-terminate the string
 
     // Restore terminal settings
     tcsetattr(STDIN_FILENO, TCSANOW, &oldSettings);
 
-    return secret;
+    privacy::string passphrase{buffer};
+
+    // Unlock the memory
+    if (sodium_munlock(buffer, MAX_PASSPHRASE_LEN) == -1)
+        throw std::runtime_error("Failed to unlock memory.");
+
+    // Free the buffer
+    sodium_free(buffer);
+
+    // Trim leading and trailing spaces
+    stripString(passphrase);
+
+    return passphrase;
 }
 
 /// \brief Confirms a user's response to a yes/no (y/n) situation.
