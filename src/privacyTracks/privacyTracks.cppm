@@ -21,6 +21,7 @@ module;
 #include <string>
 #include <vector>
 #include <filesystem>
+#include <utility>
 
 export module privacyTracks;
 
@@ -30,19 +31,20 @@ namespace fs = std::filesystem;
 
 
 /// \brief Represents different browsers in a system.
-enum class Browser : unsigned int {
-        Firefox  = 1 << 0,
-        Chrome   = 1 << 1,
-        Chromium = 1 << 2,
-        Opera    = 1 << 3,
-        Safari   = 1 << 4
+enum class Browser : std::uint_fast8_t {
+    Firefox  = 1 << 0,
+    Chrome   = 1 << 1,
+    Chromium = 1 << 2,
+    Opera    = 1 << 3,
+    Safari   = 1 << 4
 };
 
 /// \brief A convenience function for handling errors during file operations.
 /// \param ec the error code associated with the error.
 /// \param context the context in which the error occurred.
 /// \param path the path of the file in which the error occurred.
-inline void handleFileError(std::error_code &ec, const std::string &context = "", const std::string &path = "") noexcept {
+inline void handleFileError(std::error_code &ec, const std::string &context = "",
+                            const std::string &path = "") noexcept {
     if (ec) {
         printColor(std::format("Error {} {}: {}", context, path, ec.message()), 'r', true, std::cerr);
         ec.clear();
@@ -52,8 +54,8 @@ inline void handleFileError(std::error_code &ec, const std::string &context = ""
 /// \brief Detects browsers installed on the system.
 /// \param pathEnv The PATH environment variable.
 /// \return A bit mask of detected browsers.
-unsigned int detectBrowsers(const std::string &pathEnv) {
-    unsigned int detectedBrowsers{0};
+std::uint_fast8_t detectBrowsers(const std::string &pathEnv) {
+    std::uint_fast8_t detectedBrowsers{0};
 
     // Check if the passed string is empty
     if (pathEnv.empty()) {
@@ -89,15 +91,15 @@ unsigned int detectBrowsers(const std::string &pathEnv) {
                 // Check for the existence of the browser executable
                 if (auto executable = entry.path().filename().string(); !entry.is_directory() && entry.exists()) {
                     if (executable == "firefox")
-                        detectedBrowsers |= static_cast<unsigned int>(Browser::Firefox);
+                        detectedBrowsers |= std::to_underlying(Browser::Firefox);
                     else if (executable == "google-chrome")
-                        detectedBrowsers |= static_cast<unsigned int>(Browser::Chrome);
+                        detectedBrowsers |= std::to_underlying(Browser::Chrome);
                     else if (executable == "chromium-browser")
-                        detectedBrowsers |= static_cast<unsigned int>(Browser::Chromium);
+                        detectedBrowsers |= std::to_underlying(Browser::Chromium);
                     else if (executable == "opera")
-                        detectedBrowsers |= static_cast<unsigned int>(Browser::Opera);
+                        detectedBrowsers |= std::to_underlying(Browser::Opera);
                     else if (executable == "safari")
-                        detectedBrowsers |= static_cast<unsigned int>(Browser::Safari);
+                        detectedBrowsers |= std::to_underlying(Browser::Safari);
                 }
             }
         }
@@ -109,7 +111,7 @@ unsigned int detectBrowsers(const std::string &pathEnv) {
 /// \return A bit mask of detected browsers.
 /// \details This function uses the PATH environment variable to detect browsers.
 /// \note Only stable versions of browsers are detected.
-unsigned int detectBrowsers() {
+std::uint_fast8_t detectBrowsers() {
     if (const auto pathEnv = getEnv("PATH"); pathEnv)
         return detectBrowsers(*pathEnv);
 
@@ -304,10 +306,8 @@ bool clearChromiumTracks(const std::string &configDir) {
         }
     }
     printColor(nonDefaultProfiles
-                   ? std::format("Deleted cookies and history for {} non-default profiles.",
-                                 nonDefaultProfiles)
-                   : "Non-default profiles not found.",
-               nonDefaultProfiles ? 'g' : 'r', true);
+                   ? std::format("Deleted cookies and history for {} non-default profiles.", nonDefaultProfiles)
+                   : "Non-default profiles not found.", nonDefaultProfiles ? 'g' : 'r', true);
 
     return true;
 }
@@ -454,38 +454,38 @@ bool clearFirefoxTracks() {
 /// \param browsers the browsers to clear tracks for.
 /// \return true if successful, false otherwise.
 /// \note Only works for standard installations of the browsers.
-bool clearTracks(const unsigned int &browsers) {
+bool clearTracks(const std::uint_fast8_t &browsers) {
     bool ret{true};
 
-    if (browsers & static_cast<unsigned int>(Browser::Firefox)) {
+    if (browsers & std::to_underlying(Browser::Firefox)) {
         std::cout << "\nClearing Firefox tracks..." << std::endl;
         ret = clearFirefoxTracks();
         printColor(ret ? "Firefox tracks cleared successfully." : "Failed to clear Firefox tracks.", ret ? 'g' : 'r',
                    true, ret ? std::cout : std::cerr);
     }
 
-    if (browsers & static_cast<unsigned int>(Browser::Chrome)) {
+    if (browsers & std::to_underlying(Browser::Chrome)) {
         std::cout << "\nClearing Chrome tracks..." << std::endl;
         ret = clearChromeTracks();
         printColor(ret ? "Chrome tracks cleared successfully." : "Failed to clear Chrome tracks.", ret ? 'g' : 'r',
                    true, ret ? std::cout : std::cerr);
     }
 
-    if (browsers & static_cast<unsigned int>(Browser::Chromium)) {
+    if (browsers & std::to_underlying(Browser::Chromium)) {
         std::cout << "\nClearing Chromium tracks..." << std::endl;
         ret = clearChromiumTracks();
         printColor(ret ? "Chromium tracks cleared successfully." : "Failed to clear Chromium tracks.", ret ? 'g' : 'r',
                    true, ret ? std::cout : std::cerr);
     }
 
-    if (browsers & static_cast<unsigned int>(Browser::Opera)) {
+    if (browsers & std::to_underlying(Browser::Opera)) {
         std::cout << "\nClearing Opera tracks..." << std::endl;
         ret = clearOperaTracks();
-        printColor(ret ? "Opera tracks cleared successfully." : "Failed to clear Opera tracks.", ret ? 'g' : 'r', true,
-                   ret ? std::cout : std::cerr);
+        printColor(ret ? "Opera tracks cleared successfully." : "Failed to clear Opera tracks.", ret ? 'g' : 'r',
+                   true, ret ? std::cout : std::cerr);
     }
 
-    if (browsers & static_cast<unsigned int>(Browser::Safari)) {
+    if (browsers & std::to_underlying(Browser::Safari)) {
 #if __APPLE__
         std::cout << "Clearing Safari tracks..." << std::endl;
         ret = clearSafariTracks();
@@ -505,26 +505,27 @@ bool clearTracks(const unsigned int &browsers) {
 export void clearPrivacyTracks() {
     std::cout << "Scanning your system for browsers..." << std::endl;
 
-    const unsigned int browsers = detectBrowsers();
+    const std::uint_fast8_t browsers = detectBrowsers();
     if (browsers == 0) [[unlikely]] {
         printColor("No supported browsers found.", 'r', true, std::cerr);
         return;
     }
     printColor("Supported browsers found:", 'b', true);
-    if (browsers & static_cast<unsigned int>(Browser::Firefox))
+    if (browsers & std::to_underlying(Browser::Firefox))
         printColor("Firefox", 'c', true);
 
-    if (browsers & static_cast<unsigned int>(Browser::Chrome))
+    if (browsers & std::to_underlying(Browser::Chrome))
         printColor("Chrome", 'c', true);
 
-    if (browsers & static_cast<unsigned int>(Browser::Chromium))
+    if (browsers & std::to_underlying(Browser::Chromium))
         printColor("Chromium", 'c', true);
 
-    if (browsers & static_cast<unsigned int>(Browser::Opera))
+    if (browsers & std::to_underlying(Browser::Opera))
         printColor("Opera", 'c', true);
 
-    if (browsers & static_cast<unsigned int>(Browser::Safari))
+    if (browsers & std::to_underlying(Browser::Safari))
         printColor("Safari", 'c', true);
+
     printColor("\nAll the cookies and browsing history of the above browsers will be deleted.", 'r', true);
     printColor("Continue? (y/n): ", 'c');
 
