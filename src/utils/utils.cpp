@@ -38,6 +38,8 @@ constexpr int MAX_PASSPHRASE_LEN = 1024; // Maximum length of a passphrase
 /// \brief Performs Base64 decoding of a string into binary data.
 /// \param encodedData Base64 encoded string.
 /// \return a vector of the decoded binary data.
+/// \throws std::bad_alloc if memory allocation fails.
+/// \throws std::runtime_error if the decoding operation fails.
 std::vector<unsigned char> base64Decode(const std::string &encodedData) {
     // Create a BIO object to decode the data
     std::unique_ptr<BIO, decltype(&BIO_free_all)> bio(
@@ -153,12 +155,14 @@ privacy::string getSensitiveInfo(const std::string &prompt) {
     int index = 0; // current position in the buffer
     char ch;
     while (std::cin.get(ch) && ch != '\n') {
-        if (ch == '\b') { // check for backspace
+        // check for backspace
+        if (ch == '\b') {
             if (index > 0) {
                 --index; // move back one position in the buffer
             }
         } else {
-            if (index < MAX_PASSPHRASE_LEN - 1) { // Check if buffer is not full
+            // Check if buffer is not full
+            if (index < MAX_PASSPHRASE_LEN - 1) {
                 buffer[index++] = ch;
             }
         }

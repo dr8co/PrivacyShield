@@ -77,6 +77,8 @@ export {
     /// \brief Performs Base64 encoding of binary data into a string.
     /// \param input a vector of the binary data to be encoded.
     /// \return Base64-encoded string.
+    /// \throws std::bad_alloc if memory allocation fails.
+    /// \throws std::runtime_error if encoding fails.
     std::string base64Encode(const uCharVector auto &input) {
         // Create a BIO object to encode the data
         const std::unique_ptr<BIO, decltype(&BIO_free_all)> b64(BIO_new(BIO_f_base64()), &BIO_free_all);

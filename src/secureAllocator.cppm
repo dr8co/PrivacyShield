@@ -27,7 +27,9 @@ export module secureAllocator;
 export namespace privacy {
 
     template<typename T>
+    /// \class Allocator
     /// \brief Custom allocator for STL containers, which locks and zeroizes memory.
+    /// \tparam T The type of the elements.
     /// \details Adapted from https://en.cppreference.com/w/cpp/named_req/Allocator
     class Allocator {
     public:

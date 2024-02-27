@@ -29,7 +29,7 @@ template<typename T>
 concept StringRange = std::ranges::input_range<T> &&
                       std::same_as<std::ranges::range_value_t<T>, privacy::string>;
 
-
+/// \class FuzzyMatcher
 /// \brief A simple case insensitive fuzzy matcher.
 export class FuzzyMatcher final {
 public:

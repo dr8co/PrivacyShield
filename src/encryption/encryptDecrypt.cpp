@@ -94,6 +94,9 @@ constexpr struct {
 /// \brief Checks for issues with the input file, that may hinder encryption/decryption.
 /// \param inFile the input file, to be encrypted/decrypted.
 /// \param mode the mode of operation: encryption or decryption.
+/// \throws std::invalid_argument if \p mode is invalid.
+/// \throws std::runtime_error if the input file does not exist, is a directory,
+/// is not a regular file, or is not readable.
 inline void checkInputFile(const fs::path &inFile, const OperationMode &mode) {
     if (mode != OperationMode::Encryption && mode != OperationMode::Decryption)
         throw std::invalid_argument("Invalid mode of operation.");
@@ -150,6 +153,8 @@ inline bool createPath(const fs::path &filePath) noexcept {
 /// \param inFile the input file, to be encrypted/decrypted.
 /// \param outFile the output file, to be saved.
 /// \param mode the mode of operation: encryption or decryption.
+/// \throws std::invalid_argument if \p mode is invalid.
+/// \throws std::runtime_error if the output file is not writable, readable, or there is not enough space to save it.
 inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const OperationMode &mode) {
     if (mode != OperationMode::Encryption && mode != OperationMode::Decryption)
         throw std::invalid_argument("Invalid mode of operation.");

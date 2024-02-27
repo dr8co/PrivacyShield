@@ -39,6 +39,8 @@ constexpr std::streamoff BUFFER_SIZE = 4096;
 /// \param file output file stream object.
 /// \param fileSize the size of the file in bytes.
 /// \param nPasses the number of passes to overwrite the file.
+///
+/// \throws std::runtime_error if the \p file is not open, or if there is a file write error.
 void overwriteRandom(std::ofstream &file, const std::size_t fileSize, const int nPasses = 1) {
     if (!file.is_open()) throw std::runtime_error("File not open.");
     // Instantiate the random number generator
@@ -79,6 +81,8 @@ void overwriteRandom(std::ofstream &file, const std::size_t fileSize, const int 
 /// \param file output file stream object to overwrite.
 /// \param byte the byte to overwrite the file with.
 /// \param fileSize the size of the file in bytes.
+///
+/// \throws std::runtime_error if the \p file is not open, or if there is a file write error.
 template<typename T>
 void overwriteConstantByte(std::ofstream &file, T &byte, const auto &fileSize) {
     if (!file.is_open()) throw std::runtime_error("File not open.");
@@ -196,6 +200,7 @@ struct FileStatInfo {
 
 /// \brief wipes the cluster tips of a file.
 /// \param fileName the path to the file to be wiped.
+/// \throws std::runtime_error if zeroing the cluster tips fails.
 inline void wipeClusterTips(const std::string &fileName) {
     const FileDescriptor fileDescriptor(fileName);
     const FileStatInfo fileInformation(fileDescriptor.fd);
@@ -225,6 +230,8 @@ inline void wipeClusterTips(const std::string &fileName) {
 /// \param filename path to the file being overwritten.
 /// \param nPasses the number of passes to overwrite the file.
 /// \param wipeClusterTip whether to wipe the cluster tips of the file.
+///
+/// \throws std::runtime_error if the file cannot be opened.
 void simpleShred(const std::string &filename, const int &nPasses = 3, const bool wipeClusterTip = false) {
     std::ofstream file(filename, std::ios::binary | std::ios::in);
     if (!file)
@@ -258,6 +265,8 @@ void simpleShred(const std::string &filename, const int &nPasses = 3, const bool
 /// \param filename - the path to the file to be shred.
 /// \param nPasses the number of passes to overwrite the file.
 /// \param wipeClusterTip whether to wipe the cluster tips of the file.
+///
+/// \throws std::runtime_error if the file cannot be opened, or if the number of passes is invalid.
 void dod5220Shred(const std::string &filename, const int &nPasses = 3, const bool wipeClusterTip = false) {
     std::ofstream file(filename, std::ios::binary | std::ios::in);
     if (!file)
@@ -308,12 +317,13 @@ void dod5220Shred(const std::string &filename, const int &nPasses = 3, const boo
     renameAndRemove(filename, 3);
 }
 
+/// \enum shredOptions
 /// \brief Represents the different shredding options.
-enum class shredOptions : unsigned int {
-    Simple = 1 << 0, // Simple overwrite with random bytes
-    Dod5220 = 1 << 1, // DoD 5220.22-M Standard algorithm
-    Dod5220_7 = 1 << 2, // DoD 5220.22-M Standard algorithm with 7 passes
-    WipeClusterTips = 1 << 3 // Wiping of the cluster tips
+enum class shredOptions : std::uint_fast8_t {
+    Simple          = 1 << 0, // Simple overwrite with random bytes
+    Dod5220         = 1 << 1, // DoD 5220.22-M Standard algorithm
+    Dod5220_7       = 1 << 2, // DoD 5220.22-M Standard algorithm with 7 passes
+    WipeClusterTips = 1 << 3  // Wiping of the cluster tips
 };
 
 /// \brief Adds write and write permissions to a file, if the user has authority.
@@ -343,6 +353,9 @@ inline bool addReadWritePermissions(const std::string &fileName) noexcept {
 /// \param simplePasses - the number of passes for random overwrite
 /// for simple shredding.
 /// \return true if the file (or directory) was shred successfully, false otherwise.
+///
+/// \throws std::runtime_error if the shred options are invalid, or if the file cannot be shredded.
+///
 /// \warning If the filePath is a directory, then all its files and subdirectories
 /// are shredded without warning.
 bool shredFiles(const std::string &filePath, const unsigned int &options, const int &simplePasses = 3) {

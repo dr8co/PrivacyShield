@@ -690,6 +690,7 @@ inline void analyzePasswords(privacy::vector<passwordRecords> &passwords, std::v
 }
 
 /// \brief A simple, minimalistic password manager.
+/// \throws std::runtime_error if the primary password is incorrect after 3 attempts.
 void passwordManager() {
     privacy::string encryptionKey;
     std::string passwordFile{DefaultPasswordFile};

@@ -42,7 +42,7 @@ enum class Browser : unsigned int {
 /// \param ec the error code associated with the error.
 /// \param context the context in which the error occurred.
 /// \param path the path of the file in which the error occurred.
-inline void handleFileError(std::error_code &ec, const std::string &context = "", const std::string &path = "") {
+inline void handleFileError(std::error_code &ec, const std::string &context = "", const std::string &path = "") noexcept {
     if (ec) {
         printColor(std::format("Error {} {}: {}", context, path, ec.message()), 'r', true, std::cerr);
         ec.clear();

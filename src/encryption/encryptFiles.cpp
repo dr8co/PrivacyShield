@@ -60,6 +60,9 @@ privacy::vector<unsigned char> generateSalt(const int saltSize) {
 /// \param keySize the size (length) of the key in bytes.
 /// \return the generated key.
 ///
+/// \throws std::length_error if the key size is invalid.
+/// \throws std::runtime_error if the key derivation fails or if the PBKDF2 implementation is not available.
+///
 /// \details Key derivation is done using the PBKDF2 algorithm.
 /// \details BLAKE2b512 is used as the hash function for PBKDF2
 /// and the number of iterations is set to 100,000.
@@ -124,6 +127,8 @@ deriveKey(const privacy::string &password, const privacy::vector<unsigned char> 
 /// \param outputFile The file to store the encrypted content.
 /// \param password The password used to encrypt the file.
 /// \param algo The cipher algorithm to use.
+///
+/// \throws std::runtime_error if the encryption fails, and for other (documented) errors.
 ///
 /// \details Available ciphers: AES-256, Camellia-256, and Aria-256.
 /// \details Encryption mode: CBC.
@@ -213,6 +218,8 @@ void encryptFile(const std::string &inputFile, const std::string &outputFile, co
 /// \param outputFile The file to store the decrypted content.
 /// \param password The password used to decrypt the file.
 /// \param algo The cipher algorithm used to encrypt the file.
+///
+/// \throws std::runtime_error if the decryption fails, and for other (documented) errors.
 void decryptFile(const std::string &inputFile, const std::string &outputFile, const privacy::string &password,
                  const std::string &algo) {
     // Open the input file for reading
@@ -303,6 +310,7 @@ void decryptFile(const std::string &inputFile, const std::string &outputFile, co
 /// \brief Throws a thread-safe Gcrypt error.
 /// \param err Gcrypt error value.
 /// \param message the error message.
+/// \throws std::runtime_error with the error message.
 inline void throwSafeError(const gcry_error_t &err, const std::string &message) {
     std::mutex m;
     std::scoped_lock<std::mutex> locker(m);
@@ -314,6 +322,8 @@ inline void throwSafeError(const gcry_error_t &err, const std::string &message) 
 /// \param outputFilePath the file to save the ciphertext to.
 /// \param password the password used to encrypt the file.
 /// \param algorithm the cipher algorithm to use.
+///
+/// \throws std::runtime_error if the encryption fails, and for other (documented) errors.
 ///
 /// \details Available ciphers: Serpent-256 and Twofish-256.
 /// \details Encryption mode: Counter (CTR).
@@ -396,6 +406,8 @@ encryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
 /// \param outputFilePath The file to store the decrypted content.
 /// \param password The password used to decrypt the file.
 /// \param algorithm The cipher algorithm used to encrypt the file.
+///
+/// \throws std::runtime_error if the decryption fails, and for other (documented) errors.
 void
 decryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &outputFilePath,
                           const privacy::string &password, const gcry_cipher_algos &algorithm) {

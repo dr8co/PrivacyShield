@@ -69,6 +69,7 @@ bool isPasswordStrong(const privacy::string &password) noexcept {
 /// \brief Generates a random password.
 /// \param length the length of the password.
 /// \return a random password.
+/// \throws std::length_error if the password is too short or too long.
 privacy::string generatePassword(const int &length) {
     // a password shouldn't be too short, nor too long
     if (length < 8)
@@ -112,6 +113,7 @@ privacy::string generatePassword(const int &length) {
 /// \param opsLimit the maximum amount of computations to perform.
 /// \param memLimit the maximum amount of RAM in bytes that the function will use.
 /// \return a string of the password hash and it's associated data.
+/// \throws std::runtime_error if the password hashing fails.
 privacy::string
 hashPassword(const privacy::string &password, const std::size_t &opsLimit, const std::size_t &memLimit) {
     std::array<char, crypto_pwhash_STRBYTES> hashedPassword{};
@@ -138,9 +140,10 @@ bool verifyPassword(const privacy::string &password, const privacy::string &stor
 /// \brief Encrypts/decrypts a range of passwords.
 /// \param passwords the password records to encrypt/decrypt.
 /// \param key the password to encrypt/decrypt the passwords.
-/// \param start the start index.
+/// \param start the start index of the range.
 /// \param end the end index.
 /// \param encrypt A boolean value indicating whether to encrypt or decrypt.
+/// \throws std::range_error if the range is invalid.
 void
 encryptDecryptRange(privacy::vector<passwordRecords> &passwords, const privacy::string &key, const std::size_t &start,
                     const std::size_t &end, const bool &encrypt = false) {
@@ -162,12 +165,13 @@ encryptDecryptRange(privacy::vector<passwordRecords> &passwords, const privacy::
     }
 }
 
-/// \brief Encrypts/decrypts all fields of a password record.
+/// \brief Encrypts/decrypts all fields of a range of password records.
 /// \param passwords the password records to encrypt/decrypt.
 /// \param key the password to encrypt/decrypt the passwords.
-/// \param start the start index.
+/// \param start the start index of the range.
 /// \param end the end index.
 /// \param encrypt A boolean value indicating whether to encrypt or decrypt.
+/// \throws std::range_error if the range is invalid.
 void
 encryptDecryptRangeAllFields(privacy::vector<passwordRecords> &passwords, const privacy::string &key,
                              const std::size_t &start,
@@ -226,13 +230,13 @@ encryptDecryptConcurrently(privacy::vector<passwordRecords> &passwordEntries, co
                          key, start, passwordEntries.size(), encrypt);
 
     // Wait for all threads to finish execution
-    for (auto &thread: threads) {
+    for (auto &thread: threads)
         thread.join();
-    }
 }
 
 /// \brief Checks for common errors when reading/writing to a file.
 /// \param path the path to the file.
+/// \throws std::runtime_error if the file is not a regular file, does not exist, or is a directory.
 inline void checkCommonErrors(std::string_view path) {
     std::error_code ec;
     const fs::file_status fileStatus = fs::status(path, ec);
@@ -312,6 +316,7 @@ bool savePasswords(privacy::vector<passwordRecords> &passwords, const std::strin
 /// \param filePath path to the password file.
 /// \param decryptionKey the key/password to decrypt the passwords.
 /// \return decrypted password records.
+/// \throws std::runtime_error if the file is empty, or if it couldn't be opened for reading.
 privacy::vector<passwordRecords> loadPasswords(const std::string &filePath, const privacy::string &decryptionKey) {
     privacy::vector<passwordRecords> passwords;
     passwords.reserve(1024);
@@ -343,7 +348,7 @@ privacy::vector<passwordRecords> loadPasswords(const std::string &filePath, cons
 
         // Badly formatted entry
         if (firstDelimiterPos == privacy::string::npos || secondDelimiterPos == privacy::string::npos) {
-            std::cerr << std::format("Invalid password entry: {}\n", line);
+            std::cerr << std::format("Invalid password entry: '{}'\n", line);
             continue;
         }
 
@@ -475,6 +480,7 @@ std::pair<std::string, privacy::string> initialSetup() noexcept {
 /// \brief Reads the primary password hash from the password records.
 /// \param filePath the path to the file containing the password records (the password file).
 /// \return the primary password hash.
+/// \throws std::runtime_error if the password file is empty, or if the password hash is not found/is invalid.
 privacy::string getHash(const std::string &filePath) {
     checkCommonErrors(filePath);
     if (fs::is_empty(filePath))
@@ -587,6 +593,8 @@ inline void trim(std::string &str) {
 /// \note This function expects the csv data to have only three columns: {site, username, password}.
 /// The password entry cannot be empty, and either site or username can be empty, but not both.
 /// Non-compliant rows will be ignored entirely.
+///
+/// \throws std::runtime_error if the file couldn't be opened for reading.
 privacy::vector<passwordRecords> importCsv(const std::string &filePath) {
     privacy::vector<passwordRecords> passwords;
 

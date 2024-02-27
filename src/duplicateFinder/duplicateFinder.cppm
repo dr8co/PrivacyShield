@@ -45,6 +45,7 @@ struct FileInfo {
 /// \brief Calculates the 256-bit BLAKE3 hash of a file.
 /// \param filePath path to the file.
 /// \return Base64-encoded hash of the file.
+/// \throws std::runtime_error if the file cannot be opened.
 std::string calculateBlake3(const std::string &filePath) {
     // Open the file
     std::ifstream file(filePath, std::ios::binary);
@@ -159,10 +160,6 @@ void calculateHashes(std::vector<FileInfo> &files, const std::size_t start, cons
 /// \param directoryPath the directory to process.
 /// \return True if duplicates are found, else False.
 std::size_t findDuplicates(const std::string &directoryPath) {
-    // Initialize libsodium if not already initialized
-    if (sodium_init() == -1)
-        throw std::runtime_error("Failed to initialize libsodium.");
-
     // Collect file information
     std::vector<FileInfo> files;
     traverseDirectory(directoryPath, files);

@@ -35,6 +35,8 @@ module encryption;
 /// \param algo The cipher to be used for encryption.
 /// \return Base64-encoded ciphertext (the encrypted data).
 ///
+/// \throws std::runtime_error if the encryption operation fails.
+///
 /// \details Available ciphers: AES-256, Camellia-256, and Aria-256.
 /// \details Encryption mode: CBC.
 /// \details The key is derived from the password using PBKDF2 with 100,000 rounds (salted).
@@ -107,6 +109,8 @@ encryptString(const privacy::string &plaintext, const privacy::string &password,
 /// \param password The string to be used to derive the decryption key.
 /// \param algo The cipher used for encryption.
 /// \return The decrypted string (the plaintext).
+///
+/// \throws std::runtime_error if the decryption operation fails.
 privacy::string
 decryptString(const std::string &encodedCiphertext, const privacy::string &password, const std::string &algo) {
     CryptoCipher cipher;
@@ -185,6 +189,8 @@ inline void throwSafeError(const gcry_error_t &err, const std::string &message) 
 /// \param algorithm The cipher to be used for encryption.
 /// \return Base64-encoded ciphertext (the encrypted data).
 ///
+/// \throws std::runtime_error if the encryption operation fails.
+///
 /// \details Available ciphers: Serpent-256 and Twofish-256.
 /// \details Encryption mode: CTR.
 /// \details Key derivation function: PBKDF2 with 100,000 rounds.
@@ -253,6 +259,8 @@ encryptStringWithMoreRounds(const privacy::string &plaintext, const privacy::str
 /// \param password The string to be used to derive the decryption key.
 /// \param algorithm The cipher used for encryption.
 /// \return The decrypted string (the plaintext).
+///
+/// \throws std::runtime_error if the decryption operation fails.
 privacy::string
 decryptStringWithMoreRounds(const std::string &encodedCiphertext, const privacy::string &password,
                             const gcry_cipher_algos &algorithm) {
