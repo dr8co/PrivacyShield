@@ -79,14 +79,13 @@ concept StringLike = std::same_as<T, std::basic_string<typename T::value_type,
 /// \brief Trims space (whitespace) off the beginning and end of a string.
 /// \param str the string to trim.
 void stripString(StringLike auto &str) noexcept {
+    constexpr std::string_view space = " \t\n\r\f\v";
+
     // Trim the leading space
-    std::input_iterator auto it = std::ranges::find_if_not(str.begin(), str.end(),
-                                                           [](const char c) { return std::isspace(c); });
-    str.erase(str.begin(), it);
+    str.erase(0, str.find_first_not_of(space));
 
     // Trim the trailing space
-    it = std::ranges::find_if_not(str.rbegin(), str.rend(), [](const char c) { return std::isspace(c); }).base();
-    str.erase(it, str.end());
+    str.erase(str.find_last_not_of(space) + 1);
 }
 
 /// \brief Gets a response string from user input.
@@ -99,6 +98,8 @@ void stripString(StringLike auto &str) noexcept {
 std::string getResponseStr(const std::string &prompt) {
     std::cout << prompt << std::endl;
     char *tmp = readline("> ");
+    if (tmp == nullptr) return std::string{};
+
     auto str = std::string{tmp};
 
     // Trim leading and trailing spaces
