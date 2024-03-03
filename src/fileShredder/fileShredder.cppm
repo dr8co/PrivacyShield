@@ -105,7 +105,7 @@ void overwriteConstantByte(std::ofstream &file, T &byte, const auto &fileSize) {
 /// \brief renames a file to a random name before removing it.
 /// \param filename the path to the file to be renamed.
 /// \param numTimes the number of times to rename the file.
-inline void renameAndRemove(const std::string &filename, int numTimes = 1) {
+inline void renameAndRemove(const std::string_view filename, int numTimes = 1) {
     constexpr int maxTries = 10; // max number of trials to rename the file
     constexpr int minNameLength = 3; // min length of the random name
     constexpr int maxNameLength = 16; // max length of the random name
@@ -339,7 +339,7 @@ enum class ShredOptions : std::uint_fast8_t {
 ///
 /// \warning Modifying file permissions unnecessarily is a serious security risk,
 /// and this program doesn't take that for granted.
-inline bool addReadWritePermissions(const std::string &fileName) noexcept {
+inline bool addReadWritePermissions(const std::string_view fileName) noexcept {
     std::error_code ec;
     permissions(fileName, fs::perms::owner_read | fs::perms::owner_write | fs::perms::group_read |
                           fs::perms::group_write | fs::perms::others_read | fs::perms::others_write,
@@ -401,7 +401,7 @@ bool shredFiles(const std::string &filePath, const std::uint_fast8_t &options, c
                     printColor(canonical(entry.path()).string(), 'b');
                     printColor(" ...", 'c');
                     try {
-                        const bool shredded = shredFiles(entry.path(), options);
+                        const bool shredded = shredFiles(entry.path().string(), options);
                         printColor(shredded ? "\tshredded successfully." : "\tshredding failed.", shredded ? 'g' : 'r',
                                    true);
 

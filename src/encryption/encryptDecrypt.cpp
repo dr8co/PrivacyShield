@@ -221,7 +221,7 @@ inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const Ope
 /// \brief Copies the last write time of a file to another.
 /// \param srcFile the source file.
 /// \param destFile the destination file.
-inline void copyLastWrite(const std::string &srcFile, const std::string &destFile) noexcept {
+inline void copyLastWrite(const std::string_view srcFile, const std::string_view destFile) noexcept {
     std::error_code ec;
     last_write_time(destFile, fs::last_write_time(srcFile, ec), ec);
 }
@@ -305,7 +305,7 @@ void encryptDecrypt() {
         {5, Algorithms::Twofish}
     };
 
-    const std::unordered_map<Algorithms, std::string> algoDescription = {
+    const std::unordered_map<Algorithms, std::string_view> algoDescription = {
         {Algorithms::AES, "256-bit AES in CBC mode"},
         {Algorithms::Camellia, "256-bit Camellia in CBC mode"},
         {Algorithms::Aria, "256-bit Aria in CBC mode"},

@@ -37,7 +37,7 @@ namespace fs = std::filesystem;
 /// \brief Checks the strength of a password.
 /// \param password the password to process.
 /// \return True if the password is strong, False otherwise.
-bool isPasswordStrong(const privacy::string &password) noexcept {
+bool isPasswordStrong(const std::string_view password) noexcept {
     // Check the length
     if (password.length() < 8)
         return false;
@@ -70,7 +70,7 @@ bool isPasswordStrong(const privacy::string &password) noexcept {
 /// \param length the length of the password.
 /// \return a random password.
 /// \throws std::length_error if the password is too short or too long.
-privacy::string generatePassword(const int &length) {
+privacy::string generatePassword(const int length) {
     // a password shouldn't be too short, nor too long
     if (length < 8)
         throw std::length_error("Password too short.");
@@ -237,7 +237,7 @@ encryptDecryptConcurrently(privacy::vector<passwordRecords> &passwordEntries, co
 /// \brief Checks for common errors when reading/writing to a file.
 /// \param path the path to the file.
 /// \throws std::runtime_error if the file is not a regular file, does not exist, or is a directory.
-inline void checkCommonErrors(std::string_view path) {
+inline void checkCommonErrors(const std::string_view path) {
     std::error_code ec;
     const fs::file_status fileStatus = fs::status(path, ec);
     if (ec)
@@ -258,9 +258,9 @@ inline void checkCommonErrors(std::string_view path) {
 /// \param filePath the path where the file is saved.
 /// \param encryptionKey the key/password to encrypt the passwords in the process.
 /// \return True, if successful.
-bool savePasswords(privacy::vector<passwordRecords> &passwords, const std::string &filePath,
+bool savePasswords(privacy::vector<passwordRecords> &passwords, const std::string_view filePath,
                    const privacy::string &encryptionKey) {
-    std::string tempFile = filePath + "XXXXXX";
+    auto tempFile = std::string{filePath} + "XXXXXX";
 
     // Create a temporary file
     // If the temporary file couldn't be created, use the original file path
@@ -292,11 +292,7 @@ bool savePasswords(privacy::vector<passwordRecords> &passwords, const std::strin
     // Encrypt all fields with AES
     encryptDecryptConcurrently(passwords, encryptionKey, true, true);
 
-    for (const auto &password: passwords) {
-        const auto &encryptedSite = std::get<0>(password);
-        const auto &encryptedUsername = std::get<1>(password);
-        const auto &encryptedPassword = std::get<2>(password);
-
+    for (const auto &[encryptedSite, encryptedUsername,encryptedPassword]: passwords) {
         if (encryptedSite.empty() || encryptedUsername.empty() || encryptedPassword.empty())
             return false;
 
@@ -317,7 +313,7 @@ bool savePasswords(privacy::vector<passwordRecords> &passwords, const std::strin
 /// \param decryptionKey the key/password to decrypt the passwords.
 /// \return decrypted password records.
 /// \throws std::runtime_error if the file is empty, or if it couldn't be opened for reading.
-privacy::vector<passwordRecords> loadPasswords(const std::string &filePath, const privacy::string &decryptionKey) {
+privacy::vector<passwordRecords> loadPasswords(const std::string_view filePath, const privacy::string &decryptionKey) {
     privacy::vector<passwordRecords> passwords;
     passwords.reserve(1024);
 
@@ -328,7 +324,7 @@ privacy::vector<passwordRecords> loadPasswords(const std::string &filePath, cons
         throw std::runtime_error(std::format("The password file ({}) empty.", filePath));
     if (ec) ec.clear();
 
-    std::ifstream file(filePath);
+    std::ifstream file(fs::path{filePath});
     if (!file)
         throw std::runtime_error(std::format("Failed to open the password file ({}) for reading.", filePath));
 
@@ -467,9 +463,8 @@ std::pair<std::string, privacy::string> initialSetup() noexcept {
             ret.first = path;
             break;
         }
-        if (resp == 3) {
-            return ret;
-        }
+        if (resp == 3) return ret;
+
         // Invalid choice
         std::cerr << "Invalid choice. Try again" << std::endl;
     }
@@ -481,13 +476,13 @@ std::pair<std::string, privacy::string> initialSetup() noexcept {
 /// \param filePath the path to the file containing the password records (the password file).
 /// \return the primary password hash.
 /// \throws std::runtime_error if the password file is empty, or if the password hash is not found/is invalid.
-privacy::string getHash(const std::string &filePath) {
+privacy::string getHash(const std::string_view filePath) {
     checkCommonErrors(filePath);
     if (fs::is_empty(filePath))
         [[unlikely]]
                 throw std::runtime_error(std::format("The password file, '{}', is empty.", filePath));
 
-    std::ifstream passFileStream(filePath);
+    std::ifstream passFileStream(fs::path{filePath});
 
     if (!passFileStream)
         throw std::runtime_error(std::format("Failed to open '{}' for reading.", filePath));
@@ -512,7 +507,7 @@ privacy::string getHash(const std::string &filePath) {
 /// \brief Export the password records to a CSV file.
 /// \param records the password records to export.
 /// \param filePath the file to export to.
-bool exportCsv(const privacy::vector<passwordRecords> &records, const std::string &filePath) {
+bool exportCsv(const privacy::vector<passwordRecords> &records, const std::string_view filePath) {
     fs::path filepath(filePath);
     std::error_code ec;
 

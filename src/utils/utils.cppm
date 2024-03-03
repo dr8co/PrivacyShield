@@ -113,11 +113,11 @@ export {
         return encodedData;
     }
 
-    std::vector<unsigned char> base64Decode(const std::string &encodedData);
+    std::vector<unsigned char> base64Decode(std::string_view encodedData);
 
-    int getResponseInt(const std::string &prompt = "");
+    int getResponseInt(std::string_view prompt = "");
 
-    std::string getResponseStr(const std::string &prompt = "");
+    std::string getResponseStr(std::string_view prompt = "");
 
     bool isWritable(const std::string &filename);
 
@@ -125,11 +125,11 @@ export {
 
     std::uintmax_t getAvailableSpace(const fs::path &path) noexcept;
 
-    bool copyFilePermissions(const std::string &srcFile, const std::string &destFile) noexcept;
+    bool copyFilePermissions(std::string_view srcFile, std::string_view destFile) noexcept;
 
-    privacy::string getSensitiveInfo(const std::string &prompt = "");
+    privacy::string getSensitiveInfo(std::string_view prompt = "");
 
-    bool validateYesNo(const std::string &prompt = "");
+    bool validateYesNo(std::string_view prompt = "");
 
     std::string getHomeDir() noexcept;
 

@@ -88,7 +88,7 @@ public:
     /// \param pattern the pattern to match.
     /// \param maxDistance the maximum Levenshtein Distance to consider a match.
     /// \return a vector of strings matching the pattern.
-    [[nodiscard]] std::vector<privacy::string> fuzzyMatch(const privacy::string &pattern, const int &maxDistance) const {
+    [[nodiscard]] std::vector<privacy::string> fuzzyMatch(const std::string_view pattern, const int &maxDistance) const {
         std::vector<privacy::string> matches{};
         matches.reserve(stringList.size());  // Worst case: every string in stringList is a match.
         // The maximum and minimum size of a string to be considered a match
@@ -118,7 +118,7 @@ private:
     /// \return the calculated distance.
     /// \note The Levenshtein distance calculated by this function is case insensitive,
     /// i.e the strings are converted to lowercase when calculating the edit distance.
-    constexpr static int levenshteinDistance(const privacy::string &str1, const privacy::string &str2) {
+    constexpr static int levenshteinDistance(const std::string_view str1, const std::string_view str2) {
         const int m = static_cast<int>(str1.length());
         const int n = static_cast<int>(str2.length());
 

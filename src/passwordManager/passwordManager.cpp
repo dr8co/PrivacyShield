@@ -225,7 +225,6 @@ void checkFuzzyMatches(auto &iter, privacy::vector<passwordRecords> &records, pr
                                                 return comparator(lhs, rhs);
                                             });
             query = std::string{match};
-            // string constructed because 'match' is a reference and 'query' outlives it.
         }
     } else if (!fuzzyMatched.empty()) {
         // multiple matches

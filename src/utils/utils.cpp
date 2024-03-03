@@ -40,7 +40,7 @@ constexpr int MAX_PASSPHRASE_LEN = 1024; // Maximum length of a passphrase
 /// \return a vector of the decoded binary data.
 /// \throws std::bad_alloc if memory allocation fails.
 /// \throws std::runtime_error if the decoding operation fails.
-std::vector<unsigned char> base64Decode(const std::string &encodedData) {
+std::vector<unsigned char> base64Decode(const std::string_view encodedData) {
     // Create a BIO object to decode the data
     std::unique_ptr<BIO, decltype(&BIO_free_all)> bio(
         BIO_new_mem_buf(encodedData.data(), static_cast<int>(encodedData.size())), &BIO_free_all);
@@ -95,7 +95,7 @@ void stripString(StringLike auto &str) noexcept {
 ///
 /// \param prompt The prompt to display to the user.
 /// \return The response string entered by the user if successful, else nullptr.
-std::string getResponseStr(const std::string &prompt) {
+std::string getResponseStr(const std::string_view prompt) {
     std::cout << prompt << std::endl;
     char *tmp = readline("> ");
     if (tmp == nullptr) return std::string{};
@@ -115,7 +115,7 @@ std::string getResponseStr(const std::string &prompt) {
 /// while the user is entering the data.
 /// \param prompt the prompt displayed to the user for the input.
 /// \return the user's input (an integer) on if it's convertible to integer, else 0.
-int getResponseInt(const std::string &prompt) {
+int getResponseInt(const std::string_view prompt) {
     // A lambda to convert a string to an integer
     constexpr auto toInt = [](const std::string_view s) noexcept -> int {
         int value;
@@ -130,7 +130,7 @@ int getResponseInt(const std::string &prompt) {
 /// \return the user's input.
 /// \throws std::bad_alloc if memory allocation fails.
 /// \throws std::runtime_error if memory locking/unlocking fails.
-privacy::string getSensitiveInfo(const std::string &prompt) {
+privacy::string getSensitiveInfo(const std::string_view prompt) {
     // Allocate a buffer for the password
     auto *buffer = static_cast<char *>(sodium_malloc(MAX_PASSPHRASE_LEN));
     if (buffer == nullptr)
@@ -191,7 +191,7 @@ privacy::string getSensitiveInfo(const std::string &prompt) {
 /// \brief Confirms a user's response to a yes/no (y/n) situation.
 /// \param prompt The confirmation prompt.
 /// \return True if the user confirms the action, else false.
-bool validateYesNo(const std::string &prompt) {
+bool validateYesNo(const std::string_view prompt) {
     const std::string resp = getResponseStr(prompt);
     if (resp.empty()) return false;
     return std::tolower(resp.at(0)) == 'y';
@@ -245,7 +245,7 @@ std::uintmax_t getAvailableSpace(const fs::path &path) noexcept {
 ///
 /// \note This function is only needed for the preservation of file permissions
 /// during encryption and decryption.
-bool copyFilePermissions(const std::string &srcFile, const std::string &destFile) noexcept {
+bool copyFilePermissions(const std::string_view srcFile, const std::string_view destFile) noexcept {
     std::error_code ec;
     // Get the permissions of the input file
     const auto permissions = fs::status(srcFile, ec).permissions();

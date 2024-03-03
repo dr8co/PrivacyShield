@@ -311,7 +311,7 @@ void decryptFile(const std::string &inputFile, const std::string &outputFile, co
 /// \param err Gcrypt error value.
 /// \param message the error message.
 /// \throws std::runtime_error with the error message.
-inline void throwSafeError(const gcry_error_t &err, const std::string &message) {
+inline void throwSafeError(const gcry_error_t &err, const std::string_view message) {
     std::mutex m;
     std::scoped_lock<std::mutex> locker(m);
     throw std::runtime_error(std::format("{}: {}", message, gcry_strerror(err)));

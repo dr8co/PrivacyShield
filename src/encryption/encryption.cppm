@@ -61,10 +61,10 @@ export {
                                                 const gcry_cipher_algos &algorithm = GCRY_CIPHER_SERPENT256);
 
     privacy::string
-    decryptString(const std::string &encodedCiphertext, const privacy::string &password,
+    decryptString(std::string_view encodedCiphertext, const privacy::string &password,
                   const std::string &algo = "AES-256-CBC");
 
-    privacy::string decryptStringWithMoreRounds(const std::string &encodedCiphertext, const privacy::string &password,
+    privacy::string decryptStringWithMoreRounds(std::string_view encodedCiphertext, const privacy::string &password,
                                                 const gcry_cipher_algos &algorithm = GCRY_CIPHER_SERPENT256);
 
     void encryptDecrypt();

@@ -112,7 +112,7 @@ encryptString(const privacy::string &plaintext, const privacy::string &password,
 ///
 /// \throws std::runtime_error if the decryption operation fails.
 privacy::string
-decryptString(const std::string &encodedCiphertext, const privacy::string &password, const std::string &algo) {
+decryptString(const std::string_view encodedCiphertext, const privacy::string &password, const std::string &algo) {
     CryptoCipher cipher;
 
     // Create the cipher context
@@ -177,7 +177,7 @@ decryptString(const std::string &encodedCiphertext, const privacy::string &passw
     return decryptedText;
 }
 
-inline void throwSafeError(const gcry_error_t &err, const std::string &message) {
+inline void throwSafeError(const gcry_error_t &err, const std::string_view message) {
     std::mutex m;
     std::scoped_lock<std::mutex> locker(m);
     throw std::runtime_error(std::format("{}: {}", message, gcry_strerror(err)));
@@ -262,7 +262,7 @@ encryptStringWithMoreRounds(const privacy::string &plaintext, const privacy::str
 ///
 /// \throws std::runtime_error if the decryption operation fails.
 privacy::string
-decryptStringWithMoreRounds(const std::string &encodedCiphertext, const privacy::string &password,
+decryptStringWithMoreRounds(const std::string_view encodedCiphertext, const privacy::string &password,
                             const gcry_cipher_algos &algorithm) {
     // Fetch the cipher's counter-size and key size
     std::size_t ctrSize = gcry_cipher_get_algo_blklen(algorithm);
