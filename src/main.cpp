@@ -97,7 +97,7 @@ int main(const int argc, const char **argv) {
             throw std::runtime_error("Failed to initialize libsodium.");
 
         // Display information about the program
-        printColor("\nPrivacy Shield 2.0.0\n", 'c');
+        printColor("\nPrivacy Shield 2.5.0\n", 'c');
         printColor("Copyright (C) 2024 Ian Duncan.\n", 'b');
 
         printColor("This program comes with ", 'g');

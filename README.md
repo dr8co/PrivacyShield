@@ -421,15 +421,15 @@ Internet connection might be required to install the dependencies.
 For instance, on Ubuntu, you can install the .deb file using the following command:
 
 ```bash
-sudo dpkg -i privacyshield_2.0.0_amd64.deb # Replace with the actual file path
+sudo dpkg -i privacyshield_2.5.0_amd64.deb # Replace with the actual file path
 # You can also use apt to install it:
-sudo apt install ./privacyshield_2.0.0_amd64.deb # Replace with the actual file path
+sudo apt install ./privacyshield_2.5.0_amd64.deb # Replace with the actual file path
 ```
 
 On RPM-based distributions like Fedora, you can install the .rpm file using the following command:
 
 ```bash
-sudo rpm -i privacyshield-2.0.0-1.x86_64.rpm # Replace with the actual file path
+sudo rpm -i privacyshield-2.5.0-1.x86_64.rpm # Replace with the actual file path
 ```
 
 The packages can be verified using the [GnuPG](https://gnupg.org/) signature files provided.
