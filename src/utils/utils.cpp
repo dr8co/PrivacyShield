@@ -26,43 +26,42 @@ module;
 #include <openssl/buffer.h>
 #include <openssl/evp.h>
 #include <vector>
+#include <sodium.h>
 
 module utils;
 
 import secureAllocator;
 
+constexpr int MAX_PASSPHRASE_LEN = 1024; // Maximum length of a passphrase
+
 
 /// \brief Performs Base64 decoding of a string into binary data.
 /// \param encodedData Base64 encoded string.
 /// \return a vector of the decoded binary data.
-std::vector<unsigned char> base64Decode(const std::string &encodedData) {
-    // Allocate a buffer for the decoded data (the size of the decoded data is always less than the size of the encoded data)
-    std::vector<unsigned char> decodedData(encodedData.size());
-
-    // Custom deleter for BIO objects
-    auto bioDeleter = [](BIO *bio) -> void { BIO_free_all(bio); };
-
+/// \throws std::bad_alloc if memory allocation fails.
+/// \throws std::runtime_error if the decoding operation fails.
+std::vector<unsigned char> base64Decode(const std::string_view encodedData) {
     // Create a BIO object to decode the data
-    const std::unique_ptr<BIO, decltype(bioDeleter)> b64(BIO_new(BIO_f_base64()), bioDeleter);
+    std::unique_ptr<BIO, decltype(&BIO_free_all)> bio(
+        BIO_new_mem_buf(encodedData.data(), static_cast<int>(encodedData.size())), &BIO_free_all);
+    if (bio == nullptr)
+        throw std::bad_alloc(); // Memory allocation failed
+
+    // Create a base64 BIO
+    BIO *b64 = BIO_new(BIO_f_base64());
+    if (b64 == nullptr)
+        throw std::bad_alloc(); // Memory allocation failed
 
     // Don't use newlines to flush buffer
-    BIO_set_flags(b64.get(), BIO_FLAGS_BASE64_NO_NL);
+    BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
 
-    // Create a memory BIO to store the encoded data
-    std::unique_ptr<BIO, decltype(bioDeleter)> bio(
-        BIO_new_mem_buf(encodedData.data(), static_cast<int>(encodedData.size())), bioDeleter);
+    // Push the base64 BIO to the memory BIO
+    bio.reset(BIO_push(b64, bio.release())); // Transfer ownership to bio
 
-    // Check if memory allocation failed
-    if (b64 == nullptr || bio == nullptr)
-        throw std::bad_alloc();
-
-    // Push the memory BIO to the base64 BIO
-    bio.reset(BIO_push(b64.get(), bio.get()));
+    std::vector<unsigned char> decodedData(encodedData.size());
 
     // Decode the data
     const int len = BIO_read(bio.get(), decodedData.data(), static_cast<int>(decodedData.size()));
-
-    // Check if the decoding failed
     if (len < 0)
         throw std::runtime_error("BIO_read() failed.");
 
@@ -80,14 +79,13 @@ concept StringLike = std::same_as<T, std::basic_string<typename T::value_type,
 /// \brief Trims space (whitespace) off the beginning and end of a string.
 /// \param str the string to trim.
 void stripString(StringLike auto &str) noexcept {
+    constexpr std::string_view space = " \t\n\r\f\v";
+
     // Trim the leading space
-    std::input_iterator auto it = std::ranges::find_if_not(str.begin(), str.end(),
-                                                           [](const char c) { return std::isspace(c); });
-    str.erase(str.begin(), it);
+    str.erase(0, str.find_first_not_of(space));
 
     // Trim the trailing space
-    it = std::ranges::find_if_not(str.rbegin(), str.rend(), [](const char c) { return std::isspace(c); }).base();
-    str.erase(it, str.end());
+    str.erase(str.find_last_not_of(space) + 1);
 }
 
 /// \brief Gets a response string from user input.
@@ -97,9 +95,11 @@ void stripString(StringLike auto &str) noexcept {
 ///
 /// \param prompt The prompt to display to the user.
 /// \return The response string entered by the user if successful, else nullptr.
-std::string getResponseStr(const std::string &prompt) {
+std::string getResponseStr(const std::string_view prompt) {
     std::cout << prompt << std::endl;
     char *tmp = readline("> ");
+    if (tmp == nullptr) return std::string{};
+
     auto str = std::string{tmp};
 
     // Trim leading and trailing spaces
@@ -115,7 +115,7 @@ std::string getResponseStr(const std::string &prompt) {
 /// while the user is entering the data.
 /// \param prompt the prompt displayed to the user for the input.
 /// \return the user's input (an integer) on if it's convertible to integer, else 0.
-int getResponseInt(const std::string &prompt) {
+int getResponseInt(const std::string_view prompt) {
     // A lambda to convert a string to an integer
     constexpr auto toInt = [](const std::string_view s) noexcept -> int {
         int value;
@@ -128,33 +128,72 @@ int getResponseInt(const std::string &prompt) {
 /// \brief Reads sensitive input from a terminal without echoing them.
 /// \param prompt the prompt to display.
 /// \return the user's input.
-privacy::string getSensitiveInfo(const std::string &prompt) {
-    termios oldSettings{}, newSettings{};
+/// \throws std::bad_alloc if memory allocation fails.
+/// \throws std::runtime_error if memory locking/unlocking fails.
+privacy::string getSensitiveInfo(const std::string_view prompt) {
+    // Allocate a buffer for the password
+    auto *buffer = static_cast<char *>(sodium_malloc(MAX_PASSPHRASE_LEN));
+    if (buffer == nullptr)
+        throw std::bad_alloc(); // Memory allocation failed
+
+    // Lock the memory to prevent swapping
+    if (sodium_mlock(buffer, MAX_PASSPHRASE_LEN) == -1) {
+        sodium_free(buffer);
+        throw std::runtime_error("Failed to lock memory.");
+    }
 
     // Turn off terminal echoing
+    termios oldSettings{}, newSettings{};
+
     tcgetattr(STDIN_FILENO, &oldSettings);
     newSettings = oldSettings;
     newSettings.c_lflag &= ~ECHO;
     tcsetattr(STDIN_FILENO, TCSANOW, &newSettings);
 
-    // Read password from input
-    char *tmp = readline(prompt.c_str());
-    privacy::string secret{tmp};
-    std::free(tmp);
+    // Prompt the user for the password
+    std::cout << prompt;
 
-    // Trim leading and trailing spaces
-    stripString(secret);
+    int index = 0; // current position in the buffer
+    char ch;
+    while (std::cin.get(ch) && ch != '\n') {
+        // check for backspace
+        if (ch == '\b') {
+            if (index > 0) {
+                --index; // move back one position in the buffer
+            }
+        } else {
+            // Check if buffer is not full
+            if (index < MAX_PASSPHRASE_LEN - 1) {
+                buffer[index++] = ch;
+            }
+        }
+    }
+    buffer[index] = '\0'; // Null-terminate the string
 
     // Restore terminal settings
     tcsetattr(STDIN_FILENO, TCSANOW, &oldSettings);
 
-    return secret;
+    privacy::string passphrase{buffer};
+
+    // Unlock the memory
+    if (sodium_munlock(buffer, MAX_PASSPHRASE_LEN) == -1)
+        throw std::runtime_error("Failed to unlock memory.");
+
+    // Free the buffer
+    sodium_free(buffer);
+
+    // Trim leading and trailing spaces
+    stripString(passphrase);
+
+    std::cout << std::endl;
+
+    return passphrase;
 }
 
 /// \brief Confirms a user's response to a yes/no (y/n) situation.
 /// \param prompt The confirmation prompt.
 /// \return True if the user confirms the action, else false.
-bool validateYesNo(const std::string &prompt) {
+bool validateYesNo(const std::string_view prompt) {
     const std::string resp = getResponseStr(prompt);
     if (resp.empty()) return false;
     return std::tolower(resp.at(0)) == 'y';
@@ -208,7 +247,7 @@ std::uintmax_t getAvailableSpace(const fs::path &path) noexcept {
 ///
 /// \note This function is only needed for the preservation of file permissions
 /// during encryption and decryption.
-bool copyFilePermissions(const std::string &srcFile, const std::string &destFile) noexcept {
+bool copyFilePermissions(const std::string_view srcFile, const std::string_view destFile) noexcept {
     std::error_code ec;
     // Get the permissions of the input file
     const auto permissions = fs::status(srcFile, ec).permissions();

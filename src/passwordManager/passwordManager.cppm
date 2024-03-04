@@ -27,24 +27,24 @@ import secureAllocator;
 
 using passwordRecords = std::tuple<privacy::string, privacy::string, privacy::string>;
 
-privacy::vector <passwordRecords> loadPasswords(const std::string &filePath, const privacy::string &decryptionKey);
+privacy::vector <passwordRecords> loadPasswords(std::string_view filePath, const privacy::string &decryptionKey);
 
-bool savePasswords(privacy::vector <passwordRecords> &passwords, const std::string &filePath,
+bool savePasswords(privacy::vector <passwordRecords> &passwords, std::string_view filePath,
                    const privacy::string &encryptionKey);
 
-bool isPasswordStrong(const privacy::string &password) noexcept;
+bool isPasswordStrong(std::string_view password) noexcept;
 
-privacy::string generatePassword(const int &length);
+privacy::string generatePassword(int length);
 
 bool changeMasterPassword(privacy::string &primaryPassword);
 
 std::pair<std::string, privacy::string> initialSetup() noexcept;
 
-privacy::string getHash(const std::string &filePath);
+privacy::string getHash(std::string_view filePath);
 
 privacy::vector <passwordRecords> importCsv(const std::string &filePath);
 
-bool exportCsv(const privacy::vector <passwordRecords> &records, const std::string &filePath = getHomeDir());
+bool exportCsv(const privacy::vector <passwordRecords> &records, std::string_view filePath = getHomeDir());
 
 export {
     privacy::string hashPassword(const privacy::string &password,

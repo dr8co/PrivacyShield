@@ -77,44 +77,47 @@ export {
     /// \brief Performs Base64 encoding of binary data into a string.
     /// \param input a vector of the binary data to be encoded.
     /// \return Base64-encoded string.
+    /// \throws std::bad_alloc if memory allocation fails.
+    /// \throws std::runtime_error if encoding fails.
     std::string base64Encode(const uCharVector auto &input) {
-        // Custom deleter for BIO objects
-        auto bioDeleter = [](BIO *bio) { BIO_free_all(bio); };
-
         // Create a BIO object to encode the data
-        std::unique_ptr<BIO, decltype(bioDeleter)> b64(BIO_new(BIO_f_base64()), bioDeleter);
+        const std::unique_ptr<BIO, decltype(&BIO_free_all)> b64(BIO_new(BIO_f_base64()), &BIO_free_all);
+        if (b64 == nullptr)
+            throw std::bad_alloc(); // Memory allocation failed
+
+        // Create a memory BIO to store the encoded data
+        BIO *bio = BIO_new(BIO_s_mem());
+        if (bio == nullptr)
+            throw std::bad_alloc(); // Memory allocation failed
 
         // Don't use newlines to flush buffer
         BIO_set_flags(b64.get(), BIO_FLAGS_BASE64_NO_NL);
 
-        // Create a memory BIO to store the encoded data
-        std::unique_ptr<BIO, decltype(bioDeleter)> bio(BIO_new(BIO_s_mem()), bioDeleter);
-
-        // Check if memory allocation failed
-        if (b64 == nullptr || bio == nullptr)
-            throw std::bad_alloc();
-
         // Push the memory BIO to the base64 BIO
-        bio.reset(BIO_push(b64.get(), bio.release()));
+        bio = BIO_push(b64.get(), bio); // Transfer ownership to b64
 
-        if (BIO_write(bio.get(), input.data(), static_cast<int>(input.size())) < 0)
+        // Write the data to the BIO
+        if (BIO_write(bio, input.data(), static_cast<int>(input.size())) < 0)
             throw std::runtime_error("BIO_write() failed.");
 
-        BIO_flush(bio.get());
+        // Flush the BIO
+        BIO_flush(bio);
 
+        // Get the pointer to the BIO's data
         BUF_MEM *bufferPtr;
         BIO_get_mem_ptr(b64.get(), &bufferPtr);
 
+        // Create a string from the data
         std::string encodedData(bufferPtr->data, bufferPtr->length);
 
         return encodedData;
     }
 
-    std::vector<unsigned char> base64Decode(const std::string &encodedData);
+    std::vector<unsigned char> base64Decode(std::string_view encodedData);
 
-    int getResponseInt(const std::string &prompt = "");
+    int getResponseInt(std::string_view prompt = "");
 
-    std::string getResponseStr(const std::string &prompt = "");
+    std::string getResponseStr(std::string_view prompt = "");
 
     bool isWritable(const std::string &filename);
 
@@ -122,11 +125,11 @@ export {
 
     std::uintmax_t getAvailableSpace(const fs::path &path) noexcept;
 
-    bool copyFilePermissions(const std::string &srcFile, const std::string &destFile) noexcept;
+    bool copyFilePermissions(std::string_view srcFile, std::string_view destFile) noexcept;
 
-    privacy::string getSensitiveInfo(const std::string &prompt = "");
+    privacy::string getSensitiveInfo(std::string_view prompt = "");
 
-    bool validateYesNo(const std::string &prompt = "");
+    bool validateYesNo(std::string_view prompt = "");
 
     std::string getHomeDir() noexcept;
 

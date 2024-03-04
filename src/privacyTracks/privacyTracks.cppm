@@ -21,6 +21,7 @@ module;
 #include <string>
 #include <vector>
 #include <filesystem>
+#include <utility>
 
 export module privacyTracks;
 
@@ -30,19 +31,20 @@ namespace fs = std::filesystem;
 
 
 /// \brief Represents different browsers in a system.
-enum class Browser : unsigned int {
-        Firefox  = 1 << 0,
-        Chrome   = 1 << 1,
-        Chromium = 1 << 2,
-        Opera    = 1 << 3,
-        Safari   = 1 << 4
+enum class Browser : std::uint_fast8_t {
+    Firefox  = 1 << 0,
+    Chrome   = 1 << 1,
+    Chromium = 1 << 2,
+    Opera    = 1 << 3,
+    Safari   = 1 << 4
 };
 
 /// \brief A convenience function for handling errors during file operations.
 /// \param ec the error code associated with the error.
 /// \param context the context in which the error occurred.
 /// \param path the path of the file in which the error occurred.
-inline void handleFileError(std::error_code &ec, const std::string &context = "", const std::string &path = "") {
+inline void handleFileError(std::error_code &ec, const std::string_view context = "",
+                            const std::string_view path = "") noexcept {
     if (ec) {
         printColor(std::format("Error {} {}: {}", context, path, ec.message()), 'r', true, std::cerr);
         ec.clear();
@@ -52,8 +54,8 @@ inline void handleFileError(std::error_code &ec, const std::string &context = ""
 /// \brief Detects browsers installed on the system.
 /// \param pathEnv The PATH environment variable.
 /// \return A bit mask of detected browsers.
-unsigned int detectBrowsers(const std::string &pathEnv) {
-    unsigned int detectedBrowsers{0};
+std::uint_fast8_t detectBrowsers(const std::string_view pathEnv) {
+    std::uint_fast8_t detectedBrowsers{0};
 
     // Check if the passed string is empty
     if (pathEnv.empty()) {
@@ -62,9 +64,11 @@ unsigned int detectBrowsers(const std::string &pathEnv) {
     }
 
     // Split the PATH variable into individual paths
-    std::string pathEnvStr = pathEnv;
+    std::string pathEnvStr{pathEnv};
     std::vector<std::string> paths;
+    paths.reserve(256);
     std::size_t pos;
+
     while ((pos = pathEnvStr.find(':')) != std::string::npos) {
         paths.emplace_back(pathEnvStr.substr(0, pos));
         pathEnvStr.erase(0, pos + 1);
@@ -73,7 +77,7 @@ unsigned int detectBrowsers(const std::string &pathEnv) {
 
     // Find the list of programs in each path
     std::error_code ec;
-    for (const std::string &path: paths) {
+    for (const auto &path: paths) {
         if (!fs::exists(path, ec)) {
             handleFileError(ec, "reading", path);
             continue;
@@ -82,22 +86,22 @@ unsigned int detectBrowsers(const std::string &pathEnv) {
         for (const auto &entry: fs::directory_iterator(path, fs::directory_options::skip_permission_denied |
                                                              fs::directory_options::follow_directory_symlink, ec)) {
             // Handle errors while reading the directory
-            handleFileError(ec, "reading", entry.path());
+            handleFileError(ec, "reading", entry.path().string());
 
             // Skip broken symlinks
             if (exists(entry.status())) {
                 // Check for the existence of the browser executable
                 if (auto executable = entry.path().filename().string(); !entry.is_directory() && entry.exists()) {
                     if (executable == "firefox")
-                        detectedBrowsers |= static_cast<unsigned int>(Browser::Firefox);
+                        detectedBrowsers |= std::to_underlying(Browser::Firefox);
                     else if (executable == "google-chrome")
-                        detectedBrowsers |= static_cast<unsigned int>(Browser::Chrome);
+                        detectedBrowsers |= std::to_underlying(Browser::Chrome);
                     else if (executable == "chromium-browser")
-                        detectedBrowsers |= static_cast<unsigned int>(Browser::Chromium);
+                        detectedBrowsers |= std::to_underlying(Browser::Chromium);
                     else if (executable == "opera")
-                        detectedBrowsers |= static_cast<unsigned int>(Browser::Opera);
+                        detectedBrowsers |= std::to_underlying(Browser::Opera);
                     else if (executable == "safari")
-                        detectedBrowsers |= static_cast<unsigned int>(Browser::Safari);
+                        detectedBrowsers |= std::to_underlying(Browser::Safari);
                 }
             }
         }
@@ -109,7 +113,7 @@ unsigned int detectBrowsers(const std::string &pathEnv) {
 /// \return A bit mask of detected browsers.
 /// \details This function uses the PATH environment variable to detect browsers.
 /// \note Only stable versions of browsers are detected.
-unsigned int detectBrowsers() {
+std::uint_fast8_t detectBrowsers() {
     if (const auto pathEnv = getEnv("PATH"); pathEnv)
         return detectBrowsers(*pathEnv);
 
@@ -120,7 +124,7 @@ unsigned int detectBrowsers() {
 /// \brief Clears Firefox cookies and history.
 /// \param configDir The path to the Firefox config directory.
 /// \return true if successful, false otherwise.
-bool clearFirefoxTracks(const std::string &configDir) {
+bool clearFirefoxTracks(const std::string_view configDir) {
     if (!fs::exists(configDir)) {
         printColor("Firefox config directory not found.", 'r', true, std::cerr);
         return false;
@@ -146,11 +150,11 @@ bool clearFirefoxTracks(const std::string &configDir) {
             printColor(profile.filename().string(), 'c', true);
             // Clearing cookies
             fs::remove(profile / "cookies.sqlite", ec);
-            handleFileError(ec, "deleting", profile / "cookies.sqlite");
+            handleFileError(ec, "deleting", (profile / "cookies.sqlite").string());
 
             // Clearing history
             fs::remove(profile / "places.sqlite", ec);
-            handleFileError(ec, "deleting", profile / "places.sqlite");
+            handleFileError(ec, "deleting", (profile / "places.sqlite").string());
         }
     } else printColor("No default profiles found.", 'r', true);
 
@@ -177,14 +181,14 @@ bool clearFirefoxTracks(const std::string &configDir) {
             for (const auto &entry: fs::directory_iterator(profile, fs::directory_options::skip_permission_denied |
                                                                     fs::directory_options::follow_directory_symlink,
                                                            ec)) {
-                handleFileError(ec, "reading", profile);
+                handleFileError(ec, "reading", profile.string());
                 if (exists(entry.status())) {
                     // Ignore broken symlinks
                     if (entry.is_regular_file()) {
                         if (entry.path().filename() == "cookies.sqlite") {
                             fs::remove(entry.path(), ec);
                             if (ec)
-                                handleFileError(ec, "deleting", entry.path());
+                                handleFileError(ec, "deleting", entry.path().string());
                             else {
                                 std::cout << "Found ";
                                 printColor(profile.filename(), 'c', true);
@@ -199,7 +203,7 @@ bool clearFirefoxTracks(const std::string &configDir) {
                                 ++nonDefaultProfiles;
                             }
                             fs::remove(entry.path(), ec);
-                            handleFileError(ec, "deleting", entry.path());
+                            handleFileError(ec, "deleting", entry.path().string());
                         }
                     }
                 }
@@ -216,7 +220,7 @@ bool clearFirefoxTracks(const std::string &configDir) {
 /// \brief Clears Chromium and Chrome cookies and history.
 /// \param configDir the Chromium or Chrome config directory.
 /// \return true if successful, false otherwise.
-bool clearChromiumTracks(const std::string &configDir) {
+bool clearChromiumTracks(const std::string_view configDir) {
     if (!fs::exists(configDir)) {
         printColor("Config directory not found.", 'r', true, std::cerr);
         return false;
@@ -243,11 +247,11 @@ bool clearChromiumTracks(const std::string &configDir) {
         std::cout << "Deleting cookies and history for the default profile..." << std::endl;
         // Clearing cookies
         fs::remove(defaultProfileDir / "Cookies", ec);
-        handleFileError(ec, "deleting", defaultProfileDir / "Cookies");
+        handleFileError(ec, "deleting", (defaultProfileDir / "Cookies").string());
 
         // Clearing history
         fs::remove(defaultProfileDir / "History", ec);
-        handleFileError(ec, "deleting", defaultProfileDir / "History");
+        handleFileError(ec, "deleting", (defaultProfileDir / "History").string());
     } else printColor("Default profile directory not found.", 'r', true, std::cerr);
 
     // Find other profile directories
@@ -272,7 +276,7 @@ bool clearChromiumTracks(const std::string &configDir) {
             for (const auto &entry: fs::directory_iterator(profile, fs::directory_options::skip_permission_denied |
                                                                     fs::directory_options::follow_directory_symlink,
                                                            ec)) {
-                handleFileError(ec, "reading", profile);
+                handleFileError(ec, "reading", profile.string());
                 if (exists(entry.status())) {
                     // ignore broken symlinks
                     if (entry.is_regular_file()) {
@@ -280,7 +284,7 @@ bool clearChromiumTracks(const std::string &configDir) {
                         if (entry.path().filename() == "Cookies") {
                             fs::remove(entry.path(), ec);
                             if (ec)
-                                handleFileError(ec, "deleting", entry.path());
+                                handleFileError(ec, "deleting", entry.path().string());
                             else {
                                 std::cout << "Found ";
                                 printColor(profile.filename(), 'c', true);
@@ -296,7 +300,7 @@ bool clearChromiumTracks(const std::string &configDir) {
                                 ++nonDefaultProfiles;
                             }
                             fs::remove(entry.path(), ec);
-                            handleFileError(ec, "deleting", entry.path());
+                            handleFileError(ec, "deleting", entry.path().string());
                         }
                     }
                 }
@@ -304,10 +308,8 @@ bool clearChromiumTracks(const std::string &configDir) {
         }
     }
     printColor(nonDefaultProfiles
-                   ? std::format("Deleted cookies and history for {} non-default profiles.",
-                                 nonDefaultProfiles)
-                   : "Non-default profiles not found.",
-               nonDefaultProfiles ? 'g' : 'r', true);
+                   ? std::format("Deleted cookies and history for {} non-default profiles.", nonDefaultProfiles)
+                   : "Non-default profiles not found.", nonDefaultProfiles ? 'g' : 'r', true);
 
     return true;
 }
@@ -315,7 +317,7 @@ bool clearChromiumTracks(const std::string &configDir) {
 /// \brief Clears Opera cookies and history.
 /// \param profilePath the Opera profile directory.
 /// \return true if successful, false otherwise.
-bool clearOperaTracks(const std::string &profilePath) {
+bool clearOperaTracks(const std::string_view profilePath) {
     bool ret{true};
 
     // Check if the Opera config directory exists
@@ -327,24 +329,24 @@ bool clearOperaTracks(const std::string &profilePath) {
     std::error_code ec;
 
     // Clear cookies
-    fs::remove(profilePath + "/Cookies", ec);
+    fs::remove(fs::path{profilePath} / "Cookies", ec);
     if (ec) {
         ec.clear();
-        fs::remove(profilePath + "/cookies", ec);
+        fs::remove(fs::path{profilePath} / "cookies", ec);
         if (ec) {
-            handleFileError(ec, "deleting", profilePath + "/cookies");
+            handleFileError(ec, "deleting", std::string{profilePath} + "/cookies");
             ec.clear();
             ret = false; // We don't to return yet, we want to try to clear history too
         }
     }
 
     // Clear history
-    fs::remove(profilePath + "/History", ec);
+    fs::remove(fs::path{profilePath} / "History", ec);
     if (ec) {
         ec.clear();
-        fs::remove(profilePath + "/history", ec);
+        fs::remove(fs::path{profilePath} / "history", ec);
         if (ec) {
-            handleFileError(ec, "deleting", profilePath + "/history");
+            handleFileError(ec, "deleting", std::string{profilePath} + "/history");
             ec.clear();
             return false; // No point in continuing
         }
@@ -408,7 +410,7 @@ bool clearSafariTracks() {
         handleFileError(ec, "reading", cookiesPath);
         if (entry.is_regular_file() && entry.path().filename() == "Cookies.binarycookies") {
             fs::remove(entry.path(), ec);
-            handleFileError(ec, "deleting", entry.path());
+            handleFileError(ec, "deleting", entry.path().string());
         }
     }
 
@@ -424,7 +426,7 @@ bool clearSafariTracks() {
         if (entry.is_regular_file() && entry.path().filename() == "History.db") {
             fs::remove(entry.path(), ec);
             if (ec) {
-                handleFileError(ec, "deleting", entry.path());
+                handleFileError(ec, "deleting", entry.path().string());
                 return false;
             }
         }
@@ -454,38 +456,38 @@ bool clearFirefoxTracks() {
 /// \param browsers the browsers to clear tracks for.
 /// \return true if successful, false otherwise.
 /// \note Only works for standard installations of the browsers.
-bool clearTracks(const unsigned int &browsers) {
+bool clearTracks(const std::uint_fast8_t &browsers) {
     bool ret{true};
 
-    if (browsers & static_cast<unsigned int>(Browser::Firefox)) {
-        std::cout << "\nClearing Firefox tracks..." << std::endl;
+    if (browsers & std::to_underlying(Browser::Firefox)) {
+        std::cout << "Clearing Firefox tracks..." << std::endl;
         ret = clearFirefoxTracks();
         printColor(ret ? "Firefox tracks cleared successfully." : "Failed to clear Firefox tracks.", ret ? 'g' : 'r',
                    true, ret ? std::cout : std::cerr);
     }
 
-    if (browsers & static_cast<unsigned int>(Browser::Chrome)) {
+    if (browsers & std::to_underlying(Browser::Chrome)) {
         std::cout << "\nClearing Chrome tracks..." << std::endl;
         ret = clearChromeTracks();
         printColor(ret ? "Chrome tracks cleared successfully." : "Failed to clear Chrome tracks.", ret ? 'g' : 'r',
                    true, ret ? std::cout : std::cerr);
     }
 
-    if (browsers & static_cast<unsigned int>(Browser::Chromium)) {
+    if (browsers & std::to_underlying(Browser::Chromium)) {
         std::cout << "\nClearing Chromium tracks..." << std::endl;
         ret = clearChromiumTracks();
         printColor(ret ? "Chromium tracks cleared successfully." : "Failed to clear Chromium tracks.", ret ? 'g' : 'r',
                    true, ret ? std::cout : std::cerr);
     }
 
-    if (browsers & static_cast<unsigned int>(Browser::Opera)) {
+    if (browsers & std::to_underlying(Browser::Opera)) {
         std::cout << "\nClearing Opera tracks..." << std::endl;
         ret = clearOperaTracks();
-        printColor(ret ? "Opera tracks cleared successfully." : "Failed to clear Opera tracks.", ret ? 'g' : 'r', true,
-                   ret ? std::cout : std::cerr);
+        printColor(ret ? "Opera tracks cleared successfully." : "Failed to clear Opera tracks.", ret ? 'g' : 'r',
+                   true, ret ? std::cout : std::cerr);
     }
 
-    if (browsers & static_cast<unsigned int>(Browser::Safari)) {
+    if (browsers & std::to_underlying(Browser::Safari)) {
 #if __APPLE__
         std::cout << "Clearing Safari tracks..." << std::endl;
         ret = clearSafariTracks();
@@ -505,32 +507,33 @@ bool clearTracks(const unsigned int &browsers) {
 export void clearPrivacyTracks() {
     std::cout << "Scanning your system for browsers..." << std::endl;
 
-    const unsigned int browsers = detectBrowsers();
+    const std::uint_fast8_t browsers = detectBrowsers();
     if (browsers == 0) [[unlikely]] {
         printColor("No supported browsers found.", 'r', true, std::cerr);
         return;
     }
-    printColor("Supported browsers found:", 'b', true);
-    if (browsers & static_cast<unsigned int>(Browser::Firefox))
+    printColor("Supported browsers found:", 'y', true);
+    if (browsers & std::to_underlying(Browser::Firefox))
         printColor("Firefox", 'c', true);
 
-    if (browsers & static_cast<unsigned int>(Browser::Chrome))
+    if (browsers & std::to_underlying(Browser::Chrome))
         printColor("Chrome", 'c', true);
 
-    if (browsers & static_cast<unsigned int>(Browser::Chromium))
+    if (browsers & std::to_underlying(Browser::Chromium))
         printColor("Chromium", 'c', true);
 
-    if (browsers & static_cast<unsigned int>(Browser::Opera))
+    if (browsers & std::to_underlying(Browser::Opera))
         printColor("Opera", 'c', true);
 
-    if (browsers & static_cast<unsigned int>(Browser::Safari))
+    if (browsers & std::to_underlying(Browser::Safari))
         printColor("Safari", 'c', true);
+
     printColor("\nAll the cookies and browsing history of the above browsers will be deleted.", 'r', true);
     printColor("Continue? (y/n): ", 'c');
 
     if (validateYesNo()) {
         const auto cleared{clearTracks(browsers)};
-        printColor(cleared ? "\nAll tracks cleared successfully." : "\nFailed to clear all tracks.",
+        printColor(cleared ? "\nAll tracks cleared successfully.\n" : "\nFailed to clear all tracks.\n",
                    cleared ? 'g' : 'r', true, cleared ? std::cout : std::cerr);
     } else printColor("Aborted.", 'r', true);
 }

@@ -45,6 +45,7 @@ struct FileInfo {
 /// \brief Calculates the 256-bit BLAKE3 hash of a file.
 /// \param filePath path to the file.
 /// \return Base64-encoded hash of the file.
+/// \throws std::runtime_error if the file cannot be opened.
 std::string calculateBlake3(const std::string &filePath) {
     // Open the file
     std::ifstream file(filePath, std::ios::binary);
@@ -73,7 +74,7 @@ std::string calculateBlake3(const std::string &filePath) {
 
 /// \brief handles file i/o errors during low-level file operations.
 /// \param filename path to the file on which an error occurred.
-inline void handleAccessError(const std::string &filename) {
+inline void handleAccessError(const std::string_view filename) {
     std::string errMsg;
     errMsg.reserve(50);
 
@@ -109,7 +110,7 @@ inline void handleAccessError(const std::string &filename) {
 /// \brief recursively traverses a directory and collects file information.
 /// \param directoryPath the directory to process.
 /// \param files a vector to store the information from the files found in the directory.
-void traverseDirectory(const std::string &directoryPath, std::vector<FileInfo> &files) {
+void traverseDirectory(const std::string_view directoryPath, std::vector<FileInfo> &files) {
     std::error_code ec;
 
     for (const auto &entry: fs::recursive_directory_iterator(directoryPath,
@@ -158,11 +159,7 @@ void calculateHashes(std::vector<FileInfo> &files, const std::size_t start, cons
 /// \brief finds duplicate files (by content) in a directory.
 /// \param directoryPath the directory to process.
 /// \return True if duplicates are found, else False.
-std::size_t findDuplicates(const std::string &directoryPath) {
-    // Initialize libsodium if not already initialized
-    if (sodium_init() == -1)
-        throw std::runtime_error("Failed to initialize libsodium.");
-
+std::size_t findDuplicates(const std::string_view directoryPath) {
     // Collect file information
     std::vector<FileInfo> files;
     traverseDirectory(directoryPath, files);
@@ -187,16 +184,14 @@ std::size_t findDuplicates(const std::string &directoryPath) {
     threads.emplace_back(calculateHashes, std::ref(files), start, files.size());
 
     // Wait for all threads to finish execution
-    for (auto &thread: threads) {
-        thread.join();
-    }
+    for (auto &thread: threads) thread.join();
+
     // A hash map to map the files to their corresponding hashes
     std::unordered_map<std::string, std::vector<std::string> > hashMap;
 
     // Iterate over files and identify duplicates
-    for (const auto &[filePath, hash]: files) {
+    for (const auto &[filePath, hash]: files)
         hashMap[hash].push_back(filePath);
-    }
 
     std::size_t duplicatesSet{0}, numDuplicates{0};
 

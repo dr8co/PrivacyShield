@@ -23,7 +23,7 @@
 set(CPACK_PACKAGE_NAME "PrivacyShield")
 set(CPACK_PACKAGE_VENDOR "Ian Duncan")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "A suite of tools for privacy and security")
-set(CPACK_PACKAGE_VERSION "2.0.0")
+set(CPACK_PACKAGE_VERSION "2.5.0")
 set(CPACK_PACKAGE_CONTACT "dr8co@duck.com")
 
 SET(CPACK_OUTPUT_FILE_PREFIX "${CMAKE_SOURCE_DIR}/Packages")

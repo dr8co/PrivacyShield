@@ -68,25 +68,25 @@ private:
 };
 
 /// \brief Available encryption/decryption ciphers.
-enum class Algorithms : unsigned int {
-        AES      = 1 << 0,
-        Camellia = 1 << 1,
-        Aria     = 1 << 2,
-        Serpent  = 1 << 3,
-        Twofish  = 1 << 4
+enum class Algorithms : std::uint_fast8_t {
+    AES      = 1 << 0,
+    Camellia = 1 << 1,
+    Aria     = 1 << 2,
+    Serpent  = 1 << 3,
+    Twofish  = 1 << 4
 };
 
 /// \brief Operation modes: encryption or decryption.
-enum class OperationMode : unsigned int {
-        Encryption = 1,
-        Decryption = 2
+enum class OperationMode : std::uint_fast8_t {
+    Encryption = 1,
+    Decryption = 2
 };
 
 /// \brief An anonymous struct to aid algorithm selection.
 constexpr struct {
-    const char *const AES      = "AES-256-CBC";
+    const char *const AES = "AES-256-CBC";
     const char *const Camellia = "CAMELLIA-256-CBC";
-    const char *const Aria     = "ARIA-256-CBC";
+    const char *const Aria = "ARIA-256-CBC";
     const gcry_cipher_algos Serpent = GCRY_CIPHER_SERPENT256;
     const gcry_cipher_algos Twofish = GCRY_CIPHER_TWOFISH;
 } AlgoSelection;
@@ -94,6 +94,9 @@ constexpr struct {
 /// \brief Checks for issues with the input file, that may hinder encryption/decryption.
 /// \param inFile the input file, to be encrypted/decrypted.
 /// \param mode the mode of operation: encryption or decryption.
+/// \throws std::invalid_argument if \p mode is invalid.
+/// \throws std::runtime_error if the input file does not exist, is a directory,
+/// is not a regular file, or is not readable.
 inline void checkInputFile(const fs::path &inFile, const OperationMode &mode) {
     if (mode != OperationMode::Encryption && mode != OperationMode::Decryption)
         throw std::invalid_argument("Invalid mode of operation.");
@@ -120,10 +123,12 @@ inline void checkInputFile(const fs::path &inFile, const OperationMode &mode) {
         throw std::runtime_error(std::format("{} is not readable.", file));
 }
 
-/// \brief Creates the directory path for a given file path if it does not exist.
+/// \brief Creates non-existing parent directories for a file.
 /// \param filePath The file path for which the directory path needs to be created.
 /// \return True if the directory path is created successfully or already exists, false otherwise.
 inline bool createPath(const fs::path &filePath) noexcept {
+    if (filePath.string().empty()) return false; // Can't create empty paths
+
     std::error_code ec;
 
     auto absolutePath = weakly_canonical(filePath, ec);
@@ -148,49 +153,55 @@ inline bool createPath(const fs::path &filePath) noexcept {
 /// \param inFile the input file, to be encrypted/decrypted.
 /// \param outFile the output file, to be saved.
 /// \param mode the mode of operation: encryption or decryption.
+/// \throws std::invalid_argument if \p mode is invalid.
+/// \throws std::runtime_error if the output file is not writable, readable, or there is not enough space to save it.
 inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const OperationMode &mode) {
     if (mode != OperationMode::Encryption && mode != OperationMode::Decryption)
         throw std::invalid_argument("Invalid mode of operation.");
 
+    // Create parent directories, if necessary.
     if (!createPath(outFile))
-        throw std::runtime_error("Unable to create destination directory.");
+        throw std::runtime_error("Unable to create destination directory. Check the path");
 
-    // Check if the output file is a directory, and rename it appropriately if so
-    if (is_directory(outFile)) {
-        if (mode == OperationMode::Encryption) {
-            outFile /= inFile.filename();
-            outFile += ".enc";
-        } else outFile /= inFile.extension() == ".enc" ? inFile.stem() : inFile.filename();
-    }
+    if (std::error_code ec; exists(outFile, ec)) {
+        // If the output file is not specified, name it appropriately
+        if (equivalent(fs::current_path(), outFile)) {
+            outFile = inFile;
+            if (inFile.extension() == ".enc") {
+                outFile.replace_extension("");
+            } else if (mode == OperationMode::Encryption) {
+                outFile += ".enc";
+            } else {
+                outFile.replace_extension("");
+                outFile += "_decrypted";
+                outFile += inFile.extension();
+            }
+        } else if (is_directory(outFile)) {
+            // If the output file is a directory, rename it appropriately.
+            if (mode == OperationMode::Encryption) {
+                outFile /= inFile.filename();
+                outFile += ".enc";
+            } else outFile /= inFile.extension() == ".enc" ? inFile.stem() : inFile.filename();
+        }
+        // If the output file exists, ask for confirmation for overwriting
+        if (exists(outFile, ec)) {
+            printColor(canonical(outFile).string(), 'b', false, std::cerr);
+            printColor(" already exists. \nDo you want to overwrite it? (y/n): ", 'r', false, std::cerr);
+            if (!validateYesNo())
+                throw std::runtime_error("Operation aborted.");
 
-    // If the output file is not specified, name it appropriately
-    if (outFile.string().empty()) {
-        outFile = inFile;
-        if (inFile.extension() == ".enc") {
-            outFile.replace_extension("");
-        } else if (mode == OperationMode::Encryption) {
-            outFile += ".enc";
-        } else {
-            outFile.replace_extension("");
-            outFile += "_decrypted";
-            outFile += inFile.extension();
+            // Determine if the output file can be written if it exists
+            if (auto file = weakly_canonical(outFile).string(); !(isWritable(file) && isReadable(file)))
+                throw std::runtime_error(std::format("{} is not writable/readable.", file));
         }
     }
 
-    // If the output file exists, ask for confirmation for overwriting
-    if (std::error_code ec; exists(outFile, ec)) {
-        printColor(canonical(outFile).string(), 'b', false, std::cerr);
-        printColor(" already exists. \nDo you want to overwrite it? (y/n): ", 'r', false, std::cerr);
-        if (!validateYesNo())
-            throw std::runtime_error("Operation aborted.");
-
-        // Determine if the output file can be written if it exists
-        if (auto file = weakly_canonical(outFile).string(); !(isWritable(file) && isReadable(file)))
-            throw std::runtime_error(std::format("{} is not writable/readable.", file));
-    }
+    // Check if the input and output files are the same
+    if (equivalent(inFile, outFile))
+        throw std::runtime_error("The input and output files are the same.");
 
     // Check if there is enough space on the disk to save the output file.
-    const auto availableSpace = getAvailableSpace(outFile);
+    const auto availableSpace = getAvailableSpace(weakly_canonical(outFile));
     if (const auto fileSize = file_size(inFile); std::cmp_less(availableSpace, fileSize)) {
         printColor("Not enough space to save ", 'r', false, std::cerr);
         printColor(weakly_canonical(outFile).string(), 'c', true, std::cerr);
@@ -210,7 +221,7 @@ inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const Ope
 /// \brief Copies the last write time of a file to another.
 /// \param srcFile the source file.
 /// \param destFile the destination file.
-inline void copyLastWrite(const std::string &srcFile, const std::string &destFile) noexcept {
+inline void copyLastWrite(const std::string_view srcFile, const std::string_view destFile) noexcept {
     std::error_code ec;
     last_write_time(destFile, fs::last_write_time(srcFile, ec), ec);
 }
@@ -222,7 +233,7 @@ inline void copyLastWrite(const std::string &srcFile, const std::string &destFil
 /// \param algo the algorithm to use for encryption/decryption.
 /// \param mode the mode of operation: encryption or decryption.
 void fileEncryptionDecryption(const std::string &inputFileName, const std::string &outputFileName,
-                              const privacy::string &password, const unsigned int &algo, const OperationMode &mode) {
+                              const privacy::string &password, const Algorithms &algo, const OperationMode &mode) {
     // The mode must be valid: must be either encryption or decryption
     if (mode != OperationMode::Encryption && mode != OperationMode::Decryption) [[unlikely]] {
         printColor("Invalid mode of operation.", 'r', true, std::cerr);
@@ -247,16 +258,23 @@ void fileEncryptionDecryption(const std::string &inputFileName, const std::strin
         };
 
         // Encrypt/decrypt with the specified algorithm
-        if (algo & static_cast<unsigned int>(Algorithms::AES))
-            encryptDecrypt(AlgoSelection.AES);
-        else if (algo & static_cast<unsigned int>(Algorithms::Camellia))
-            encryptDecrypt(AlgoSelection.Camellia);
-        else if (algo & static_cast<unsigned int>(Algorithms::Aria))
-            encryptDecrypt(AlgoSelection.Aria);
-        else if (algo & static_cast<unsigned int>(Algorithms::Serpent))
-            encryptDecryptMoreRounds(AlgoSelection.Serpent);
-        else if (algo & static_cast<unsigned int>(Algorithms::Twofish))
-            encryptDecryptMoreRounds(AlgoSelection.Twofish);
+        switch (algo) {
+            case Algorithms::Camellia:
+                encryptDecrypt(AlgoSelection.Camellia);
+                break;
+            case Algorithms::Aria:
+                encryptDecrypt(AlgoSelection.Aria);
+                break;
+            case Algorithms::Serpent:
+                encryptDecryptMoreRounds(AlgoSelection.Serpent);
+                break;
+            case Algorithms::Twofish:
+                encryptDecryptMoreRounds(AlgoSelection.Twofish);
+                break;
+            case Algorithms::AES: [[fallthrough]];
+            default:
+                encryptDecrypt(AlgoSelection.AES);
+        }
 
         // If we reach here, the operation was successful
         auto pre = mode == OperationMode::Encryption ? "En" : "De";
@@ -287,7 +305,7 @@ void encryptDecrypt() {
         {5, Algorithms::Twofish}
     };
 
-    const std::unordered_map<Algorithms, std::string> algoDescription = {
+    const std::unordered_map<Algorithms, std::string_view> algoDescription = {
         {Algorithms::AES, "256-bit AES in CBC mode"},
         {Algorithms::Camellia, "256-bit Camellia in CBC mode"},
         {Algorithms::Aria, "256-bit Aria in CBC mode"},
@@ -324,13 +342,17 @@ void encryptDecrypt() {
                     inputFile.erase(inputFile.size() - 1);
 
                 fs::path inputPath(inputFile);
+                if (!inputPath.is_absolute()) // The path should be absolute
+                    inputPath = fs::current_path() / inputPath;
                 checkInputFile(inputPath, static_cast<OperationMode>(choice));
 
                 printColor(std::format("Enter the path to save the {}crypted file "
                                        "\n(or leave it blank to save it in the same directory):",
                                        pre_l), 'c', true);
 
-                fs::path outputPath(getResponseStr());
+                fs::path outputPath{getResponseStr()};
+                if (!outputPath.is_absolute()) // If the path is not absolute
+                    outputPath = fs::current_path() / outputPath;
                 checkOutputFile(inputPath, outputPath, static_cast<OperationMode>(choice));
 
                 std::cout << "Choose a cipher (All are 256-bit):\n";
@@ -349,7 +371,7 @@ void encryptDecrypt() {
                     continue;
                 }
 
-                auto it = algoChoice.find(algo);
+                const auto it = algoChoice.find(algo);
                 auto cipher = it != algoChoice.end() ? it->second : Algorithms::AES;
 
                 privacy::string password{getSensitiveInfo("Enter the password: ")};
@@ -380,7 +402,7 @@ void encryptDecrypt() {
                 printColor("...", 'g', true);
 
                 fileEncryptionDecryption(canonical(inputPath).string(), weakly_canonical(outputPath).string(),
-                                         password, static_cast<int>(cipher), static_cast<OperationMode>(choice));
+                                         password, cipher, static_cast<OperationMode>(choice));
                 std::cout << std::endl;
             } catch (const std::exception &ex) {
                 printColor("Error: ", 'y', false, std::cerr);
