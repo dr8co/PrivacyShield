@@ -132,19 +132,19 @@ inline void addPassword(privacy::vector <passwordRecords> &passwords, std::vecto
     // The password can't be empty. Give the user 2 more tries to enter a non-empty password
     int attempts{0};
     while (password.empty() && ++attempts < 3) {
-        printColor("\nPassword can't be blank. Please try again: ", 'y');
+        printColor("Password can't be blank. Please try again: ", 'y');
         password = getSensitiveInfo();
     }
 
     // If the password is still empty, return
     if (password.empty()) {
-        printColor("\nPassword can't be blank. Try again later.", 'r', true, std::cerr);
+        printColor("Password can't be blank. Try again later.", 'r', true, std::cerr);
         return;
     }
     // Always warn on weak passwords
     if (!isPasswordStrong(password)) {
         printColor(
-                "\nThe password you entered is weak! A password should have at least 8 characters \nand include at least an "
+                "The password you entered is weak! A password should have at least 8 characters \nand include at least an "
                 "uppercase character, a lowercase, a punctuator, \nand a digit.", 'y', true);
         printColor("Please consider using a stronger one.", 'r', true);
     }
@@ -325,7 +325,7 @@ inline void updatePassword(privacy::vector <passwordRecords> &passwords, std::ve
         // Warn if the password is weak
         if (!newPassword.empty() && !isPasswordStrong(newPassword)) {
             printColor(
-                    "\nThe password you entered is weak! A password should have at least 8 characters \nand include at least an "
+                    "The password you entered is weak! A password should have at least 8 characters \nand include at least an "
                     "uppercase character, a lowercase, a punctuator, \nand a digit.", 'y', true);
             printColor("Please consider using a stronger one.", 'r', true);
         }

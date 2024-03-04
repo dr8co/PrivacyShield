@@ -185,6 +185,8 @@ privacy::string getSensitiveInfo(const std::string_view prompt) {
     // Trim leading and trailing spaces
     stripString(passphrase);
 
+    std::cout << std::endl;
+
     return passphrase;
 }
 
