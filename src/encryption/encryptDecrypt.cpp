@@ -97,7 +97,7 @@ constexpr struct {
 /// \throws std::invalid_argument if \p mode is invalid.
 /// \throws std::runtime_error if the input file does not exist, is a directory,
 /// is not a regular file, or is not readable.
-inline void checkInputFile(const fs::path &inFile, const OperationMode &mode) {
+void checkInputFile(const fs::path &inFile, const OperationMode &mode) {
     if (mode != OperationMode::Encryption && mode != OperationMode::Decryption)
         throw std::invalid_argument("Invalid mode of operation.");
 
@@ -126,17 +126,15 @@ inline void checkInputFile(const fs::path &inFile, const OperationMode &mode) {
 /// \brief Creates non-existing parent directories for a file.
 /// \param filePath The file path for which the directory path needs to be created.
 /// \return True if the directory path is created successfully or already exists, false otherwise.
-inline bool createPath(const fs::path &filePath) noexcept {
+bool createPath(const fs::path &filePath) noexcept {
     if (filePath.string().empty()) return false; // Can't create empty paths
 
     std::error_code ec;
-
     auto absolutePath = weakly_canonical(filePath, ec);
     if (ec) {
         absolutePath = filePath;
         ec.clear();
     }
-
     if (absolutePath.has_filename())
         absolutePath.remove_filename();
 
@@ -370,7 +368,6 @@ void encryptDecrypt() {
                     printColor("Invalid choice!", 'r', true, std::cerr);
                     continue;
                 }
-
                 const auto it = algoChoice.find(algo);
                 auto cipher = it != algoChoice.end() ? it->second : Algorithms::AES;
 
@@ -383,13 +380,11 @@ void encryptDecrypt() {
                         printColor("Please avoid empty or weak passwords. Please try again.", 'r', true, std::cerr);
                         password = getSensitiveInfo("Enter the password: ");
                     }
-
                     if (tries >= 3)
                         throw std::runtime_error("Empty encryption password.");
 
-                    const privacy::string password2{getSensitiveInfo("Enter the password again: ")};
-
-                    if (!verifyPassword(password2, hashPassword(password, crypto_pwhash_OPSLIMIT_INTERACTIVE,
+                    if (const privacy::string password2{getSensitiveInfo("Enter the password again: ")};
+                        !verifyPassword(password2, hashPassword(password, crypto_pwhash_OPSLIMIT_INTERACTIVE,
                                                                 crypto_pwhash_MEMLIMIT_INTERACTIVE))) {
                         printColor("Passwords do not match.", 'r', true, std::cerr);
                         continue;
