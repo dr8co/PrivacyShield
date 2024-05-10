@@ -213,7 +213,6 @@ inline void wipeClusterTips(const std::string &fileName) {
     if (clusterTipSize >= fileInformation.fileStat.st_size) {
         clusterTipSize = 0;
     }
-
     // Seek to the end of the file
     if (lseek(fileDescriptor.fd, 0, SEEK_END) == -1) {
         throw std::runtime_error(std::format("Failed to seek to end of file: ({})", std::strerror(errno)));
@@ -321,10 +320,10 @@ void dod5220Shred(const std::string &filename, const int &nPasses = 3, const boo
 /// \enum ShredOptions
 /// \brief Represents the different shredding options.
 enum class ShredOptions : std::uint_fast8_t {
-    Simple          = 1 << 0, // Simple overwrite with random bytes
-    Dod5220         = 1 << 1, // DoD 5220.22-M Standard algorithm
-    Dod5220_7       = 1 << 2, // DoD 5220.22-M Standard algorithm with 7 passes
-    WipeClusterTips = 1 << 3  // Wiping of the cluster tips
+    Simple          = 1 << 0, ///< Simple overwrite with random bytes
+    Dod5220         = 1 << 1, ///< DoD 5220.22-M Standard algorithm
+    Dod5220_7       = 1 << 2, ///< DoD 5220.22-M Standard algorithm with 7 passes
+    WipeClusterTips = 1 << 3  ///< Wiping of the cluster tips
 };
 
 /// \brief Adds write and write permissions to a file, if the user has authority.
@@ -332,14 +331,14 @@ enum class ShredOptions : std::uint_fast8_t {
 /// \return True if the operation succeeds, else false.
 ///
 /// \details The actions of this function are similar to the unix command:
-/// \code chmod ugo+rw fileName \endcode or \code chmod a+rw fileName \endcode
+/// \code chmod ugo+rw fileName \endcode or \code chmod a+rw fileName \endcode. \n
 /// The read/write permissions are added for everyone.
 /// \note This function is meant for the file shredder ONLY, which might
 /// need to modify a file's permissions (if and only if it has to) to successfully shred it.
 ///
 /// \warning Modifying file permissions unnecessarily is a serious security risk,
 /// and this program doesn't take that for granted.
-inline bool addReadWritePermissions(const std::string_view fileName) noexcept {
+static inline bool addReadWritePermissions(const std::string_view fileName) noexcept {
     std::error_code ec;
     permissions(fileName, fs::perms::owner_read | fs::perms::owner_write | fs::perms::group_read |
                           fs::perms::group_write | fs::perms::others_read | fs::perms::others_write,
@@ -472,11 +471,10 @@ export void fileShredder() {
             preferences |= std::to_underlying(ShredOptions::Simple) | wipeTips;
         } else if (moreChoices1 == 2) {
             // Configure shredding options
-            const int alg = getResponseInt("\nChoose a shredding algorithm:\n"
+            if (const int alg = getResponseInt("\nChoose a shredding algorithm:\n"
                 "1. Overwrite with random bytes (default)\n"
                 "2. 3-pass DoD 5220.22-M Standard algorithm\n"
-                "3. 7-pass DoD 5220.22-M Standard algorithm");
-            if (alg == 1) {
+                "3. 7-pass DoD 5220.22-M Standard algorithm"); alg == 1) {
                 preferences |= std::to_underlying(ShredOptions::Simple) | wipeTips;
 
                 do {
