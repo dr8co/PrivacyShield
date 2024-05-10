@@ -23,7 +23,6 @@ module;
 #include <vector>
 #include <unordered_map>
 #include <filesystem>
-#include <sodium.h>
 #include <blake3.h>
 #include <format>
 #include <ranges>
@@ -33,13 +32,13 @@ import utils;
 
 namespace fs = std::filesystem;
 
-constexpr std::size_t CHUNK_SIZE = 4096; // Read and process files in chunks of 4 kB
+constexpr std::size_t CHUNK_SIZE = 4096; ///< Read and process files in chunks of 4 kB
 
 
 /// \brief Represents a file by its path (canonical) and hash.
 struct FileInfo {
-    std::string path; // the path to the file.
-    std::string hash; // the file's BLAKE3 hash
+    std::string path; ///< the path to the file.
+    std::string hash; ///< the file's BLAKE3 hash
 };
 
 /// \brief Calculates the 256-bit BLAKE3 hash of a file.
@@ -100,7 +99,7 @@ inline void handleAccessError(const std::string_view filename) {
         case EROFS: // Read-only file system
             errMsg = "the file system is read-only";
             break;
-        default: // Success (most likely)
+        default: [[likely]] // Success (most likely)
             return;
     }
 
@@ -164,7 +163,7 @@ std::size_t findDuplicates(const std::string_view directoryPath) {
     std::vector<FileInfo> files;
     traverseDirectory(directoryPath, files);
     const std::size_t filesProcessed = files.size();
-    if (filesProcessed < 1) return 0;
+    if (filesProcessed < 2) return 0;
 
     // Number of threads to use
     const unsigned int n{std::jthread::hardware_concurrency()};
@@ -207,8 +206,8 @@ std::size_t findDuplicates(const std::string_view directoryPath) {
             printColor(":", 'c', true);
 
             for (const auto &filePath: duplicates) {
-                std::cout << "  " << filePath << std::endl;
                 ++numDuplicates;
+                std::cout << "  " << filePath << std::endl;
             }
         }
     }
