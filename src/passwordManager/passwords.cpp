@@ -100,8 +100,7 @@ privacy::string generatePassword(const int length) {
         for (int i = 0; i < length; ++i)
             password += characters[distribution(generator)];
 
-        // If the length is >= 8, it is almost impossible that this loop is infinite,
-        // but let's handle that ultra-rare situation anyway
+        // Avoid an infinite loop
     } while (!isPasswordStrong(password) && ++trials <= maxTrials);
 
     return password;
@@ -372,10 +371,10 @@ bool changeMasterPassword(privacy::string &primaryPassword) {
     const privacy::string oldPassword{getSensitiveInfo("Enter the current primary password: ")};
 
     // Verify that the old password is correct
-    auto masterHash = hashPassword(primaryPassword, crypto_pwhash_OPSLIMIT_INTERACTIVE,
-                                   crypto_pwhash_MEMLIMIT_INTERACTIVE);
 
-    if (!verifyPassword(oldPassword, masterHash)) {
+    if (const auto masterHash = hashPassword(primaryPassword, crypto_pwhash_OPSLIMIT_INTERACTIVE,
+                                             crypto_pwhash_MEMLIMIT_INTERACTIVE);
+                                             !verifyPassword(oldPassword, masterHash)) {
         std::cerr << "Password verification failed." << std::endl;
         return false;
     }
@@ -393,11 +392,10 @@ bool changeMasterPassword(privacy::string &primaryPassword) {
         return false;
     }
 
-    const privacy::string newPassword2{getSensitiveInfo("Enter the new primary password again: ")};
-
     // Verify that the new password is correct
-    if (!verifyPassword(newPassword2, hashPassword(newPassword, crypto_pwhash_OPSLIMIT_INTERACTIVE,
-                                                   crypto_pwhash_MEMLIMIT_INTERACTIVE))) {
+    if (const privacy::string newPassword2{getSensitiveInfo("Enter the new primary password again: ")};
+        !verifyPassword(newPassword2, hashPassword(newPassword, crypto_pwhash_OPSLIMIT_INTERACTIVE,
+            crypto_pwhash_MEMLIMIT_INTERACTIVE))) {
         std::cerr << "Passwords do not match." << std::endl;
 
         return false;
@@ -601,8 +599,8 @@ privacy::vector<passwordRecords> importCsv(const std::string &filePath) {
 
     privacy::string line, value;
     if (hasHeader)
-        std::getline<char, std::char_traits<char>, privacy::Allocator<char> >(file,
-                                                                              line); // Read and discard the first line
+        // Read and discard the first line
+        std::getline<char, std::char_traits<char>, privacy::Allocator<char> >(file, line);
 
     while (std::getline<char, std::char_traits<char>, privacy::Allocator<char> >(file, line)) {
         privacy::istringstream iss(line);
