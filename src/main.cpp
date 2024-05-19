@@ -31,7 +31,7 @@ import passwordManager;
 import fileShredder;
 import utils;
 
-constexpr const char *const MINIMUM_LIBGCRYPT_VERSION = "1.10.0";
+constexpr auto MINIMUM_LIBGCRYPT_VERSION = "1.10.0";
 
 
 int main(const int argc, const char **argv) {
@@ -48,17 +48,35 @@ int main(const int argc, const char **argv) {
         return 1;
     }
 
-    // No arguments required
+    // Configure the color output, if necessary
+    configureColor();
+
+    // Only the first argument is considered
     if (argc > 1) {
+        // Disable color output if requested
+        if (std::string_view(argv[1]) == "--no-color" || std::string_view(argv[1]) == "-nc") {
+            configureColor(true);
+        } else {
+            printColor("The option ", 'y');
+            printColor(std::format("{} ", argv[1]), 'r');
+            printColor("is not recognized.", 'y', true, std::cerr);
+
+            printColor("Usage: ", 'y');
+            printColor(std::format("{} [--no-color | -nc]", argv[0]), 'r', true, std::cerr);
+        }
+    }
+
+    if (argc > 2) {
         printColor("Ignoring extra arguments: ", 'y');
-        for (int i = 1; i < argc; printColor(std::format("{} ", argv[i++]), 'r')) {}
+        for (int i = 2; i < argc; printColor(std::format("{} ", argv[i++]), 'r')) {
+        }
         std::cout << std::endl;
     }
 
     // Handle the keyboard interrupt (SIGINT) signal (i.e., Ctrl+C)
     struct sigaction act{};
     act.sa_handler = [](int /* unused */) noexcept -> void {
-        printColor("Keyboard interrupt detected. Unsaved data might be lost if you quit now."
+        printColor("Keyboard interrupt detected.\nUnsaved data might be lost if you quit now."
                    "\nDo you still want to quit? (y/n):", 'r');
         if (validateYesNo()) std::exit(1);
     };

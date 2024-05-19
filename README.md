@@ -128,6 +128,24 @@ and are not saved in the shell command history.
 Any operation with any tool can be canceled at any time by pressing `Ctrl+C`,
 and confirming the cancellation.
 
+**Note:**\
+The program uses ANSI escape codes for colors and formatting. If you experience issues with the colors,
+you can disable them by setting the `NO_COLOR` environment variable to `true` (or `1`),
+or by using the `--no-color` or `-nc` option.
+
+```bash
+export NO_COLOR=true && privacyShield
+```
+
+or
+
+```bash
+privacyShield --no-color
+```
+
+The program will automatically detect the `NO_COLOR` environment variable, and the terminal capabilities
+to determine if colors should be used.
+
 ### Password Manager
 
 The password manager requires a primary password to encrypt/decrypt your passwords.

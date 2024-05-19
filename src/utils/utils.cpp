@@ -283,9 +283,9 @@ std::optional<std::string> getEnv(const char *const var) {
 std::string getHomeDir() noexcept {
     std::error_code ec;
     // Try to get the home directory from the environment variables
-    if (auto envHome = getEnv("HOME"); envHome)
+    if (const auto envHome = getEnv("HOME"); envHome)
         return *envHome;
-    if (auto envUserProfile = getEnv("USERPROFILE"); envUserProfile)
+    if (const auto envUserProfile = getEnv("USERPROFILE"); envUserProfile)
         return *envUserProfile;
 
     // If the environment variables are not set, use the current working directory
