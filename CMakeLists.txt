@@ -20,9 +20,8 @@ cmake_minimum_required(VERSION 3.28)
 project(privacyShield
         VERSION 2.5.0
         DESCRIPTION "A suite of tools for privacy and security"
+        HOMEPAGE_URL "https://shield.iandee.tech"
         LANGUAGES CXX)
-
-set(CMAKE_PROJECT_HOMEPAGE_URL "https://shield.boujee.tech")
 
 # C++23 support is required for this project
 set(CMAKE_CXX_STANDARD 23)
@@ -39,10 +38,19 @@ if (NOT CMAKE_BUILD_TYPE)
 endif ()
 
 # Set the path to additional CMake modules
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules")
 
 # Additional checks for the Debug build
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wpedantic")
+if (CMAKE_C_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
+    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+        add_compile_options(
+                -Wall
+                -Wextra
+                -Werror
+                -Wpedantic
+        )
+    endif ()
+endif ()
 
 # Find the required packages
 find_package(OpenSSL REQUIRED)
@@ -55,19 +63,28 @@ find_package(BLAKE3 REQUIRED) # See https://github.com/BLAKE3-team/BLAKE3
 add_executable(privacyShield)
 
 # Add sources for the target
-file(GLOB_RECURSE PRIVACY_SHIELD_SOURCES
-        "${CMAKE_SOURCE_DIR}/src/*.cpp")
-
-target_sources(privacyShield PRIVATE ${PRIVACY_SHIELD_SOURCES})
+target_sources(privacyShield PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/encryption/encryptDecrypt.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/encryption/encryptFiles.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/encryption/encryptStrings.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/passwordManager/passwordManager.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/passwordManager/passwords.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/utils/utils.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp"
+)
 
 # C++20 Modules
-file(GLOB_RECURSE PRIVACY_SHIELD_MODULES
-        "${CMAKE_SOURCE_DIR}/src/*.cppm")
-
-target_sources(privacyShield
-        PRIVATE
+target_sources(privacyShield PRIVATE
         FILE_SET CXX_MODULES FILES
-        ${PRIVACY_SHIELD_MODULES}
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/duplicateFinder/duplicateFinder.cppm"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/encryption/cryptoCipher.cppm"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/encryption/encryption.cppm"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/fileShredder/fileShredder.cppm"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/passwordManager/FuzzyMatcher.cppm"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/passwordManager/passwordManager.cppm"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/privacyTracks/privacyTracks.cppm"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/utils/utils.cppm"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/secureAllocator.cppm"
 )
 
 # Link libraries

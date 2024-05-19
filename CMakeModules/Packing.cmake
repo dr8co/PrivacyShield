@@ -22,12 +22,13 @@
 # Set the CPack variables
 set(CPACK_PACKAGE_NAME "PrivacyShield")
 set(CPACK_PACKAGE_VENDOR "Ian Duncan")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "A suite of tools for privacy and security")
-set(CPACK_PACKAGE_VERSION "2.5.0")
-set(CPACK_PACKAGE_CONTACT "dr8co@duck.com")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${PROJECT_DESCRIPTION}")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_PACKAGE_CONTACT "Ian Duncan <dr8co@duck.com>")
+set(CPACK_PACKAGE_HOMEPAGE_URL "${PROJECT_HOMEPAGE_URL}")
 
-SET(CPACK_OUTPUT_FILE_PREFIX "${CMAKE_SOURCE_DIR}/Packages")
-
+set(CPACK_OUTPUT_FILE_PREFIX "${CMAKE_SOURCE_DIR}/Packages")
+set(CPACK_STRIP_FILES YES)
 set(CPACK_SOURCE_IGNORE_FILES
         /.git
         /.idea
@@ -56,11 +57,14 @@ set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
 set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
 set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
 
-# Set the type of installer you want to generate
-set(CPACK_GENERATOR "DEB;RPM")
-
-# Strip the executable from debug symbols
-set(CPACK_STRIP_FILES YES)
+# Set the package generator
+if (APPLE)
+    set(CPACK_GENERATOR "TGZ;DragNDrop")
+elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    set(CPACK_GENERATOR "TGZ;DEB;RPM")
+else ()
+    set(CPACK_GENERATOR "TGZ")
+endif ()
 
 # Set the package dependencies
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6 (>= 2.35), libstdc++6 (>= 13.2.0), openssl (>= 3.0.0), libsodium23 (>= 1.0.18), libreadline8 (>= 8.0), libgcrypt20 (>= 1.10.0), libgcc-s1 (>= 13.2.0)")
