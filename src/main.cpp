@@ -38,13 +38,13 @@ int main(const int argc, const char **argv) {
     // The program should be launched in interactive mode
     if (!isatty(STDIN_FILENO)) {
         if (errno == ENOTTY) {
-            printColor(std::format("{} is meant to be run interactively.", argv[0]), 'r', true, std::cerr);
+            printColoredErrorln('r', "{} is meant to be run interactively.", argv[0]);
             return 1;
         }
     }
     // Disable core dumping for security reasons
     if (constexpr rlimit coreLimit{0, 0}; setrlimit(RLIMIT_CORE, &coreLimit) != 0) {
-        printColor("Failed to disable core dumps.", 'r', true, std::cerr);
+        printColoredErrorln('r', "Failed to disable core dumps.");
         return 1;
     }
 
@@ -57,18 +57,18 @@ int main(const int argc, const char **argv) {
         if (std::string_view(argv[1]) == "--no-color" || std::string_view(argv[1]) == "-nc") {
             configureColor(true);
         } else {
-            printColor("The option ", 'y');
-            printColor(std::format("{} ", argv[1]), 'r');
-            printColor("is not recognized.", 'y', true, std::cerr);
+            printColoredError('y', "The option ");
+            printColoredError('r', "{} ", argv[1]);
+            printColoredErrorln('y', "is not recognized.");
 
-            printColor("Usage: ", 'y');
-            printColor(std::format("{} [--no-color | -nc]", argv[0]), 'r', true, std::cerr);
+            printColoredError('y', "Usage: ");
+            printColoredErrorln('r', "{} [--no-color | -nc]", argv[0]);
         }
     }
 
     if (argc > 2) {
-        printColor("Ignoring extra arguments: ", 'y');
-        for (int i = 2; i < argc; printColor(std::format("{} ", argv[i++]), 'r')) {
+        printColoredOutput('y', "Ignoring extra arguments: ", 'y');
+        for (int i = 2; i < argc; printColoredOutput('r', "{} ", argv[i++])) {
         }
         std::cout << std::endl;
     }
@@ -76,8 +76,8 @@ int main(const int argc, const char **argv) {
     // Handle the keyboard interrupt (SIGINT) signal (i.e., Ctrl+C)
     struct sigaction act{};
     act.sa_handler = [](int /* unused */) noexcept -> void {
-        printColor("Keyboard interrupt detected.\nUnsaved data might be lost if you quit now."
-                   "\nDo you still want to quit? (y/n):", 'r');
+        printColoredOutput('r', "Keyboard interrupt detected.\nUnsaved data might be lost if you quit now."
+                           "\nDo you still want to quit? (y/n):");
         if (validateYesNo()) std::exit(1);
     };
 
@@ -115,19 +115,19 @@ int main(const int argc, const char **argv) {
             throw std::runtime_error("Failed to initialize libsodium.");
 
         // Display information about the program
-        printColor("\nPrivacy Shield 2.5.0\n", 'c');
-        printColor("Copyright (C) 2024 Ian Duncan.\n", 'b');
+        printColoredOutputln('c', "\nPrivacy Shield 2.5.0");
+        printColoredOutputln('b', "Copyright (C) 2024 Ian Duncan.");
 
-        printColor("This program comes with ", 'g');
-        printColor("ABSOLUTELY NO WARRANTY.", 'r');
+        printColoredOutput('g', "This program comes with ");
+        printColoredOutputln('r', "ABSOLUTELY NO WARRANTY.");
 
-        printColor("\nThis is a free software; you are free to change and redistribute it\n"
-                   "under the terms of the ", 'g');
-        printColor("GNU General Public License v3 ", 'r');
-        printColor("or later.", 'g');
+        printColoredOutput('g', "This is a free software; you are free to change and redistribute it\n"
+                           "under the terms of the ");
+        printColoredOutput('r', "GNU General Public License v3 ");
+        printColoredOutputln('g', "or later.");
 
-        printColor("\nFor more information, see ", 'g');
-        printColor("https://www.gnu.org/licenses/gpl.html.\n", 'b', true);
+        printColoredOutput('g', "For more information, see ");
+        printColoredOutputln('b', "https://www.gnu.org/licenses/gpl.html.");
 
         // All the available tools
         std::unordered_map<int, std::function<void()> > apps = {
@@ -140,14 +140,14 @@ int main(const int argc, const char **argv) {
 
         // Applications loop
         while (true) {
-            printColor("-------------------------------------\n", 'c');
-            printColor("1. Manage passwords\n", 'b');
-            printColor("2. Encrypt/decrypt files\n", 'g');
-            printColor("3. Shred files\n", 'm');
-            printColor("4. Clear browser privacy traces\n", 'y');
-            printColor("5. Find duplicate files\n", 'b');
-            printColor("6. Exit\n", 'r');
-            printColor("-------------------------------------", 'c', true);
+            printColoredOutputln('c', "-------------------------------------");
+            printColoredOutputln('b', "1. Manage passwords");
+            printColoredOutputln('g', "2. Encrypt/decrypt files");
+            printColoredOutputln('m', "3. Shred files");
+            printColoredOutputln('y', "4. Clear browser privacy traces");
+            printColoredOutputln('b', "5. Find duplicate files");
+            printColoredOutputln('r', "6. Exit");
+            printColoredOutputln('c', "-------------------------------------");
 
             const int choice = getResponseInt("What would you like to do? (Enter 1 or 2, 3..)");
 
@@ -156,24 +156,24 @@ int main(const int argc, const char **argv) {
                     iter->second();
                 else if (choice == 6)
                     break;
-                else printColor("Invalid choice!", 'r', true, std::cerr);
+                else printColoredErrorln('r', "Invalid choice!");
             } catch (const std::bad_function_call &bc) {
                 // In case the std::function objects are called inappropriately
-                printColor(std::format("Bad function call: {}", bc.what()), 'r', true, std::cerr);
+                printColoredErrorln('r', "Bad function call: {}", bc.what());
             } catch (const std::exception &ex) {
-                printColor(std::format("Error: {}", ex.what()), 'r', true, std::cerr);
+                printColoredErrorln('r', "Error: {}", ex.what());
             } catch (...) {
                 // All other exceptions, if any
-                printColor("An error occurred.", 'r', true, std::cerr);
+                printColoredErrorln('r', "An error occurred.");
             }
         }
 
         return 0;
     } catch (const std::exception &ex) {
-        printColor(std::format("Error: {}", ex.what()), 'r', true, std::cerr);
+        printColoredErrorln('r', "Error: {}", ex.what());
         return 1;
     } catch (...) {
-        printColor("Something went wrong.", 'r', true, std::cerr);
+        printColoredErrorln('r', "Something went wrong.");
         return 1;
     }
 }

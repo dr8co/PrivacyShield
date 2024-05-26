@@ -23,9 +23,9 @@ module;
 #include <cmath>
 #include <unordered_map>
 #include <filesystem>
-#include <iostream>
 #include <gcrypt.h>
 #include <sodium.h>
+#include <print>
 
 import utils;
 import secureAllocator;
@@ -34,38 +34,6 @@ import passwordManager;
 module encryption;
 
 namespace fs = std::filesystem;
-
-template<typename T>
-/// \brief A concept describing a type convertible and comparable with uintmax_t.
-/// \tparam T - An integral type.
-concept Num = std::integral<T> && std::convertible_to<T, std::uintmax_t> &&
-              std::equality_comparable_with<T, std::uintmax_t>;
-
-
-/// \brief A class to make file sizes more readable.
-/// \details Adapted from https://en.cppreference.com/w/cpp/filesystem/file_size
-class FormatFileSize {
-public:
-    explicit FormatFileSize(const Num auto &size) {
-        // Default negative values to zero
-        if (std::cmp_greater(size, size_))
-            size_ = static_cast<std::uintmax_t>(size);
-    }
-
-private:
-    std::uintmax_t size_{0};
-
-    friend
-    std::ostream &operator<<(std::ostream &os, const FormatFileSize ffs) {
-        int i{};
-        auto mantissa = static_cast<double>(ffs.size_);
-        for (; mantissa >= 1024.; mantissa /= 1024., ++i) {
-        }
-        mantissa = std::ceil(mantissa * 10.) / 10.;
-        os << mantissa << "BKMGTPE"[i];
-        return i == 0 ? os : os << "B (" << ffs.size_ << ')';
-    }
-};
 
 /// \brief Available encryption/decryption ciphers.
 enum class Algorithms : std::uint_fast8_t {
@@ -91,6 +59,20 @@ constexpr struct {
     const gcry_cipher_algos Twofish = GCRY_CIPHER_TWOFISH;
 } AlgoSelection;
 
+
+/// \brief Formats a file size into a human-readable string.
+/// \param size The file size as an unsigned integer.
+/// \return A string representing the formatted file size.
+std::string formatFileSize(const std::uintmax_t &size) {
+    int i{};
+    auto mantissa = static_cast<double>(size);
+    for (; mantissa >= 1024.; mantissa /= 1024., ++i) {
+    }
+    mantissa = std::ceil(mantissa * 10.) / 10.;
+    std::string result = std::to_string(mantissa) + "BKMGTPE"[i];
+    return i == 0 ? result : result + "B (" + std::to_string(size) + ')';
+}
+
 /// \brief Checks for issues with the input file, that may hinder encryption/decryption.
 /// \param inFile the input file, to be encrypted/decrypted.
 /// \param mode the mode of operation: encryption or decryption.
@@ -111,7 +93,7 @@ void checkInputFile(const fs::path &inFile, const OperationMode &mode) {
     if (!is_regular_file(inFile)) {
         if (mode == OperationMode::Encryption) {
             // Encryption
-            std::cout << inFile.string() << " is not a regular file. \nDo you want to continue? (y/n): ";
+            std::print("{} is not a regular file.\nDo you want to continue? (y/n): ", inFile.string());
             if (!validateYesNo())
                 throw std::runtime_error(std::format("{} is not a regular file.", inFile.string()));
         } else
@@ -183,8 +165,8 @@ inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const Ope
         }
         // If the output file exists, ask for confirmation for overwriting
         if (exists(outFile, ec)) {
-            printColor(canonical(outFile).string(), 'b', false, std::cerr);
-            printColor(" already exists. \nDo you want to overwrite it? (y/n): ", 'r', false, std::cerr);
+            printColoredError('b', "{}", canonical(outFile).string());
+            printColoredError('r', " already exists.\nDo you want to overwrite it? (y/n): ");
             if (!validateYesNo())
                 throw std::runtime_error("Operation aborted.");
 
@@ -201,16 +183,16 @@ inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const Ope
     // Check if there is enough space on the disk to save the output file.
     const auto availableSpace = getAvailableSpace(weakly_canonical(outFile));
     if (const auto fileSize = file_size(inFile); std::cmp_less(availableSpace, fileSize)) {
-        printColor("Not enough space to save ", 'r', false, std::cerr);
-        printColor(weakly_canonical(outFile).string(), 'c', true, std::cerr);
+        printColoredError('r', "Not enough space to save ");
+        printColoredError('c', "{}", weakly_canonical(outFile).string());
 
-        printColor("Required:  ", 'y', false, std::cerr);
-        printColor(FormatFileSize(fileSize), 'g', true, std::cerr);
+        printColoredError('y', "Required:  ");
+        printColoredError('g', "{}", formatFileSize(fileSize));
 
-        printColor("Available: ", 'y', false, std::cerr);
-        printColor(FormatFileSize(availableSpace), 'r', true, std::cerr);
+        printColoredError('y', "Available: ");
+        printColoredErrorln('r', "{}", formatFileSize(availableSpace));
 
-        printColor("\nDo you still want to continue? (y/n):", 'b');
+        printColoredOutput('b', "\nDo you still want to continue? (y/n):");
         if (!validateYesNo())
             throw std::runtime_error("Insufficient storage space.");
     }
@@ -234,7 +216,7 @@ void fileEncryptionDecryption(const std::string &inputFileName, const std::strin
                               const privacy::string &password, const Algorithms &algo, const OperationMode &mode) {
     // The mode must be valid: must be either encryption or decryption
     if (mode != OperationMode::Encryption && mode != OperationMode::Decryption) [[unlikely]] {
-        printColor("Invalid mode of operation.", 'r', true, std::cerr);
+        printColoredErrorln('r', "Invalid mode of operation.");
         return;
     }
 
@@ -276,18 +258,18 @@ void fileEncryptionDecryption(const std::string &inputFileName, const std::strin
 
         // If we reach here, the operation was successful
         auto pre = mode == OperationMode::Encryption ? "En" : "De";
-        printColor(std::format("{}cryption completed successfully. \n{}crypted file saved as ", pre, pre), 'g');
-        printColor(outputFileName, 'b', true);
+        printColoredOutput('g', "{}cryption completed successfully.\n{}crypted file saved as ", pre, pre);
+        printColoredOutputln('b', "{}", outputFileName);
 
         // Preserve file permissions
         if (!copyFilePermissions(inputFileName, outputFileName))
             [[unlikely]]
-                    printColor(std::format("Check the permissions of the {}crypted file.", pre), 'm', true);
+                    printColoredOutputln('m', "Check the permissions of the {}crypted file.", pre);
 
         // Try to preserve the time of last modification
         copyLastWrite(inputFileName, outputFileName);
     } catch (const std::exception &ex) {
-        printColor(std::format("Error: {}", ex.what()), 'r', true, std::cerr);
+        printColoredErrorln('r', "Error: {}", ex.what());
     }
 }
 
@@ -312,13 +294,13 @@ void encryptDecrypt() {
     };
 
     while (true) {
-        std::cout << "-------------";
-        printColor(" file encryption/decryption utility ", 'c');
-        std::cout << "-------------\n";
-        printColor("1. Encrypt a file\n", 'g');
-        printColor("2. Decrypt a file\n", 'm');
-        printColor("3. Exit\n", 'r');
-        std::cout << "--------------------------------------------------------------" << std::endl;
+        std::print("-------------");
+        printColoredOutput('c', " file encryption/decryption utility ");
+        std::println("-------------");
+        printColoredOutputln('g', "1. Encrypt a file");
+        printColoredOutputln('m', "2. Decrypt a file");
+        printColoredOutputln('r', "3. Exit");
+        std::println("--------------------------------------------------------------");
 
         if (const int choice = getResponseInt("Enter your choice: "); choice == 1 || choice == 2) {
             try {
@@ -331,7 +313,7 @@ void encryptDecrypt() {
                                            return std::tolower(c);
                                        });
 
-                printColor(std::format("Enter the path to the file to {}crypt:", pre_l), 'c', true);
+                printColoredOutputln('c', "Enter the path to the file to {}crypt:", pre_l);
                 std::string inputFile = getResponseStr();
 
                 // Remove the trailing directory separator
@@ -344,28 +326,27 @@ void encryptDecrypt() {
                     inputPath = fs::current_path() / inputPath;
                 checkInputFile(inputPath, static_cast<OperationMode>(choice));
 
-                printColor(std::format("Enter the path to save the {}crypted file "
-                                       "\n(or leave it blank to save it in the same directory):",
-                                       pre_l), 'c', true);
+                printColoredOutputln('c', "Enter the path to save the {}crypted file"
+                                     "\n(or leave it blank to save it in the same directory):", pre_l);
 
                 fs::path outputPath{getResponseStr()};
                 if (!outputPath.is_absolute()) // If the path is not absolute
                     outputPath = fs::current_path() / outputPath;
                 checkOutputFile(inputPath, outputPath, static_cast<OperationMode>(choice));
 
-                std::cout << "Choose a cipher (All are 256-bit):\n";
-                printColor("1. Advanced Encryption Standard (AES)\n", 'b');
-                printColor("2. Camellia\n", 'c');
-                printColor("3. Aria\n", 'g');
-                printColor("4. Serpent\n", 'y');
-                printColor("5. Twofish\n", 'm');
+                std::println("Choose a cipher (All are 256-bit):");
+                printColoredOutputln('b', "1. Advanced Encryption Standard (AES)");
+                printColoredOutputln('c', "2. Camellia");
+                printColoredOutputln('g', "3. Aria");
+                printColoredOutputln('y', "4. Serpent");
+                printColoredOutputln('m', "5. Twofish");
 
-                std::cout << "Leave blank to use the default (AES)" << std::endl;
+                std::println("Leave blank to use the default (AES)");
 
                 int algo = getResponseInt();
                 if (algo < 0 || algo > 5) {
                     // 0 is default (AES)
-                    printColor("Invalid choice!", 'r', true, std::cerr);
+                    printColoredErrorln('r', "Invalid choice!");
                     continue;
                 }
                 const auto it = algoChoice.find(algo);
@@ -377,7 +358,7 @@ void encryptDecrypt() {
                 if (choice == 1) {
                     int tries{0};
                     while (password.empty() && ++tries < 3) {
-                        printColor("Please avoid empty or weak passwords. Please try again.", 'r', true, std::cerr);
+                        printColoredErrorln('r', "Please avoid empty or weak passwords. Please try again.");
                         password = getSensitiveInfo("Enter the password: ");
                     }
                     if (tries >= 3)
@@ -386,25 +367,25 @@ void encryptDecrypt() {
                     if (const privacy::string password2{getSensitiveInfo("Enter the password again: ")};
                         !verifyPassword(password2, hashPassword(password, crypto_pwhash_OPSLIMIT_INTERACTIVE,
                                                                 crypto_pwhash_MEMLIMIT_INTERACTIVE))) {
-                        printColor("Passwords do not match.", 'r', true, std::cerr);
+                        printColoredErrorln('r', "Passwords do not match.");
                         continue;
                     }
                 }
-                printColor(std::format("{}crypting ", pre), 'g');
-                printColor(canonical(inputPath).string(), 'b');
-                printColor(" with ", 'g');
-                printColor(algoDescription.find(cipher)->second, 'c');
-                printColor("...", 'g', true);
+                printColoredOutput('g', "{}crypting ", pre);
+                printColoredOutput('g', "{}", canonical(inputPath).string());
+                printColoredOutput('g', " with ");
+                printColoredOutput('c', "{}", algoDescription.find(cipher)->second);
+                printColoredOutputln('g', "...");
 
                 fileEncryptionDecryption(canonical(inputPath).string(), weakly_canonical(outputPath).string(),
                                          password, cipher, static_cast<OperationMode>(choice));
-                std::cout << std::endl;
+                std::println("");
             } catch (const std::exception &ex) {
-                printColor("Error: ", 'y', false, std::cerr);
-                printColor(ex.what(), 'r', true, std::cerr);
-                std::cerr << std::endl;
+                printColoredError('y', "Error: ");
+                printColoredErrorln('r', "{}", ex.what());
+                std::println("");
             }
         } else if (choice == 3) break;
-        else printColor("Invalid choice!", 'r', true, std::cerr);
+        else printColoredErrorln('r', "Invalid choice!");
     }
 }

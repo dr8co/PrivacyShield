@@ -17,7 +17,6 @@
 module;
 
 #include<cstring>
-#include <iostream>
 #include <fstream>
 #include <random>
 #include <filesystem>
@@ -25,7 +24,9 @@ module;
 #include <unistd.h>
 #include <sys/stat.h>
 #include <format>
+#include <iostream>
 #include <utility>
+#include <print>
 
 using StatType = struct stat;
 
@@ -161,9 +162,9 @@ inline void renameAndRemove(const std::string_view filename, int numTimes = 1) {
 
     fs::remove(path, ec);
     if (ec) {
-        printColor("Failed to delete ", 'r', false, std::cerr);
-        printColor(filename, 'm', false, std::cerr);
-        printColor(std::format(": {}", ec.message()), 'r', true, std::cerr);
+        printColoredError('r', "Failed to delete ");
+        printColoredError('m', "{}", filename);
+        printColoredErrorln('r', ": {}", ec.message());
     }
 }
 
@@ -362,17 +363,17 @@ bool shredFiles(const std::string &filePath, const std::uint_fast8_t &options, c
     std::error_code ec;
     const fs::file_status fileStatus = fs::status(filePath, ec);
     if (ec) {
-        printColor("Unable to determine ", 'y', false, std::cerr);
-        printColor(filePath, 'b', false, std::cerr);
+        printColoredError('y', "Unable to determine ");
+        printColoredError('b', "{}", filePath);
 
-        printColor("'s status: ", 'y', false, std::cerr);
-        printColor(ec.message(), 'r', true, std::cerr);
+        printColoredError('y', "'s status: ");
+        printColoredErrorln('r', "{}", ec.message());
         return false;
     }
     // Check if the file exists and is a regular file.
     if (!exists(fileStatus)) {
-        printColor(filePath, 'c', false, std::cerr);
-        printColor(" does not exist.", 'r', true, std::cerr);
+        printColoredError('c', "{}", filePath);
+        printColoredErrorln('r', " does not exist.");
         return false;
     }
     // If the filepath is a directory, shred all the files in the directory and all its subdirectories
@@ -380,8 +381,8 @@ bool shredFiles(const std::string &filePath, const std::uint_fast8_t &options, c
         if (fs::is_empty(filePath, ec)) {
             if (ec) ec.clear();
             else {
-                printColor(filePath, 'c');
-                printColor(" is an empty directory.", 'y', true);
+                printColoredOutput('c', "{}", filePath);
+                printColoredOutputln('y', " is an empty directory.");
                 return true;
             }
         }
@@ -391,48 +392,48 @@ bool shredFiles(const std::string &filePath, const std::uint_fast8_t &options, c
         for (const auto &entry: fs::recursive_directory_iterator(filePath)) {
             if (entry.exists(ec)) {
                 if (ec) {
-                    printColor(ec.message(), 'r', true, std::cerr);
+                    printColoredErrorln('r', "{}", ec.message());
                     ec.clear();
                     continue;
                 }
                 if (!is_directory(entry.status())) {
-                    printColor("Shredding ", 'c');
-                    printColor(canonical(entry.path()).string(), 'b');
-                    printColor(" ...", 'c');
+                    printColoredOutput('c', "Shredding ");
+                    printColoredOutput('b', "{}", canonical(entry.path()).string());
+                    printColoredOutput('c', " ...");
                     try {
                         const bool shredded = shredFiles(entry.path().string(), options);
-                        printColor(shredded ? "\tshredded successfully." : "\tshredding failed.", shredded ? 'g' : 'r',
-                                   true);
+                        printColoredOutputln(shredded ? 'g' : 'r', "{}",
+                                             shredded ? "\tshredded successfully." : "\tshredding failed.");
 
                         ++(shredded ? numShredded : numNotShredded);
                     } catch (const std::runtime_error &err) {
-                        printColor("Shredding failed: ", 'y', false, std::cerr);
-                        printColor(err.what(), 'r', true, std::cerr);
+                        printColoredError('y', "Shredding failed: ");
+                        printColoredErrorln('r', "{}", err.what());
                     }
                 }
             }
         }
         if (numNotShredded == 0) // All files in the directory and all subdirectories were shredded successfully.
             remove_all(fs::canonical(filePath));
-        else printColor("Failed to shred some files.", 'r', true, std::cerr);
+        else printColoredErrorln('r', "Failed to shred some files.");
 
-        std::cout << "\nProcessed " << numShredded + numNotShredded << " files." << std::endl;
+        std::println("\nProcessed  {} files.", numShredded + numNotShredded);
         if (numShredded) {
-            printColor("Successfully shredded and deleted: ", 'g');
-            printColor(numShredded, 'b', true);
+            printColoredOutput('g', "Successfully shredded and deleted: ");
+            printColoredOutputln('b', "{}", numShredded);
         }
         if (numNotShredded) {
-            printColor("Failed to shred ", 'r', false, std::cerr);
-            printColor(numNotShredded, 'b', false, std::cerr);
-            printColor(" files.", 'r', true, std::cerr);
+            printColoredError('r', "Failed to shred ");
+            printColoredError('b', "{}", numNotShredded);
+            printColoredErrorln('r', " files.");
         }
 
         return true;
     }
     if (!is_regular_file(fileStatus)) {
-        printColor(filePath, 'c', false, std::cerr);
-        printColor(" is not a regular file.", 'r', true, std::cerr);
-        printColor("Do you want to (try to) shred the file anyway? (y/n):", 'y', true);
+        printColoredError('c', "{}", filePath);
+        printColoredError('r', " is not a regular file.");
+        printColoredOutputln('y', "Do you want to (try to) shred the file anyway? (y/n):");
 
         if (!validateYesNo()) return false;
     }
@@ -440,8 +441,8 @@ bool shredFiles(const std::string &filePath, const std::uint_fast8_t &options, c
     // Check file permissions
     if (!isWritable(filePath) || !isReadable(filePath)) {
         if (!addReadWritePermissions(filePath)) {
-            printColor("\nInsufficient permissions to shred file: ", 'r', false, std::cerr);
-            printColor(filePath, 'c', true, std::cerr);
+            printColoredError('r', "\nInsufficient permissions to shred file: ");
+            printColoredErrorln('c', "{}", filePath);
             return false;
         }
     }
@@ -498,7 +499,7 @@ export void fileShredder() {
                     } else if (simpleConfig == 4) {
                         // Abort
                         throw std::runtime_error("Operation aborted.");
-                    } else printColor("Invalid option", 'r', true, std::cerr);
+                    } else printColoredErrorln('r', "Invalid option");
                 } while (true);
             } else if (alg == 2 || alg == 3) {
                 // DoD 5220.22-M Standard algorithms
@@ -511,15 +512,15 @@ export void fileShredder() {
     };
 
     while (true) {
-        printColor("\n------------------", 'g');
-        printColor(" file shredder ", 'm');
-        printColor("------------------", 'g', true);
+        printColoredOutput('g', "\n------------------");
+        printColoredOutput('m', " file shredder ");
+        printColoredOutputln('g', "------------------");
 
-        printColor("1. Shred a file", 'y', true);
-        printColor("2. Shred a directory", 'y', true);
-        printColor("3. Exit", 'r', true);
+        printColoredOutputln('y', "1. Shred a file");
+        printColoredOutputln('y', "2. Shred a directory");
+        printColoredOutputln('r', "3. Exit");
 
-        printColor("---------------------------------------------------", 'g', true);
+        printColoredOutputln('g', "---------------------------------------------------");
 
         if (const int choice = getResponseInt("Enter your choice: "); choice == 1 || choice == 2) {
             try {
@@ -534,7 +535,7 @@ export void fileShredder() {
                 std::error_code ec;
                 const fs::file_status fileStatus = fs::status(path, ec);
                 if (ec) {
-                    printColor(ec.message(), 'r', true, std::cerr);
+                    printColoredErrorln('r', "{}", ec.message());
                     ec.clear();
                     continue;
                 }
@@ -543,23 +544,23 @@ export void fileShredder() {
 
                 // Check if the file or directory exists
                 if (!exists(fileStatus)) {
-                    printColor(canonicalPath, 'c', false, std::cerr);
-                    printColor(" does not exist.", 'r', true, std::cerr);
+                    printColoredError('c', "{}", canonicalPath);
+                    printColoredErrorln('r', " does not exist.");
                     continue;
                 }
                 // If the path is a directory, shred all the files in the directory and all subdirectories (with confirmation)
                 if (choice == 1 && isDir) {
-                    printColor(canonicalPath, 'c');
-                    printColor(" is a directory.", 'r', true);
+                    printColoredOutput('c', "{}", canonicalPath);
+                    printColoredOutputln('r', " is a directory.");
 
-                    printColor("Shred all files in '", 'y');
-                    printColor(canonicalPath, 'c');
-                    printColor("'\nand all its subdirectories? (y/n):", 'y', true);
+                    printColoredOutput('y', "Shred all files in '");
+                    printColoredOutput('c', "{}", canonicalPath);
+                    printColoredOutputln('y', "'\nand all its subdirectories? (y/n):");
                     if (!validateYesNo()) continue;
                 } else if (choice == 2 && !isDir) {
                     // If the path is a file, shred it without confirmation
-                    printColor(canonicalPath, 'c');
-                    printColor(" is not a directory.", 'r', true);
+                    printColoredOutput('c', "{}", canonicalPath);
+                    printColoredOutputln('r', " is not a directory.");
                     if (!validateYesNo("Shred it anyway? (y/n):")) continue;
                 }
                 std::uint_fast8_t preferences{0};
@@ -568,27 +569,27 @@ export void fileShredder() {
                 try {
                     selectPreferences(preferences, simpleNumPass);
                 } catch (const std::exception &ex) {
-                    printColor(std::format("Error: {}", ex.what()), 'r', true, std::cerr);
+                    printColoredErrorln('r', "Error: {}", ex.what());
                     continue;
                 }
 
-                printColor(std::format("The {} contents will be lost permanently.\nContinue? (y/n)",
-                                       isDir ? "directory's (and all its subdirectories')" : "file"), 'r', true);
+                printColoredOutputln('r', "The {} contents will be lost permanently.\nContinue? (y/n)",
+                                     isDir ? "directory's (and all its subdirectories')" : "file");
                 if (validateYesNo()) {
                     std::cout << "Shredding '";
-                    printColor(canonicalPath, 'c');
+                    printColoredOutput('c', "{}", canonicalPath);
                     std::cout << "'..." << std::endl;
                     const bool shredded = shredFiles(path, preferences, simpleNumPass);
                     if (!isDir) {
-                        printColor(shredded ? "Successfully shredded " : "Failed to shred ", shredded ? 'g' : 'r',
-                                   false, shredded ? std::cout : std::cerr);
-                        printColor(canonicalPath, 'c', true, shredded ? std::cout : std::cerr);
+                        printColoredOutput(shredded ? 'g' : 'r', "{}",
+                                           shredded ? "Successfully shredded " : "Failed to shred ");
+                        printColoredOutputln('c', "{}", canonicalPath);
                     }
                 }
             } catch (const std::exception &err) {
-                printColor(std::format("Error: {}", err.what()), 'r', true, std::cerr);
+                printColoredErrorln('r', "Error: {}", err.what());
             }
         } else if (choice == 3) break;
-        else printColor("Invalid choice.", 'r', true, std::cerr);
+        else printColoredErrorln('r', "Invalid choice.");
     }
 }
