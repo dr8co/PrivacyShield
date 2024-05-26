@@ -30,64 +30,6 @@ import secureAllocator;
 
 namespace fs = std::filesystem;
 
-/// A map of colors for use with the printColor function.
-static const std::unordered_map<char, const char *const> COLOR = {
-    {'r', "\033[1;31m"}, // Red
-    {'g', "\033[1;32m"}, // Green
-    {'y', "\033[1;33m"}, // Yellow
-    {'b', "\033[1;34m"}, // Blue
-    {'m', "\033[1;35m"}, // Magenta
-    {'c', "\033[1;36m"}, // Cyan
-    {'w', "\033[1;37m"}, // White
-};
-
-/// \class ColorConfig
-/// \brief A singleton class used to manage the color configuration of the terminal output.
-/// This class encapsulates the \p suppressColor functionality, ensuring that there is only
-/// one \p suppressColor instance throughout the application.
-/// It provides methods to get and set the \p suppressColor value.
-class ColorConfig {
-public:
-    /// \brief Gets the instance of the \p ColorConfig singleton.
-    /// \return A reference to the singleton instance of the \p ColorConfig class.
-    static ColorConfig &getInstance() noexcept {
-        static ColorConfig instance;
-        return instance;
-    }
-
-    // Delete the copy constructor and assignment operator
-    ColorConfig(ColorConfig const &) = delete;
-
-    void operator=(ColorConfig const &) = delete;
-
-    /// \brief Gets the \p suppressColor value.
-    /// \return The current value of the \p suppressColor variable.
-    [[nodiscard]] bool getSuppressColor() const noexcept {
-        return suppressColor;
-    }
-
-    /// \brief Sets the \p suppressColor value.
-    /// \param value The new value for the \p suppressColor variable.
-    void setSuppressColor(const bool value) noexcept {
-        suppressColor = value;
-    }
-
-private:
-    /// \brief Private constructor for the \p ColorConfig class.
-    /// This constructor initializes the \p suppressColor variable to false.
-    ColorConfig() : suppressColor(false) {
-    }
-
-    // The suppressColor value
-    bool suppressColor;
-};
-
-template<typename T>
-// Describes a type that can be formatted to the output stream
-concept PrintableToStream = requires(std::ostream &os, const T &t) {
-    os << t;
-};
-
 template<typename T>
 // Describes a vector of unsigned characters (For use with vectors using different allocators)
 concept uCharVector = std::copy_constructible<T> && requires(T t, unsigned char c) {
@@ -101,42 +43,6 @@ concept uCharVector = std::copy_constructible<T> && requires(T t, unsigned char 
 };
 
 export {
-
-    /// \brief Prints colored text to a stream.
-    /// \param text the text to print.
-    /// \param color a character representing the desired color.
-    /// \param printNewLine a flag to indicate whether a newline should be printed after the text.
-    /// \param os the stream object to print to.
-    void printColor(const PrintableToStream auto &text, const char &color = 'w', const bool &printNewLine = false,
-                    std::ostream &os = std::cout) {
-        // Print the text in the desired color
-        ColorConfig::getInstance().getSuppressColor()
-            ? os << text
-            : os << (COLOR.contains(color) ? COLOR.at(color) : "") << text << "\033[0m";
-
-        // Print a newline if requested
-        if (printNewLine) os << std::endl;
-    }
-
-    std::optional<std::string> getEnv(const char *var);
-
-    /// \brief Configures the color output of the terminal.
-    /// \param disable a flag to indicate whether color output should be disabled.
-    void configureColor(const bool disable = false) noexcept {
-        // Check if the user has requested no color
-        if (disable) {
-            ColorConfig::getInstance().setSuppressColor(true);
-            return;
-        }
-        // Process the environment variable to suppress color output
-        const auto noColorEnv = getEnv("NO_COLOR");
-        const auto termEnv = getEnv("TERM");
-        const bool suppressColor = noColorEnv.has_value() ||
-                                   (termEnv.has_value() && (termEnv.value() == "dumb" || termEnv.value() == "vt100" ||
-                                                            termEnv.value() == "vt102"));
-        ColorConfig::getInstance().setSuppressColor(suppressColor);
-    }
-
     /// \brief Performs Base64 encoding of binary data into a string.
     /// \param input a vector of the binary data to be encoded.
     /// \return Base64-encoded string.
@@ -195,4 +101,20 @@ export {
     bool validateYesNo(std::string_view prompt = "");
 
     std::string getHomeDir() noexcept;
+
+    std::optional<std::string> getEnv(const char *var);
+
+    void configureColor(bool disable = false) noexcept;
+
+    template<class... Args>
+    void printColoredOutput(char color, std::format_string<Args...> fmt, Args &&... args);
+
+    template<class... Args>
+    void printColoredOutputln(char color, std::format_string<Args...> fmt, Args &&... args);
+
+    template<class... Args>
+    void printColoredError(char color, std::format_string<Args...> fmt, Args &&... args);
+
+    template<class... Args>
+    void printColoredErrorln(char color, std::format_string<Args...> fmt, Args &&... args);
 }
