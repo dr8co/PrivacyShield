@@ -177,8 +177,8 @@ inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const Ope
     }
 
     // Check if the input and output files are the same
-    if (equivalent(inFile, outFile))
-        throw std::runtime_error("The input and output files are the same.");
+    if (std::error_code ec; exists(outFile, ec) && equivalent(inFile, outFile))
+        throw std::runtime_error("The input and the output file both refer to the same object.");
 
     // Check if there is enough space on the disk to save the output file.
     const auto availableSpace = getAvailableSpace(weakly_canonical(outFile));
