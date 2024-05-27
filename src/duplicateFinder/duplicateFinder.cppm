@@ -49,8 +49,14 @@ struct FileInfo {
 std::string calculateBlake3(const std::string &filePath) {
     // Open the file
     std::ifstream file(filePath, std::ios::binary);
-    if (!file)
-        throw std::runtime_error(std::format("Failed to open '{}' for hashing.", filePath));
+    if (!file) {
+        if (std::error_code ec; fs::exists(filePath, ec))
+            throw std::runtime_error(std::format("Failed to open '{}' for hashing.", filePath));
+
+        printColoredError('b', "{} ", filePath);
+        printColoredErrorln('r', "existed during scan but was not found during hashing.");
+        return "";
+    }
 
     // Initialize the BLAKE3 hasher
     blake3_hasher hasher;
@@ -75,8 +81,13 @@ std::string calculateBlake3(const std::string &filePath) {
 /// \brief handles file i/o errors during low-level file operations.
 /// \param filename path to the file on which an error occurred.
 inline void handleAccessError(const std::string_view filename) {
-    if (errno) printColoredErrorln('r', "Skipping '{}': {}.", filename, std::strerror(errno));
-    errno = 0;
+    if (errno) {
+        printColoredError('r', "Skipping ");
+        printColoredError('c', "{}", filename);
+        printColoredErrorln('r', ": {}",  std::strerror(errno));
+
+        errno = 0;
+    }
 }
 
 /// \brief recursively traverses a directory and collects file information.
@@ -91,7 +102,9 @@ void traverseDirectory(const std::string_view directoryPath, std::vector<FileInf
         if (entry.exists(ec)) {
             // In case of broken symlinks
             if (ec) {
-                printColoredErrorln('r', "Skipping '{}': {}.", entry.path().string(), ec.message());
+                printColoredError('r', "Skipping ");
+                printColoredError('c', "{}", entry.path().string());
+                printColoredErrorln('r', ": {}", ec.message());
                 ec.clear();
                 continue;
             }
@@ -105,8 +118,12 @@ void traverseDirectory(const std::string_view directoryPath, std::vector<FileInf
                     fileInfo.path = entry.path().string();
                     fileInfo.hash = ""; // the hash will be calculated later
                     files.emplace_back(fileInfo);
-                } else if (!entry.is_directory()) // Neither regular nor a directory
-                    printColoredErrorln('r', "Skipping '{}': Not a regular file.", entry.path().string());
+                } else if (!entry.is_directory()) {
+                    // Neither regular nor a directory
+                    printColoredError('r', "Skipping ");
+                    printColoredError('c', "{}", entry.path().string());
+                    printColoredErrorln('r', ": Not a regular file.", ec.message());
+                }
             } else handleAccessError(entry.path().string());
         }
     }
