@@ -84,7 +84,7 @@ inline void handleAccessError(const std::string_view filename) {
     if (errno) {
         printColoredError('r', "Skipping ");
         printColoredError('c', "{}", filename);
-        printColoredErrorln('r', ": {}",  std::strerror(errno));
+        printColoredErrorln('r', ": {}", std::strerror(errno));
 
         errno = 0;
     }
@@ -240,7 +240,7 @@ export void duplicateFinder() {
                     continue;
                 }
                 if (!exists(fileStatus)) {
-                    printColoredError('c', "{}",dirPath);
+                    printColoredError('c', "{}", dirPath);
                     printColoredErrorln('r', " does not exist.");
                     continue;
                 }

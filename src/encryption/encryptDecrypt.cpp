@@ -371,9 +371,9 @@ void encryptDecrypt() {
                         continue;
                     }
                 }
-                printColoredOutput('g', "{}crypting ", pre);
-                printColoredOutput('g', "{}", canonical(inputPath).string());
-                printColoredOutput('g', " with ");
+                printColoredOutput('g', "{}crypting '", pre);
+                printColoredOutput('m', "{}", canonical(inputPath).string());
+                printColoredOutput('g', "' with ");
                 printColoredOutput('c', "{}", algoDescription.find(cipher)->second);
                 printColoredOutputln('g', "...");
 

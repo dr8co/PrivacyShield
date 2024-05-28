@@ -158,7 +158,6 @@ export {
         if (ColorConfig::getInstance().getSuppressColor())
             std::cout << std::vformat(fmt.get(), std::make_format_args(args...));
         else std::cout << getColorCode(color) << std::vformat(fmt.get(), std::make_format_args(args...)) << "\033[0m";
-        // else std::print("{}{}\033[0m", getColorCode(color), std::format(fmt, std::forward<Args>(args)...));
     }
 
     /// \brief Prints colored output to the console and adds a newline at the end.
@@ -170,9 +169,9 @@ export {
     void printColoredOutputln(const char color, std::format_string<Args...> fmt, Args &&... args) {
         if (ColorConfig::getInstance().getSuppressColor())
             std::cout << std::vformat(fmt.get(), std::make_format_args(args...)) << std::endl;
-        else std::cout << getColorCode(color) << std::vformat(fmt.get(), std::make_format_args(args...)) << "\033[0m" <<
-             std::endl;
-        // else std::print("{}{}\033[0m\n", getColorCode(color), std::format(fmt, std::forward<Args>(args)...));
+        else
+            std::cout << getColorCode(color) << std::vformat(fmt.get(), std::make_format_args(args...)) << "\033[0m" <<
+                    std::endl;
     }
 
     /// \brief Prints colored error messages to the console.
@@ -196,8 +195,9 @@ export {
     void printColoredErrorln(const char color, std::format_string<Args...> fmt, Args &&... args) {
         if (ColorConfig::getInstance().getSuppressColor())
             std::cerr << std::vformat(fmt.get(), std::make_format_args(args...)) << std::endl;
-        else std::cerr << getColorCode(color) << std::vformat(fmt.get(), std::make_format_args(args...)) << "\033[0m" <<
-             std::endl;
+        else
+            std::cerr << getColorCode(color) << std::vformat(fmt.get(), std::make_format_args(args...)) << "\033[0m" <<
+                    std::endl;
     }
 
     std::vector<unsigned char> base64Decode(std::string_view encodedData);

@@ -210,11 +210,11 @@ bool clearFirefoxTracks(const std::string_view configDir) {
             }
         }
     }
-    printColoredOutputln(nonDefaultProfiles ? 'g' : 'r', "{}", nonDefaultProfiles
-                                                             ? std::format(
-                                                                 "Deleted cookies and history for {} non-default profiles.",
-                                                                 nonDefaultProfiles)
-                                                             : "Non-default profiles not found.");
+    printColoredOutputln(nonDefaultProfiles ? 'g' : 'r', "{}",
+                         nonDefaultProfiles
+                             ? std::format("Deleted cookies and history for {} non-default profiles.",
+                                           nonDefaultProfiles)
+                             : "Non-default profiles not found.");
 
     return true;
 }
@@ -309,11 +309,11 @@ bool clearChromiumTracks(const std::string_view configDir) {
             }
         }
     }
-    printColoredOutputln(nonDefaultProfiles ? 'g' : 'r', "{}", nonDefaultProfiles
-                                                             ? std::format(
-                                                                 "Deleted cookies and history for {} non-default profiles.",
-                                                                 nonDefaultProfiles)
-                                                             : "Non-default profiles not found.");
+    printColoredOutputln(nonDefaultProfiles ? 'g' : 'r', "{}",
+                         nonDefaultProfiles
+                             ? std::format("Deleted cookies and history for {} non-default profiles.",
+                                           nonDefaultProfiles)
+                             : "Non-default profiles not found.");
 
     return true;
 }

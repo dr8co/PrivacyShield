@@ -367,14 +367,14 @@ privacy::vector<passwordRecords> loadPasswords(const std::string_view filePath, 
 /// \brief Helps the user change the primary password.
 /// \param primaryPassword the current primary password.
 /// \return True if the password is changed successfully, else false.
-bool changeMasterPassword(privacy::string &primaryPassword) {
+bool changePrimaryPassword(privacy::string &primaryPassword) {
     const privacy::string oldPassword{getSensitiveInfo("Enter the current primary password: ")};
 
     // Verify that the old password is correct
 
-    if (const auto masterHash = hashPassword(primaryPassword, crypto_pwhash_OPSLIMIT_INTERACTIVE,
-                                             crypto_pwhash_MEMLIMIT_INTERACTIVE);
-                                             !verifyPassword(oldPassword, masterHash)) {
+    if (const auto primaryHash = hashPassword(primaryPassword, crypto_pwhash_OPSLIMIT_INTERACTIVE,
+                                              crypto_pwhash_MEMLIMIT_INTERACTIVE);
+                                              !verifyPassword(oldPassword, primaryHash)) {
         std::cerr << "Password verification failed." << std::endl;
         return false;
     }
@@ -425,10 +425,11 @@ std::pair<std::string, privacy::string> initialSetup() noexcept {
             int count{0};
             while (!isPasswordStrong(pass) && ++count < 3) {
                 const bool last{count == 2};
-                printColoredOutput(last ? 'r' : 'y', "{}", last
-                                                         ? "Last chance: "
-                                                         : "Weak password! The password must be at least 8 characters long and include \nat least an"
-                                                         " uppercase character, a lowercase, a punctuator, and a digit.");
+                printColoredOutput(last ? 'r' : 'y', "{}",
+                                   last
+                                       ? "Last chance: "
+                                       : "Weak password! The password must be at least 8 characters long and include \nat least an"
+                                       " uppercase character, a lowercase, a punctuator, and a digit.");
                 if (last) std::cout << std::endl;
                 pass = getSensitiveInfo(last ? "" : "Please enter a stronger password: ");
             }

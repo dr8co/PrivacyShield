@@ -271,8 +271,8 @@ void updatePassword(privacy::vector<passwordRecords> &passwords, std::vector<boo
             std::cout << "Found the following usernames for " << std::quoted(site) << ":\n";
             for (const auto &[_, username, pass]: matches)
                 printColoredOutputln('c', "{}", username.empty()
-                                              ? "'' [no username, reply with a blank to select]"
-                                              : username);
+                                                    ? "'' [no username, reply with a blank to select]"
+                                                    : username);
 
             privacy::string username{getResponseStr("\nEnter one of the above usernames to update:")};
 
@@ -373,8 +373,8 @@ void deletePassword(privacy::vector<passwordRecords> &passwords, std::vector<boo
             std::cout << "Found the following usernames for " << std::quoted(site) << ":\n";
             for (const auto &[_, username, pass]: matches)
                 printColoredOutputln('c', "{}", username.empty()
-                                              ? "'' [no username, reply with a blank to select]"
-                                              : username);
+                                                    ? "'' [no username, reply with a blank to select]"
+                                                    : username);
 
             privacy::string username{
                 getResponseStr("\nEnter one of the above usernames to delete (Enter \"All\" to delete all):")
@@ -773,7 +773,10 @@ void passwordManager() {
         constexpr auto colors = "rgbymcw";
         const auto color = colors[dist(gen)];
 
-        printColoredOutputln(color, "-------------------------------------------");
+        printColoredOutput(color, "----------------");
+        printColoredOutput(colors[dist(gen)], " Password Manager ");
+        printColoredOutputln(color, "----------------");
+
         std::cout << "1.  Add new password\n";
         std::cout << "2.  Update password\n";
         std::cout << "3.  Delete password\n";
@@ -785,7 +788,7 @@ void passwordManager() {
         std::cout << "9.  Export passwords\n";
         std::cout << "10. Change the primary Password\n";
         std::cout << "11. Save and Exit\n";
-        printColoredOutputln(color, "-------------------------------------------");
+        printColoredOutputln(color, "----------------------------------------------");
 
         try {
             int choice = getResponseInt("Enter your choice: ");
@@ -793,14 +796,14 @@ void passwordManager() {
             if (auto iter = choices.find(choice); iter != choices.end())
                 iter->second(passwords, passwordStrength);
             else if (choice == 10) {
-                if (changeMasterPassword(encryptionKey))
+                if (changePrimaryPassword(encryptionKey))
                     printColoredOutputln('g', "Primary password changed successfully.");
                 else printColoredErrorln('r', "Primary password not changed.");
             } else if (choice == 11)
                 break;
             else printColoredErrorln('r', "Invalid choice!");
         } catch (const std::exception &ex) {
-            printColoredErrorln('r', "{}" ,ex.what());
+            printColoredErrorln('r', "{}", ex.what());
         } catch (...) { throw std::runtime_error("An error occurred."); }
     }
 

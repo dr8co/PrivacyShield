@@ -25,7 +25,6 @@ module;
 export module secureAllocator;
 
 export namespace privacy {
-
     template<typename T>
     /// \class Allocator
     /// \brief Custom allocator for STL containers, which locks and zeroizes memory.
@@ -33,7 +32,6 @@ export namespace privacy {
     /// \details Adapted from https://en.cppreference.com/w/cpp/named_req/Allocator
     class Allocator {
     public:
-
         [[maybe_unused]] typedef T value_type;
 
         /// Default constructor
@@ -64,7 +62,7 @@ export namespace privacy {
 
         /// Deallocate memory
         [[maybe_unused]] constexpr void deallocate(T *p, std::size_t n) noexcept {
-            sodium_munlock(p, n * sizeof(T));  // Unlock and zeroize memory
+            sodium_munlock(p, n * sizeof(T)); // Unlock and zeroize memory
             ::operator delete(p);
         }
     };
@@ -88,5 +86,4 @@ export namespace privacy {
     using vector = std::vector<T, Allocator<T>>;
 
     using istringstream = std::basic_istringstream<char, std::char_traits<char>, Allocator<char> >;
-
-}  // namespace privacy
+} // namespace privacy
