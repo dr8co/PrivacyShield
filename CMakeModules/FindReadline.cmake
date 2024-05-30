@@ -52,7 +52,7 @@ if (READLINE_FOUND AND NOT APPLE)
             HINTS ${READLINE_LIBRARY_DIRS}
             PATHS
             /usr/lib
-            /usr/lib/*
+            /usr/lib/x86_64-linux-gnu
             /opt/local/lib
             /opt/homebrew/lib
             /opt/homebrew/opt/readline/lib
