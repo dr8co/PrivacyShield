@@ -43,9 +43,11 @@ jobs:
         run: |
           export HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=TRUE
           brew update
-          brew install llvm cmake ninja gcc libgcrypt openssl@3 readline libsodium
+          brew install llvm ninja libsodium
+          brew reinstall gcc readline
           echo 'export PATH="/opt/homebrew/opt/llvm/bin:$PATH"' >> ~/.bash_profile
           echo 'export PATH="/opt/homebrew/opt/gcc/bin:$PATH"' >> ~/.bash_profile
+          echo "Homebrew prefix: $HOMEBREW_PREFIX"
           # echo 'export PATH="/opt/homebrew/opt/gcc/lib/gcc/14:$PATH"' >> ~/.bash_profile      
 
       - uses: actions/checkout@v4
