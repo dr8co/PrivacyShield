@@ -69,7 +69,7 @@ if (NOT READLINE_FOUND AND APPLE)
     # Find library manually
     find_library(READLINE_LIBRARY REQUIRED
             NAMES libreadline.dylib libreadline.a
-            PATHS /usr/local/opt/readline/lib /usr/local/lib /opt/local/lib /usr/lib
+            PATHS /usr/local/opt/readline/lib /usr/local/lib /opt/local/lib /usr/lib /opt/homebrew/lib /opt/homebrew/Cellar/readline
             NO_DEFAULT_PATH
     )
 

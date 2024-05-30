@@ -43,7 +43,7 @@ jobs:
         run: |
           export HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=TRUE
           brew update
-          brew install llvm ninja libsodium
+          brew install llvm ninja
           brew reinstall gcc readline
           echo 'export PATH="/opt/homebrew/opt/llvm/bin:$PATH"' >> ~/.bash_profile
           echo 'export PATH="/opt/homebrew/opt/gcc/bin:$PATH"' >> ~/.bash_profile
