@@ -44,7 +44,8 @@ function install_dependencies() {
     apt remove -y --purge --auto-remove ninja-build
   fi
 
-  wget -qO- "https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-linux.zip" | funzip > /usr/local/bin/ninja
+  wget -qO- "https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-linux.zip"
+  unzip ninja-linux.zip -d /usr/local/bin
 }
 
 function build_blake3() {
