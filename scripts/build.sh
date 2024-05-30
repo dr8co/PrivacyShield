@@ -30,7 +30,7 @@ function install_dependencies() {
 #  add-apt-repository -y ppa:ubuntu-toolchain-r/ppa
   apt update
   export NEEDRESTART_SUSPEND=1
-  apt install -y unzip gcc-14 g++-14 clang-18 lldb-18 lld-18 libc++-18-dev libc++abi-18-dev libllvmlibc-18-dev clang-tools-18 libgcrypt20 openssl libreadline8 libsodium23 libsodium-dev
+  apt install -y unzip gcc-14 g++-14 clang-18 lldb-18 lld-18 libc++-18-dev libc++abi-18-dev libllvmlibc-18-dev clang-tools-18 libgcrypt20 openssl libreadline8 libreadline-dev libsodium23 libsodium-dev
 
   # Install CMake 3.29.3
   if dpkg -s "cmake" >/dev/null 2>&1; then
