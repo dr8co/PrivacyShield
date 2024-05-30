@@ -82,7 +82,7 @@ jobs:
           -DCMAKE_C_COMPILER=/opt/homebrew/opt/llvm/bin/clang
           -DCMAKE_CXX_FLAGS="-I/opt/homebrew/opt/gcc@14/include/c++/14 -I/opt/homebrew/opt/gcc@14/include/c++/14/* -L/opt/homebrew/opt/gcc@14/lib/gcc/14 -Wl,-rpath,/opt/homebrew/opt/gcc@14/lib/gcc/14 -stdlib=libstdc++"
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-          -S ${{ github.workspace }} -G Xcode
+          -S ${{ github.workspace }} -G Ninja
 
       - name: Build
         if: matrix.os == 'macos-latest'
