@@ -25,26 +25,25 @@ function check_dependencies() {
 }
 
 function install_dependencies() {
-  wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
-  add-apt-repository -y "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main"
-  add-apt-repository -y ppa:ubuntu-toolchain-r/ppa
+#  wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+#  add-apt-repository -y "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main"
+#  add-apt-repository -y ppa:ubuntu-toolchain-r/ppa
   apt update
-  apt install -y unzip gcc-14 clang-18 lldb-18 lld-18 libc++-18-dev libc++abi-18-dev libllvmlibc-18-dev clang-tools-18 libgcrypt20 openssl libreadline8 libsodium23 libsodium-dev
+  apt install -y unzip gcc-14 g++-14 clang-18 lldb-18 lld-18 libc++-18-dev libc++abi-18-dev libllvmlibc-18-dev clang-tools-18 libgcrypt20 openssl libreadline8 libsodium23 libsodium-dev
 
-  # Install CMake 3.28.3
+  # Install CMake 3.29.3
   if dpkg -s "cmake" >/dev/null 2>&1; then
     apt remove -y --purge --auto-remove cmake
   fi
 
-  wget -qO- "https://github.com/Kitware/CMake/releases/download/v3.28.3/cmake-3.28.3-linux-x86_64.tar.gz" | tar --strip-components=1 -xz -C /usr/local
+  wget -qO- "https://github.com/Kitware/CMake/releases/download/v3.29.3/cmake-3.29.3-linux-x86_64.tar.gz" | tar --strip-components=1 -xz -C /usr/local
 
-  # Install Ninja 1.11
+  # Install Ninja 1.12
   if dpkg -s "ninja-build" >/dev/null 2>&1; then
     apt remove -y --purge --auto-remove ninja-build
   fi
 
-  wget -q "https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip"
-  unzip ninja-linux.zip -d /usr/local/bin
+  wget -qO- "https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-linux.zip" | unzip -d /usr/local/bin
 }
 
 function build_blake3() {

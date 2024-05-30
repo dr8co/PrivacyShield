@@ -19,7 +19,7 @@ detect_os() {
 
 # Function to check root access
 check_root() {
-    [[ "$CURRENT_OS" != "macos" && "$EUID" -ne 0 ]] && error_exit "This script must be run as root."
+    [[ "$CURRENT_OS" == "linux" && "$EUID" -ne 0 ]] && error_exit "This script must be run as root."
 }
 
 get_number_of_processors() {
@@ -36,9 +36,9 @@ install_blake3() {
   cd ~ || error_exit "Failed to change to home directory."
 
   # Download BLAKE3 and extract to current directory
-  wget -qO- https://github.com/BLAKE3-team/BLAKE3/archive/refs/tags/1.5.0.tar.gz | tar -xz -C .
+  wget -qO- https://github.com/BLAKE3-team/BLAKE3/archive/refs/tags/1.5.1.tar.gz | tar -xz -C .
 
-  cd BLAKE3-1.5.0/c || error_exit "Failed to navigate to BLAKE3/c directory."
+  cd BLAKE3-1.5.1/c || error_exit "Failed to navigate to BLAKE3/c directory."
 
   cmake -B build -DCMAKE_C_COMPILER="$C_COMPILER" -G Ninja || error_exit "Failed to run cmake."
   get_number_of_processors
