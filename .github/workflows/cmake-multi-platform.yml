@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
 
       matrix:
-        os: [ ubuntu-latest, macos-latest ]
+        os: [ ubuntu-24.04, macos-latest ]
         build_type: [ Debug, Release ]
         c_compiler: [ clang ]
         include:
@@ -22,12 +22,12 @@ jobs:
             c_compiler: clang
             cpp_compiler: clang++
             env:
-              LDFLAGS=: "-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib"
-              CPPFLAGS: "-I/usr/local/opt/llvm/include I/usr/local/opt/llvm/include/c++/v1"
-              LD_LIBRARY_PATH: "/usr/local/opt/llvm/lib"
-              DYLD_LIBRARY_PATH: "/usr/local/opt/llvm/lib"
+              LDFLAGS=: "-L/opt/homebrew/opt/llvm/lib/c++ -Wl,-rpath,/opt/homebrew/opt/llvm/lib/c++"
+              CPPFLAGS: "-I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/llvm/include/c++/v1"
+              LD_LIBRARY_PATH: "/opt/homebrew/opt/llvm/lib"
+              DYLD_LIBRARY_PATH: "/opt/homebrew/opt/llvm/lib"
 
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             c_compiler: clang
             cpp_compiler: clang++-18
 
@@ -43,10 +43,10 @@ jobs:
         run: |
           export HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=TRUE
           brew update
-          brew install llvm cmake ninja gcc@13 libgcrypt openssl@3 readline libsodium
-          echo 'export PATH="/usr/local/opt/llvm/bin:$PATH"' >> ~/.bash_profile
-          echo 'export PATH="/usr/local/opt/gcc@13/bin:$PATH"' >> ~/.bash_profile
-          echo 'export PATH="/usr/local/opt/gcc@13/lib/gcc/13:$PATH"' >> ~/.bash_profile      
+          brew install llvm cmake ninja gcc libgcrypt openssl@3 readline libsodium
+          echo 'export PATH="/opt/homebrew/opt/llvm/bin:$PATH"' >> ~/.bash_profile
+          echo 'export PATH="/opt/homebrew/opt/gcc/bin:$PATH"' >> ~/.bash_profile
+          # echo 'export PATH="/opt/homebrew/opt/gcc/lib/gcc/14:$PATH"' >> ~/.bash_profile      
 
       - uses: actions/checkout@v4
 
@@ -56,11 +56,11 @@ jobs:
         run: |
           echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
 
-      # Build project
+      # Build the project
       - name: Build PrivacyShield
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-24.04'
         run: |
-          sudo ./scripts/buildscript.sh
+          sudo ./scripts/build.sh
 
       - name: Install Blake3
         if: matrix.os == 'macos-latest'
@@ -70,17 +70,17 @@ jobs:
       - name: Configure CMake
         if: matrix.os == 'macos-latest'
         run: >
-          export LDFLAGS="-L/usr/local/opt/gcc@13/lib/gcc/13 -Wl,-rpath,/usr/local/opt/gcc@13/lib/gcc/13";
-          export CPPFLAGS="-I/usr/local/opt/gcc@13/include/c++/13 -I/usr/local/opt/gcc@13/include/c++/13/x86_64-apple-darwin22";
-          export LD_LIBRARY_PATH="/usr/local/opt/gcc@13/lib/gcc/13";
-          export DYLD_LIBRARY_PATH="/usr/local/opt/gcc@13/lib/gcc/13";
+          # export LDFLAGS="-L/usr/local/opt/gcc@13/lib/gcc/13 -Wl,-rpath,/usr/local/opt/gcc@13/lib/gcc/13";
+          # export CPPFLAGS="-I/usr/local/opt/gcc@13/include/c++/13 -I/usr/local/opt/gcc@13/include/c++/13/x86_64-apple-darwin22";
+          # export LD_LIBRARY_PATH="/usr/local/opt/gcc@13/lib/gcc/13";
+          # export DYLD_LIBRARY_PATH="/usr/local/opt/gcc@13/lib/gcc/13";
           
           cmake -B ${{ steps.strings.outputs.build-output-dir }}
-          -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm/bin/clang++
-          -DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang
-          -DCMAKE_CXX_FLAGS="-I/usr/local/opt/gcc@13/include/c++/13 -I/usr/local/opt/gcc@13/include/c++/13/x86_64-apple-darwin22 -L/usr/local/opt/gcc@13/lib/gcc/13 -Wl,-rpath,/usr/local/opt/gcc@13/lib/gcc/13 -stdlib=libstdc++"
+          -DCMAKE_CXX_COMPILER=/opt/homebrew/opt/llvm/bin/clang++
+          -DCMAKE_C_COMPILER=/opt/homebrew/opt/llvm/bin/clang
+          -DCMAKE_CXX_FLAGS="-I/opt/homebrew/opt/gcc@14/include/c++/14 -I/opt/homebrew/opt/gcc@14/include/c++/14/x86_64-apple-darwin* -L/opt/homebrew/opt/gcc@14/lib/gcc/14 -Wl,-rpath,/opt/homebrew/opt/gcc@14/lib/gcc/14 -stdlib=libstdc++"
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-          -S ${{ github.workspace }} -G Ninja
+          -S ${{ github.workspace }} -G Xcode
 
       - name: Build
         if: matrix.os == 'macos-latest'
@@ -93,7 +93,7 @@ jobs:
           cpack
 
       - name: Package
-        if: matrix.os == 'ubuntu-latest' && matrix.build_type == 'Release'
+        if: matrix.os == 'ubuntu-24.04' && matrix.build_type == 'Release'
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
         run: |
           sudo cpack
