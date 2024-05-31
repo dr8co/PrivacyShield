@@ -51,19 +51,12 @@ jobs:
 
       - name: Check configuration
         run: |
-          echo "Homebrew prefix: $HOMEBREW_PREFIX"
-          echo "PATH: $PATH"
-          echo "LDFLAGS: $LDFLAGS"
-          echo "CPPFLAGS: $CPPFLAGS"
-          echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
-          echo "DYLD_LIBRARY_PATH: $DYLD_LIBRARY_PATH"
           echo "GCC: $(which gcc-14)"
-          echo "Otool output: $(otool -L $(which gcc-14))"
-          echo "Other Glibc: $(cat $(gcc-14 -print-file-name=libc.dylib))"
+          echo "Other Glibc: $(cat $(gcc-14 -print-file-name=libstdc++.dylib))"
           echo "GCC INCLUDES: $(gcc-14 -print-search-dirs | grep install)"
           echo "GCC LIBS: $(gcc-14 -print-search-dirs | grep libraries)"
-          echo "Include dir: $(ls -l /opt/homebrew/lib/gcc/current/gcc/aarch64-apple-darwin23/14)"
-          echo "GCC bin dir: $(ls -l /opt/homebrew/opt/gcc/bin)"
+          echo "Include dir: $(ls -l /opt/homebrew/lib/gcc/current/gcc/aarch64-apple-darwin23/14/include)"
+          echo "GCC lib dir: $(ls -l /opt/homebrew/opt/gcc/lib/gcc/current)"
           echo "GCC info: $(gcc-14 -v)"
 
       - uses: actions/checkout@v4
@@ -96,8 +89,8 @@ jobs:
           export CPPFLAGS="-I/opt/homebrew/opt/llvm/include"
           
           cmake -B ${{ steps.strings.outputs.build-output-dir }}
-          -DCMAKE_CXX_COMPILER=/opt/homebrew/opt/llvm/bin/clang++
-          -DCMAKE_C_COMPILER=/opt/homebrew/opt/llvm/bin/clang
+          -DCMAKE_CXX_COMPILER=g++-14
+          -DCMAKE_C_COMPILER=gcc-14
           -DCMAKE_CXX_FLAGS="-I/opt/homebrew/lib/gcc/current/gcc/aarch64-apple-darwin23/14 -L/opt/homebrew/lib/gcc/current/gcc/aarch64-apple-darwin23/14 -Wl,-rpath,/opt/homebrew/lib/gcc/current/gcc/aarch64-apple-darwin23/14 -stdlib=libstdc++"
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
           -S ${{ github.workspace }} -G Ninja
