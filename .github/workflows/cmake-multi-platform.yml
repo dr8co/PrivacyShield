@@ -73,15 +73,15 @@ jobs:
 
       - name: Check configuration
         run: |
-          echo "GCC: $(which gcc-14)"
-          echo "Other Glibc: $(gcc-14 -print-file-name=libstdc++.dylib)"
-          echo "GCC INCLUDES: $(gcc-14 -print-search-dirs | grep install)"
-          echo "GCC LIBS: $(gcc-14 -print-search-dirs | grep libraries)"
-          echo "Include dir: $(ls -l /opt/homebrew/lib/gcc/current/gcc/aarch64-apple-darwin23/14/include)"
+          echo "GCC: $(which /opt/homebrew/opt/gcc/bin/gcc-15)"
+          echo "Other Glibc: $(/opt/homebrew/opt/gcc/bin/gcc-15 -print-file-name=libstdc++.dylib)"
+          echo "GCC INCLUDES: $(/opt/homebrew/opt/gcc/bin/gcc-15 -print-search-dirs | grep install)"
+          echo "GCC LIBS: $(/opt/homebrew/opt/gcc/bin/gcc-15 -print-search-dirs | grep libraries)"
+          echo "Include dir: $(ls -l /opt/homebrew/opt/gcc/include)"
           echo "GCC lib dir: $(ls -l /opt/homebrew/opt/gcc/lib/gcc/current)"
-          echo "GCC info: $(gcc-14 -v)"
+          echo "GCC info: $(/opt/homebrew/opt/gcc/bin/gcc-15 -v)"
           echo ""
-          echo "GCC extra info: $(gcc-14 -v -x c++ /dev/null -o /dev/null)"
+          echo "GCC extra info: $(/opt/homebrew/opt/gcc/bin/gcc-15 -v -x c++ /dev/null -o /dev/null)"
 
       - uses: actions/checkout@v4
 
