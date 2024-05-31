@@ -65,7 +65,7 @@ jobs:
           --with-mpc=/opt/homebrew/opt/libmpc \
           --with-isl=/opt/homebrew/opt/isl \
           --with-zstd=/opt/homebrew/opt/zstd \
-          --with-pkgversion='Draco\'s GCC 15.0.0' \
+          --with-pkgversion='Draco'\''s GCC 15.0.0' \
           --with-system-zlib --build=aarch64-apple-darwin23 \
           --with-sysroot=/Library/Developer/CommandLineTools/SDKs/MacOSX14.sdk
           make -j 4
