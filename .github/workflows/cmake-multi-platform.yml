@@ -87,8 +87,8 @@ jobs:
           export DYLD_LIBRARY_PATH="/opt/homebrew/opt/gcc/lib/gcc/current";
           
           cmake -B ${{ steps.strings.outputs.build-output-dir }}
-          -DCMAKE_CXX_COMPILER=clang++-18
-          -DCMAKE_C_COMPILER=clang-18
+          -DCMAKE_CXX_COMPILER=/opt/homebrew/opt/llvm/bin/clang++
+          -DCMAKE_C_COMPILER=/opt/homebrew/opt/llvm/bin/clang
           -DCMAKE_CXX_FLAGS=" -stdlib=libstdc++ -I/opt/homebrew/lib/gcc/current/gcc/aarch64-apple-darwin23/14 -L/opt/homebrew/opt/gcc/lib/gcc/current -Wl,-rpath,/opt/homebrew/opt/gcc/lib/gcc/current"
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
           -S ${{ github.workspace }} -G Ninja
