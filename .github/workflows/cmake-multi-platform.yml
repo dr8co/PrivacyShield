@@ -58,6 +58,8 @@ jobs:
           echo "Include dir: $(ls -l /opt/homebrew/lib/gcc/current/gcc/aarch64-apple-darwin23/14/include)"
           echo "GCC lib dir: $(ls -l /opt/homebrew/opt/gcc/lib/gcc/current)"
           echo "GCC info: $(gcc-14 -v)"
+          echo ""
+          echo "GCC extra info: $(gcc-14 -v -x c++ /dev/null -o /dev/null)"
 
       - uses: actions/checkout@v4
 
