@@ -47,8 +47,19 @@ jobs:
           brew reinstall gcc readline
           echo 'export PATH="/opt/homebrew/opt/llvm/bin:$PATH"' >> ~/.bash_profile
           echo 'export PATH="/opt/homebrew/opt/gcc/bin:$PATH"' >> ~/.bash_profile
+          echo 'export PATH="/opt/homebrew/opt/gcc/lib/gcc/14:$PATH"' >> ~/.bash_profile    
+
+      - name: Check configuration
+        run: |
           echo "Homebrew prefix: $HOMEBREW_PREFIX"
-          # echo 'export PATH="/opt/homebrew/opt/gcc/lib/gcc/14:$PATH"' >> ~/.bash_profile      
+          echo "PATH: $PATH"
+          echo "LDFLAGS: $LDFLAGS"
+          echo "CPPFLAGS: $CPPFLAGS"
+          echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
+          echo "DYLD_LIBRARY_PATH: $DYLD_LIBRARY_PATH"
+          echo "GCC: $(which gcc-14)"
+          echo "GLIBC: $(ldd $(which gcc-14) | grep -i libc)"
+          echo "GCC INCLUDES: $(gcc-14 -print-search-dirs | grep install)"
 
       - uses: actions/checkout@v4
 
