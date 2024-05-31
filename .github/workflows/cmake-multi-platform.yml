@@ -63,8 +63,8 @@ jobs:
           echo "GCC INCLUDES: $(gcc-14 -print-search-dirs | grep install)"
           echo "GCC LIBS: $(gcc-14 -print-search-dirs | grep libraries)"
           echo "Include dir: $(ls -l /opt/homebrew/lib/gcc/current/gcc/aarch64-apple-darwin23/14)"
-          echo "Homebrew bin dir: $(ls -l /opt/homebrew/bin)"
           echo "GCC bin dir: $(ls -l /opt/homebrew/opt/gcc/bin)"
+          echo "GCC Cellar bin dir: $(ls -l /opt/homebrew/Cellar/gcc/14.1.0/bin)"
 
       - uses: actions/checkout@v4
 
