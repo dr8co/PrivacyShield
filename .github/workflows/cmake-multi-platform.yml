@@ -43,11 +43,33 @@ jobs:
         run: |
           export HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=TRUE
           brew update
-          brew install gcc readline ninja
+          brew install ninja gmp isl libmpc mpfr zstd
           brew reinstall llvm
           echo 'export PATH="/opt/homebrew/opt/llvm/bin:$PATH"' >> ~/.bash_profile
           echo 'export PATH="/opt/homebrew/opt/gcc/bin:$PATH"' >> ~/.bash_profile
-          echo 'export PATH="/opt/homebrew/opt/gcc/lib/gcc/14:$PATH"' >> ~/.bash_profile    
+          echo 'export PATH="/opt/homebrew/opt/gcc/lib/gcc/14:$PATH"' >> ~/.bash_profile
+
+      - name: Build GCC From Source
+        if: matrix.os == 'macos-latest'
+        run: |
+          git clone https://github.com/iains/gcc-darwin-arm64.git
+          cd gcc-darwin-arm64
+          mkdir build && cd build
+          ../configure --prefix=/opt/homebrew/opt/gcc \
+          --libdir=/opt/homebrew/opt/gcc/lib/gcc/current \
+          --disable-nls --enable-checking=release \
+          --with-gcc-major-version-only \
+          --enable-languages=c,c++,objc,obj-c++,fortran \
+          --program-suffix=-15 --with-gmp=/opt/homebrew/opt/gmp \
+          --with-mpfr=/opt/homebrew/opt/mpfr \
+          --with-mpc=/opt/homebrew/opt/libmpc \
+          --with-isl=/opt/homebrew/opt/isl \
+          --with-zstd=/opt/homebrew/opt/zstd \
+          --with-pkgversion='Draco's GCC 15.0.0' \
+          --with-system-zlib --build=aarch64-apple-darwin23 \
+          --with-sysroot=/Library/Developer/CommandLineTools/SDKs/MacOSX14.sdk
+          make -j 4
+          sudo make install
 
       - name: Check configuration
         run: |
@@ -91,7 +113,7 @@ jobs:
           cmake -B ${{ steps.strings.outputs.build-output-dir }}
           -DCMAKE_CXX_COMPILER=/opt/homebrew/opt/llvm/bin/clang++
           -DCMAKE_C_COMPILER=/opt/homebrew/opt/llvm/bin/clang
-          -DCMAKE_CXX_FLAGS=" -stdlib=libstdc++ -I/opt/homebrew/lib/gcc/current/gcc/aarch64-apple-darwin23/14 -I/opt/homebrew/opt/llvm/include/c++/v1 -I/opt/homebrew/lib/gcc/current/gcc/aarch64-apple-darwin23/14/include -L/opt/homebrew/opt/gcc/lib/gcc/current -Wl,-rpath,/opt/homebrew/opt/gcc/lib/gcc/current"
+          -DCMAKE_CXX_FLAGS=" -stdlib=libstdc++ -I/opt/homebrew/lib/gcc/current/gcc/aarch64-apple-darwin23/15 -I/opt/homebrew/opt/llvm/include/c++/v1 -I/opt/homebrew/lib/gcc/current/gcc/aarch64-apple-darwin23/15/include -L/opt/homebrew/opt/gcc/lib/gcc/current -Wl,-rpath,/opt/homebrew/opt/gcc/lib/gcc/current"
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
           -S ${{ github.workspace }} -G Ninja
 
