@@ -43,8 +43,8 @@ jobs:
         run: |
           export HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=TRUE
           brew update
-          brew install llvm ninja
-          brew reinstall gcc readline
+          brew install gcc readline ninja
+          brew reinstall llvm
           echo 'export PATH="/opt/homebrew/opt/llvm/bin:$PATH"' >> ~/.bash_profile
           echo 'export PATH="/opt/homebrew/opt/gcc/bin:$PATH"' >> ~/.bash_profile
           echo 'export PATH="/opt/homebrew/opt/gcc/lib/gcc/14:$PATH"' >> ~/.bash_profile    
@@ -58,7 +58,8 @@ jobs:
           echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
           echo "DYLD_LIBRARY_PATH: $DYLD_LIBRARY_PATH"
           echo "GCC: $(which gcc-14)"
-          echo "GLIBC: $(ldd $(which gcc-14) | grep -i libc)"
+          echo "GLIBC: $(otool -L $(which gcc-14) | grep -i libc)"
+          echo "Other Glibc: $(cat $(gcc -print-file-name=libc.so))"
           echo "GCC INCLUDES: $(gcc-14 -print-search-dirs | grep install)"
 
       - uses: actions/checkout@v4
