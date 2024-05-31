@@ -60,6 +60,8 @@ jobs:
           echo "GCC info: $(gcc-14 -v)"
           echo ""
           echo "GCC extra info: $(gcc-14 -v -x c++ /dev/null -o /dev/null)"
+          echo "Headers location: $(find /opt/homebrew/opt/gcc -name 'algorithm' -type f)"
+          echo "libstdc++ location: $(find /opt/homebrew/opt/gcc -name 'libstdc++.dylib' -type f)"
 
       - uses: actions/checkout@v4
 
