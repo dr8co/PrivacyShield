@@ -59,7 +59,7 @@ jobs:
           echo "DYLD_LIBRARY_PATH: $DYLD_LIBRARY_PATH"
           echo "GCC: $(which gcc-14)"
           echo "GLIBC: $(otool -L $(which gcc-14) | grep -i libc)"
-          echo "Other Glibc: $(cat $(gcc -print-file-name=libc.dylib))"
+          echo "Other Glibc: $(cat $(gcc-14 -print-file-name=libc.dylib))"
           echo "GCC INCLUDES: $(gcc-14 -print-search-dirs | grep install)"
 
       - uses: actions/checkout@v4
