@@ -91,7 +91,7 @@ jobs:
           cmake -B ${{ steps.strings.outputs.build-output-dir }}
           -DCMAKE_CXX_COMPILER=/opt/homebrew/opt/llvm/bin/clang++
           -DCMAKE_C_COMPILER=/opt/homebrew/opt/llvm/bin/clang
-          -DCMAKE_CXX_FLAGS=" -stdlib=libstdc++ -I/opt/homebrew/lib/gcc/current/gcc/aarch64-apple-darwin23/14 -I/opt/homebrew/opt/llvm/include/c++/v1 -I/opt/homebrew/lib/gcc/current/gcc/aarch64-apple-darwin23/14/include -L/opt/homebrew/opt/gcc/lib/gcc/current -Wl,-rpath,/opt/homebrew/opt/gcc/lib/gcc/current"
+          -DCMAKE_CXX_FLAGS=" -stdlib=libstdc++ -stdlib++-isystem /opt/homebrew/Cellar/gcc/14.1.0/include/c++/14 -cxx-isystem /opt/homebrew/Cellar/gcc/14.1.0/include/c++/14/aarch64-apple-darwin23 -L /opt/homebrew/Cellar/gcc/14.1.0/lib/gcc/14 -Wl,-rpath,/opt/homebrew/opt/gcc/lib/gcc/current"
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
           -S ${{ github.workspace }} -G Ninja
 
