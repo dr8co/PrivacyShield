@@ -20,12 +20,7 @@ jobs:
         include:
           - os: macos-latest
             c_compiler: clang
-            cpp_compiler: clang++
-            env:
-              LDFLAGS=: "-L/opt/homebrew/opt/llvm/lib/c++ -Wl,-rpath,/opt/homebrew/opt/llvm/lib/c++"
-              CPPFLAGS: "-I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/llvm/include/c++/v1"
-              LD_LIBRARY_PATH: "/opt/homebrew/opt/llvm/lib"
-              DYLD_LIBRARY_PATH: "/opt/homebrew/opt/llvm/lib"
+            cpp_compiler: clang++-18
 
           - os: ubuntu-24.04
             c_compiler: clang
@@ -37,7 +32,6 @@ jobs:
             build_type: Debug
 
     steps:
-      # Install dependencies: cmake, ninja, gcc, libgcrypt, openssl, readline, and libsodium
       - name: Install Dependencies
         if: matrix.os == 'macos-latest'
         run: |
@@ -48,20 +42,7 @@ jobs:
           echo 'export PATH="/opt/homebrew/opt/llvm/bin:$PATH"' >> ~/.bash_profile
           echo 'export PATH="/opt/homebrew/opt/gcc/bin:$PATH"' >> ~/.bash_profile
           echo 'export PATH="/opt/homebrew/opt/gcc/lib/gcc/14:$PATH"' >> ~/.bash_profile    
-
-      - name: Check configuration
-        run: |
-          echo "GCC: $(which gcc-14)"
-          echo "Other Glibc: $(gcc-14 -print-file-name=libstdc++.dylib)"
-          echo "GCC INCLUDES: $(gcc-14 -print-search-dirs | grep install)"
-          echo "GCC LIBS: $(gcc-14 -print-search-dirs | grep libraries)"
-          echo "Include dir: $(ls -l /opt/homebrew/lib/gcc/current/gcc/aarch64-apple-darwin23/14/include)"
-          echo "GCC lib dir: $(ls -l /opt/homebrew/opt/gcc/lib/gcc/current)"
-          echo "GCC info: $(gcc-14 -v)"
-          echo ""
-          echo "GCC extra info: $(gcc-14 -v -x c++ /dev/null -o /dev/null)"
-          echo "Headers location: $(find /opt/homebrew/opt/gcc -name 'algorithm' -type f)"
-          echo "libstdc++ location: $(find /opt/homebrew/opt/gcc -name 'libstdc++.dylib' -type f)"
+          sudo source ~/.bash_profile
 
       - uses: actions/checkout@v4
 
@@ -84,12 +65,7 @@ jobs:
 
       - name: Configure CMake
         if: matrix.os == 'macos-latest'
-        run: >
-          # export LDFLAGS="-L/usr/local/opt/gcc@13/lib/gcc/13 -Wl,-rpath,/usr/local/opt/gcc@13/lib/gcc/13";
-          # export CPPFLAGS="-I/usr/local/opt/gcc@13/include/c++/13 -I/usr/local/opt/gcc@13/include/c++/13/x86_64-apple-darwin22";
-          export LD_LIBRARY_PATH="/opt/homebrew/opt/gcc/lib/gcc/current";
-          export DYLD_LIBRARY_PATH="/opt/homebrew/opt/gcc/lib/gcc/current";
-          
+        run: >          
           cmake -B ${{ steps.strings.outputs.build-output-dir }}
           -DCMAKE_CXX_COMPILER=/opt/homebrew/opt/llvm/bin/clang++
           -DCMAKE_C_COMPILER=/opt/homebrew/opt/llvm/bin/clang
@@ -130,8 +106,8 @@ jobs:
             gpg --batch --status-file ~/gpg_log.txt --passphrase ${{ secrets.GPG_PASS }} --default-key dr8co@duck.com \
               --pinentry-mode=loopback --detach-sign "$file" || (cat ~/gpg_log.txt && exit 1)
           done
-#
-#      # Upload the built artifacts
+
+      # Upload the built artifacts
       - name: Upload Artifacts
         if: matrix.build_type == 'Release'
         uses: actions/upload-artifact@v4
