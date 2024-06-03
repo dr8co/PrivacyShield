@@ -47,24 +47,6 @@ install_blake3() {
 
 }
 
-# Function to clone repository
-clone_repo() {
-    git clone https://github.com/BLAKE3-team/BLAKE3.git || error_exit "Failed to clone BLAKE3 repository."
-}
-
-# Function to build and install BLAKE3
-build_install() {
-    cd BLAKE3/c || error_exit "Failed to navigate to BLAKE3/c directory."
-    cmake -B build -DCMAKE_C_COMPILER="$C_COMPILER" -G Ninja || error_exit "Failed to run cmake."
-    get_number_of_processors
-
-    cmake --build build --config Release --target install -j "$NUMBER_OF_PROCESSORS" || error_exit "Failed to build and install."
-
-    # Cleanup
-    cd ../..
-    rm -rf BLAKE3
-}
-
 # Set C compiler
 C_COMPILER=${1:-gcc}
 
@@ -74,9 +56,5 @@ check_root
 cd "${0%/*}" || error_exit "Failed to change directory to script location."
 
 echo "Compiling BLAKE3 with $C_COMPILER compiler.."
-
-# Call functions
-# clone_repo
-# build_install
 
 install_blake3
