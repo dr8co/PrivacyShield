@@ -88,12 +88,13 @@ target_sources(privacyShield PRIVATE
 )
 
 # Link libraries
-target_link_libraries(privacyShield
-        PRIVATE OpenSSL::Crypto
-        PRIVATE Readline::Readline
-        PRIVATE Sodium::sodium
-        PRIVATE Gcrypt::Gcrypt
-        PRIVATE BLAKE3::blake3)
+target_link_libraries(privacyShield PRIVATE
+        OpenSSL::Crypto
+        Readline::Readline
+        Sodium::sodium
+        Gcrypt::Gcrypt
+        BLAKE3::blake3
+)
 
 # Install the binary (optional), with 0755 permissions
 include(GNUInstallDirs)

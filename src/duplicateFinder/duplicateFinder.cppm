@@ -63,12 +63,12 @@ std::string calculateBlake3(const std::string &filePath) {
     blake3_hasher_init(&hasher);
 
     // Update the hasher with the file contents in chunks of 4 kB
-    std::vector<char> buffer(CHUNK_SIZE);
+    std::array<char, CHUNK_SIZE> buffer{};
     while (file.read(buffer.data(), CHUNK_SIZE))
         blake3_hasher_update(&hasher, buffer.data(), CHUNK_SIZE);
 
     // Update the hasher with the last chunk of data
-    std::size_t remainingBytes = file.gcount();
+    const std::size_t remainingBytes = file.gcount();
     blake3_hasher_update(&hasher, buffer.data(), remainingBytes);
 
     // Finalize the hash calculation
@@ -209,10 +209,8 @@ std::size_t findDuplicates(const std::string_view directoryPath) {
 export void duplicateFinder() {
     while (true) {
         std::print("\n-------------------");
-        // std::cout << "\n-------------------";
         printColoredOutput('m', " Duplicate Finder ");
         std::println("-------------------");
-        // std::cout << "-------------------\n";
         printColoredOutputln('g', "1. Scan for duplicate files");
         printColoredOutputln('r', "2. Exit");
         std::println("--------------------------------------------------------");
