@@ -10,7 +10,27 @@ cd "$(dirname "$0")" || (echo "Running from $(pwd)" && exit 1)
 check_root
 
 # Install dependencies
-install_dependencies
+apt update && apt install -y wget unzip build-essential openssl libreadline8 libreadline-dev libsodium23 libsodium-dev libgcrypt20-dev
+wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+add-apt-repository -y "deb http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-18 main"
+apt update
+export NEEDRESTART_SUSPEND=1
+apt install -y clang-18 lldb-18 lld-18 libc++-18-dev libc++abi-18-dev libllvmlibc-18-dev clang-tools-18
+
+# Install CMake 3.29.3
+if dpkg -s "cmake" >/dev/null 2>&1; then
+  apt remove -y --purge --auto-remove cmake
+fi
+
+wget -qO- "https://github.com/Kitware/CMake/releases/download/v3.29.3/cmake-3.29.3-linux-x86_64.tar.gz" | tar --strip-components=1 -xz -C /usr/local
+
+# Install Ninja 1.12
+if dpkg -s "ninja-build" >/dev/null 2>&1; then
+  apt remove -y --purge --auto-remove ninja-build
+fi
+
+wget -q "https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-linux.zip"
+unzip ninja-linux.zip -d /usr/local/bin
 
 echo "Ninja: $(ninja --version), CMake: $(cmake --version)"
 
