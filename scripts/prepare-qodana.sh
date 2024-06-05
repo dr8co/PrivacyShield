@@ -10,7 +10,7 @@ cd "$(dirname "$0")" || (echo "Running from $(pwd)" && exit 1)
 check_root
 
 # Install dependencies
-apt update && apt install -y wget unzip build-essential openssl libreadline8 libreadline-dev libsodium23 libsodium-dev libgcrypt20-dev
+apt update && apt install -y software-properties-common wget unzip build-essential openssl libreadline8 libreadline-dev libsodium23 libsodium-dev libgcrypt20-dev
 wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
 add-apt-repository -y "deb http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-18 main"
 apt update
