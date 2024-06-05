@@ -57,30 +57,6 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     )
 endif ()
 
-# Find the required packages
-find_package(OpenSSL REQUIRED)
-find_package(Sodium REQUIRED)
-find_package(Readline REQUIRED)
-find_package(Gcrypt REQUIRED)
-
-find_package(BLAKE3 QUIET) # See https://github.com/BLAKE3-team/BLAKE3
-
-if (NOT TARGET BLAKE3::blake3)
-    message(STATUS "BLAKE3 not found. Fetching from GitHub...")
-    include(FetchContent)
-
-    FetchContent_Declare(
-            blake3
-            GIT_REPOSITORY https://github.com/BLAKE3-team/BLAKE3.git
-            GIT_TAG 454ee5a7c73583cb3060d1464a5d3a4e65f06062
-            SOURCE_SUBDIR c
-            EXCLUDE_FROM_ALL
-    )
-
-    FetchContent_MakeAvailable(blake3)
-
-endif ()
-
 # Add the executable target
 add_executable(privacyShield)
 
@@ -108,6 +84,31 @@ target_sources(privacyShield PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src/utils/utils.cppm"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/secureAllocator.cppm"
 )
+
+# Find the required packages
+find_package(OpenSSL REQUIRED)
+find_package(Sodium REQUIRED)
+find_package(Readline REQUIRED)
+find_package(Gcrypt REQUIRED)
+
+find_package(BLAKE3 QUIET) # See https://github.com/BLAKE3-team/BLAKE3
+
+if (NOT TARGET BLAKE3::blake3)
+    message(STATUS "BLAKE3 not found. Fetching from GitHub...")
+    include(FetchContent)
+
+    FetchContent_Declare(
+            blake3
+            GIT_REPOSITORY https://github.com/BLAKE3-team/BLAKE3.git
+            GIT_TAG 454ee5a7c73583cb3060d1464a5d3a4e65f06062
+            SOURCE_SUBDIR c
+            EXCLUDE_FROM_ALL
+    )
+
+    FetchContent_MakeAvailable(blake3)
+    target_include_directories(privacyShield PRIVATE "${blake3_SOURCE_DIR}")
+
+endif ()
 
 # Sanitizers for debugging and testing
 # Requires llvm-symbolizer and sanitizer libraries (asan, ubsan, msan, tsan)
