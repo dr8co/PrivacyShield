@@ -15,15 +15,6 @@ function check_root() {
   fi
 }
 
-function check_dependencies() {
-  for cmd in wget add-apt-repository; do
-    if ! command -v $cmd &>/dev/null; then
-      echo "$cmd could not be found"
-      exit
-    fi
-  done
-}
-
 function install_dependencies() {
 #  wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
 #  add-apt-repository -y "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main"

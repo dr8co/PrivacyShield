@@ -9,9 +9,6 @@ cd "$(dirname "$0")" || (echo "Running from $(pwd)" && exit 1)
 # Root access is required to install the dependencies.
 check_root
 
-# Check for required commands
-check_dependencies
-
 # Install dependencies
 install_dependencies
 
