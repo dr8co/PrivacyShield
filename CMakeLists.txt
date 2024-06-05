@@ -21,7 +21,7 @@ project(privacyShield
         VERSION 2.5.0
         DESCRIPTION "A suite of tools for privacy and security"
         HOMEPAGE_URL "https://shield.iandee.tech"
-        LANGUAGES CXX)
+        LANGUAGES C CXX)
 
 # C++23 support is required for this project
 set(CMAKE_CXX_STANDARD 23)
@@ -40,16 +40,21 @@ endif ()
 # Set the path to additional CMake modules
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules")
 
+# Options
+include(CMakeDependentOption)
+# GCC does not support all sanitizers
+cmake_dependent_option(ENABLE_SANITIZERS
+        "Enable sanitizers (Ignored if not using Clang compiler)" OFF
+        "${CMAKE_CXX_COMPILER_ID} STREQUAL \"Clang\"" OFF)
+
 # Additional checks for the Debug build
-if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
-    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-        add_compile_options(
-                -Wall
-                -Wextra
-                -Werror
-                -Wpedantic
-        )
-    endif ()
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_compile_options(
+            -Wall
+            -Wextra
+            -Werror
+            -Wpedantic
+    )
 endif ()
 
 # Find the required packages
@@ -57,7 +62,24 @@ find_package(OpenSSL REQUIRED)
 find_package(Sodium REQUIRED)
 find_package(Readline REQUIRED)
 find_package(Gcrypt REQUIRED)
-find_package(BLAKE3 REQUIRED) # See https://github.com/BLAKE3-team/BLAKE3
+
+find_package(BLAKE3 QUIET) # See https://github.com/BLAKE3-team/BLAKE3
+
+if (NOT TARGET BLAKE3::blake3)
+    message(STATUS "BLAKE3 not found. Fetching from GitHub...")
+    include(FetchContent)
+
+    FetchContent_Declare(
+            blake3
+            GIT_REPOSITORY https://github.com/BLAKE3-team/BLAKE3.git
+            GIT_TAG 454ee5a7c73583cb3060d1464a5d3a4e65f06062
+            SOURCE_SUBDIR c
+            EXCLUDE_FROM_ALL
+    )
+
+    FetchContent_MakeAvailable(blake3)
+
+endif ()
 
 # Add the executable target
 add_executable(privacyShield)
@@ -86,6 +108,31 @@ target_sources(privacyShield PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src/utils/utils.cppm"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/secureAllocator.cppm"
 )
+
+# Sanitizers for debugging and testing
+# Requires llvm-symbolizer and sanitizer libraries (asan, ubsan, msan, tsan)
+if (ENABLE_SANITIZERS)
+    # Common flags for all sanitizers
+    set(sanitizer_common_flags "-fno-omit-frame-pointer -g -O1")
+
+    # Address, leak, undefined, integer, nullability sanitizers
+    set(address_sanitizer_flags "-fsanitize=address,leak,undefined,integer,nullability")
+
+    # Thread sanitizer, cannot be used with address sanitizer
+    set(thread_sanitizer_flags "-fsanitize=thread -fPIE")
+
+    # Memory sanitizer, cannot be used with address sanitizer.
+    set(memory_sanitizer_flags "-fsanitize=memory -fPIE -fno-optimize-sibling-calls")
+
+    # Add compile options
+    add_compile_options(
+            "SHELL:${sanitizer_common_flags}"
+            "SHELL:${address_sanitizer_flags}"
+    )
+
+    # Link the enabled sanitizers.
+    target_link_libraries(privacyShield PRIVATE asan ubsan)
+endif ()
 
 # Link libraries
 target_link_libraries(privacyShield PRIVATE
