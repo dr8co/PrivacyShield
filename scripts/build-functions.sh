@@ -2,7 +2,7 @@
 
 set -e
 
-# This script is used to build the project on the Ubuntu Jammy (22.04) distribution.
+# This script is used to build the project on the Ubuntu Noble (24.04) distribution.
 # It is not intended to be used on other distributions, and must be run from the project root.
 
 PARALLELISM_LEVEL=4
