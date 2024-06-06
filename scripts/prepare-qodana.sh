@@ -10,12 +10,17 @@ cd "$(dirname "$0")" || (echo "Running from $(pwd)" && exit 1)
 check_root
 
 # Install dependencies
+apt remove -y --purge --auto-remove llvm-toolchain-bookworm-16 clang-16 clang-tidy-16 clang-format-16 lld-16 libc++-16-dev libc++abi-16-dev
 apt update && apt install -y software-properties-common wget unzip build-essential openssl libreadline8 libreadline-dev libsodium23 libsodium-dev libgcrypt20-dev
 wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
 add-apt-repository -y "deb http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-18 main"
 apt update
 export NEEDRESTART_SUSPEND=1
-apt install -y clang-18 lldb-18 lld-18 libc++-18-dev libc++abi-18-dev libllvmlibc-18-dev clang-tools-18
+apt install -y llvm-18-dev clang-18 lldb-18 lld-18 libc++-18-dev libc++abi-18-dev libllvmlibc-18-dev clang-tools-18 clang-tidy-18 clang-format-18
+
+for f in /usr/lib/llvm-18/bin/*; do
+  ln -sf "$f" /usr/bin;
+done
 
 # Install CMake 3.29.3
 if dpkg -s "cmake" >/dev/null 2>&1; then
