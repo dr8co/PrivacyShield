@@ -51,4 +51,25 @@ function build_project() {
   cmake --build build --config Debug -j "$PARALLELISM_LEVEL"
 }
 
+function abort() {
+  echo "An unexpected error occurred. Program aborted."
+  exit 1
+}
+
+function build_install_gcc_14() {
+    apt update
+    apt install -y software-properties-common build-essential wget libgmp-dev libmpfr-dev libmpc-dev
+    wget -q https://ftp.gnu.org/gnu/gcc/gcc-14.1.0/gcc-14.1.0.tar.xz
+    tar -xf gcc-14.1.0.tar.xz
+    cd gcc-14.1.0 || abort
+    ./contrib/download_prerequisites
+    mkdir build
+    cd build || abort
+    ../configure --enable-languages=c,c++ --disable-multilib
+    make -j "$PARALLELISM_LEVEL"
+    make install
+    update-alternatives --install /usr/bin/gcc gcc /usr/local/bin/gcc 60 --slave /usr/bin/g++ g++ /usr/local/bin/g++
+    apt purge -y gcc cpp g++
+}
+
 trap "echo 'An unexpected error occurred. Program aborted.'" ERR

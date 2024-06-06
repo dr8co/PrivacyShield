@@ -9,8 +9,11 @@ cd "$(dirname "$0")" || (echo "Running from $(pwd)" && exit 1)
 # Root access is required to install the dependencies.
 check_root
 
+# Build and install GCC 14
+build_install_gcc_14
+
 # Install dependencies
-apt remove -y --purge --auto-remove llvm-toolchain-bookworm-16 clang-16 clang-tidy-16 clang-format-16 lld-16 libc++-16-dev libc++abi-16-dev
+apt remove -y --purge --auto-remove llvm-16-dev clang-16 clang-tidy-16 clang-format-16 lld-16 libc++-16-dev libc++abi-16-dev
 apt update && apt install -y software-properties-common wget unzip build-essential openssl libreadline8 libreadline-dev libsodium23 libsodium-dev libgcrypt20-dev
 wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
 add-apt-repository -y "deb http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-18 main"
