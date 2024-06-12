@@ -1,11 +1,11 @@
-name: CMake Build
+name: CPack Multi-Platform
 
 on:
-  push:
-    branches: [ "main", "dev" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
-  build:
+  build_then_package:
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -13,7 +13,7 @@ jobs:
 
       matrix:
         os: [ ubuntu-24.04, macos-latest ]
-        build_type: [ Debug ] #[ Debug, Release ]
+        build_type: [ Release ]
         c_compiler: [ clang ]
         include:
           - os: macos-latest
@@ -23,14 +23,6 @@ jobs:
           - os: ubuntu-24.04
             c_compiler: clang
             cpp_compiler: clang++-18
-
-        # Don't include the following configurations in the matrix
-#        exclude:
-#          - os: macos-latest
-#            build_type: Debug
-#
-#          - os: ubuntu-24.04
-#            build_type: Release
 
     steps:
       - name: Install Dependencies
@@ -78,7 +70,42 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }} -j 4
 
-      # Run Tests
-      - name: Test
+      - name: Package
+        if: matrix.os == 'macos-latest' && matrix.build_type == 'Release'
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
-        run: ctest -j 4
+        run: |
+          cpack
+
+      - name: Package
+        if: matrix.os == 'ubuntu-24.04' && matrix.build_type == 'Release'
+        working-directory: ${{ steps.strings.outputs.build-output-dir }}
+        run: |
+          sudo cpack
+          sudo chown -R $USER:$USER "${{ github.workspace }}/Packages"
+
+      - name: Import GPG Key
+        if: matrix.build_type == 'Release'
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_SIGNING_KEY }}
+          passphrase: ${{ secrets.GPG_PASS }}
+          trust_level: 5
+
+      - name: Sign Package
+        if: matrix.build_type == 'Release'
+        working-directory: ${{ github.workspace }}
+        run: |
+          for file in Packages/*; do
+            gpg --batch --status-file ~/gpg_log.txt --passphrase ${{ secrets.GPG_PASS }} --default-key dr8co@duck.com \
+              --pinentry-mode=loopback --detach-sign "$file" || (cat ~/gpg_log.txt && exit 1)
+          done
+
+      # Upload the built artifacts
+      - name: Upload Artifacts
+        if: matrix.build_type == 'Release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: "${{ matrix.os }}-${{ matrix.build_type }}"
+          path: "${{ github.workspace }}/Packages"
+          overwrite: true
+          if-no-files-found: 'warn'
