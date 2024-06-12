@@ -40,7 +40,7 @@ install_blake3() {
 
   cd BLAKE3-1.5.1/c || error_exit "Failed to navigate to BLAKE3/c directory."
 
-  cmake -B build -DCMAKE_C_COMPILER="$C_COMPILER" -G Ninja || error_exit "Failed to run cmake."
+  cmake -B build -DCMAKE_C_COMPILER="$C_COMPILER" -DCMAKE_BUILD_TYPE=Release -G Ninja || error_exit "Failed to configure CMake."
   get_number_of_processors
 
   cmake --build build --config Release --target install -j "$NUMBER_OF_PROCESSORS" || error_exit "Failed to build and install."

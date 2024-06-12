@@ -13,7 +13,7 @@ jobs:
 
       matrix:
         os: [ ubuntu-24.04, macos-latest ]
-        build_type: [ Debug ] #[ Debug, Release ]
+        build_type: [ Debug ]
         c_compiler: [ clang ]
         include:
           - os: macos-latest
@@ -23,14 +23,6 @@ jobs:
           - os: ubuntu-24.04
             c_compiler: clang
             cpp_compiler: clang++-18
-
-        # Don't include the following configurations in the matrix
-#        exclude:
-#          - os: macos-latest
-#            build_type: Debug
-#
-#          - os: ubuntu-24.04
-#            build_type: Release
 
     steps:
       - name: Install Dependencies
@@ -66,7 +58,7 @@ jobs:
 
       - name: Configure CMake
         if: matrix.os == 'macos-latest'
-        run: >          
+        run: >
           cmake -B ${{ steps.strings.outputs.build-output-dir }}
           -DCMAKE_CXX_COMPILER=/opt/homebrew/opt/llvm/bin/clang++
           -DCMAKE_C_COMPILER=/opt/homebrew/opt/llvm/bin/clang

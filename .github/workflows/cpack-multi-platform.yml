@@ -58,11 +58,12 @@ jobs:
 
       - name: Configure CMake
         if: matrix.os == 'macos-latest'
-        run: >          
+        run: >
           cmake -B ${{ steps.strings.outputs.build-output-dir }}
           -DCMAKE_CXX_COMPILER=/opt/homebrew/opt/llvm/bin/clang++
           -DCMAKE_C_COMPILER=/opt/homebrew/opt/llvm/bin/clang
-          -DCMAKE_CXX_FLAGS=" -stdlib=libstdc++ -stdlib++-isystem /opt/homebrew/Cellar/gcc/14.1.0_1/include/c++/14 -cxx-isystem /opt/homebrew/Cellar/gcc/14.1.0_1/include/c++/14/aarch64-apple-darwin23 -L /opt/homebrew/Cellar/gcc/14.1.0_1/lib/gcc/14 -Wl,-rpath,/opt/homebrew/opt/gcc/lib/gcc/current"
+          -DCMAKE_CXX_FLAGS="-stdlib++-isystem /opt/homebrew/Cellar/gcc/14.1.0_1/include/c++/14 -cxx-isystem /opt/homebrew/Cellar/gcc/14.1.0_1/include/c++/14/aarch64-apple-darwin23"
+          -DCMAKE_EXE_LINKER_FLAGS="-stdlib=libstdc++ -L /opt/homebrew/Cellar/gcc/14.1.0_1/lib/gcc/14 -Wl,-rpath,/opt/homebrew/opt/gcc/lib/gcc/current"
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
           -S ${{ github.workspace }} -G Ninja
 
