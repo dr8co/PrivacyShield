@@ -16,7 +16,6 @@
 module;
 
 #include <charconv>
-#include <readline/readline.h>
 #include <unistd.h>
 #include <utility>
 #include <termios.h>
@@ -28,6 +27,8 @@ module;
 #include <vector>
 #include <sodium.h>
 #include <print>
+#include <isocline.h>
+#include <mutex>
 
 module utils;
 
@@ -88,34 +89,72 @@ void stripString(StringLike auto &str) noexcept {
     str.erase(str.find_last_not_of(space) + 1);
 }
 
+/// \brief Completes a filename based on the user's input.
+/// This function is used as a callback for the isocline library's readline function.
+/// It provides filename completion when the user presses the Tab key.
+/// \param cenv A pointer to the completion environment provided by readline.
+/// \param input The user's input.
+static void normal_completer(ic_completion_env_t *cenv, const char *input) {
+    ic_complete_filename(cenv, input, 0, nullptr, nullptr);
+}
+
+/// \brief A null completer function for the isocline library's readline function.
+/// This function is used as a callback for the isocline library's readline function.
+/// It does not provide any completion, and is used when no completion is desired.
+static void null_completer(ic_completion_env_t *, const char *) {}
+
+std::mutex m; ///< A mutex to prevent concurrent access to the terminal.
+
+/// \brief Prompts the user for a filesystem path.
+/// \param prompt The prompt to display to the user.
+/// \return The filesystem path entered by the user if successful, else an empty path.
+fs::path getFilesystemPath(const char *prompt) {
+    // Lock the mutex to prevent concurrent access
+    std::scoped_lock lock(m);
+
+    // Enable filename completion and automatic tab completion
+    ic_set_default_completer(normal_completer, nullptr);
+    ic_enable_auto_tab(true);
+
+    // Display the prompt
+    std::puts(prompt);
+    // Read the input from the user
+    if (char *input = ic_readline("")) {
+        fs::path result(input);
+        // Free the input buffer
+        std::free(input);
+        return result;
+    }
+    return fs::path{};
+}
+
+
 /// \brief Gets a response string from user input.
-///
 /// This function prompts the user with the given prompt and reads a response string
 /// from the standard input.
-///
 /// \param prompt The prompt to display to the user.
-/// \return The response string entered by the user if successful, else nullptr.
-std::string getResponseStr(const std::string_view prompt) {
-    std::cout << prompt << std::endl;
-    char *tmp = readline("> ");
-    if (tmp == nullptr) return std::string{};
+/// \return The response string entered by the user if successful, else an empty string.
+std::string getResponseStr(const char *prompt) {
+    std::scoped_lock lock(m);
+    // Disable completions
+    ic_set_default_completer(null_completer, nullptr);
 
-    auto str = std::string{tmp};
-
-    // Trim leading and trailing spaces
-    stripString(str);
-
-    // tmp must be freed
-    std::free(tmp);
-
-    return str;
+    // Read the response from the user
+    std::puts(prompt);
+    if (char *input = ic_readline("")) {
+        std::string result{input};
+        std::free(input);
+        stripString(result);
+        return result;
+    }
+    return "";
 }
 
 /// \brief Captures the user's response while offering editing capabilities.
 /// while the user is entering the data.
 /// \param prompt the prompt displayed to the user for the input.
 /// \return the user's input (an integer) on if it's convertible to integer, else 0.
-int getResponseInt(const std::string_view prompt) {
+int getResponseInt(const char *prompt) {
     // A lambda to convert a string to an integer
     constexpr auto toInt = [](const std::string_view s) noexcept -> int {
         int value;
@@ -130,7 +169,7 @@ int getResponseInt(const std::string_view prompt) {
 /// \return the user's input.
 /// \throws std::bad_alloc if memory allocation fails.
 /// \throws std::runtime_error if memory locking/unlocking fails.
-privacy::string getSensitiveInfo(const std::string_view prompt) {
+privacy::string getSensitiveInfo(const char *prompt) {
     // Allocate a buffer for the password
     auto *buffer = static_cast<char *>(sodium_malloc(MAX_PASSPHRASE_LEN));
     if (buffer == nullptr)
@@ -193,7 +232,7 @@ privacy::string getSensitiveInfo(const std::string_view prompt) {
 /// \brief Confirms a user's response to a yes/no (y/n) situation.
 /// \param prompt The confirmation prompt.
 /// \return True if the user confirms the action, else false.
-bool validateYesNo(const std::string_view prompt) {
+bool validateYesNo(const char *prompt) {
     const std::string resp = getResponseStr(prompt);
     if (resp.empty()) return false;
     return std::tolower(resp.at(0)) == 'y';
@@ -309,7 +348,6 @@ void configureColor(const bool disable) noexcept {
     const auto noColorEnv = getEnv("NO_COLOR");
     const auto termEnv = getEnv("TERM");
     const bool suppressColor = noColorEnv.has_value() ||
-                               (termEnv.has_value() && (termEnv.value() == "dumb" || termEnv.value() == "vt100" ||
-                                                        termEnv.value() == "vt102"));
+                               (termEnv.has_value() && (termEnv.value() == "dumb" || termEnv.value() == "emacs"));
     ColorConfig::getInstance().setSuppressColor(suppressColor);
 }

@@ -525,12 +525,8 @@ export void fileShredder() {
         if (const int choice = getResponseInt("Enter your choice: "); choice == 1 || choice == 2) {
             try {
                 // Get the path to the file or directory to shred
-                std::string path = getResponseStr(std::format("Enter the path to the {} you would like to shred:",
-                                                              choice == 1 ? "file" : "directory"));
-
-                // Remove trailing slashes
-                if (const auto len = path.size(); len > 1 && (path.ends_with('/') || path.ends_with('\\')))
-                    path.erase(len - 1);
+                fs::path path = getFilesystemPath(std::format("Enter the path to the {} you would like to shred:",
+                                                              choice == 1 ? "file" : "directory").c_str());
 
                 std::error_code ec;
                 const fs::file_status fileStatus = fs::status(path, ec);

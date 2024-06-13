@@ -147,15 +147,14 @@ inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const Ope
         // If the output file is not specified, name it appropriately
         if (equivalent(fs::current_path(), outFile)) {
             outFile = inFile;
-            if (inFile.extension() == ".enc") {
-                outFile.replace_extension("");
-            } else if (mode == OperationMode::Encryption) {
-                outFile += ".enc";
-            } else {
-                outFile.replace_extension("");
-                outFile += "_decrypted";
-                outFile += inFile.extension();
-            }
+            if (mode == OperationMode::Decryption) {
+                if (inFile.extension() == ".enc")
+                    outFile.replace_extension("");
+                else {
+                    outFile += "_decrypted";
+                    outFile += inFile.extension();
+                }
+            } else outFile += ".enc";
         } else if (is_directory(outFile)) {
             // If the output file is a directory, rename it appropriately.
             if (mode == OperationMode::Encryption) {
@@ -314,14 +313,8 @@ void encryptDecrypt() {
                                        });
 
                 printColoredOutputln('c', "Enter the path to the file to {}crypt:", pre_l);
-                std::string inputFile = getResponseStr();
+                fs::path inputPath = getFilesystemPath();
 
-                // Remove the trailing directory separator
-                // ('\\' is considered as well in case the program is to be extended to Windows)
-                if ((inputFile.ends_with('/') || inputFile.ends_with('\\')) && inputFile.size() > 1)
-                    inputFile.erase(inputFile.size() - 1);
-
-                fs::path inputPath(inputFile);
                 if (!inputPath.is_absolute()) // The path should be absolute
                     inputPath = fs::current_path() / inputPath;
                 checkInputFile(inputPath, static_cast<OperationMode>(choice));
@@ -329,7 +322,7 @@ void encryptDecrypt() {
                 printColoredOutputln('c', "Enter the path to save the {}crypted file"
                                      "\n(or leave it blank to save it in the same directory):", pre_l);
 
-                fs::path outputPath{getResponseStr()};
+                fs::path outputPath = getFilesystemPath();
                 if (!outputPath.is_absolute()) // If the path is not absolute
                     outputPath = fs::current_path() / outputPath;
                 checkOutputFile(inputPath, outputPath, static_cast<OperationMode>(choice));
@@ -383,7 +376,6 @@ void encryptDecrypt() {
             } catch (const std::exception &ex) {
                 printColoredError('y', "Error: ");
                 printColoredErrorln('r', "{}", ex.what());
-                std::println("");
             }
         } else if (choice == 3) break;
         else printColoredErrorln('r', "Invalid choice!");

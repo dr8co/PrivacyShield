@@ -19,6 +19,7 @@ module;
 #include <sodium.h>
 #include <tuple>
 #include <string>
+#include <filesystem>
 
 export module passwordManager;
 
@@ -42,9 +43,9 @@ std::pair<std::string, privacy::string> initialSetup() noexcept;
 
 privacy::string getHash(std::string_view filePath);
 
-privacy::vector<passwordRecords> importCsv(const std::string &filePath);
+privacy::vector<passwordRecords> importCsv(const std::filesystem::path &filePath);
 
-bool exportCsv(const privacy::vector<passwordRecords> &records, std::string_view filePath = getHomeDir());
+bool exportCsv(const privacy::vector<passwordRecords> &records, const std::filesystem::path &filePath = getHomeDir());
 
 export {
     privacy::string hashPassword(const privacy::string &password,

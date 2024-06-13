@@ -88,14 +88,15 @@ target_sources(privacyShield PRIVATE
 # Find the required packages
 find_package(OpenSSL REQUIRED)
 find_package(Sodium REQUIRED)
-find_package(Readline REQUIRED)
 find_package(Gcrypt REQUIRED)
 
 find_package(BLAKE3 QUIET) # See https://github.com/BLAKE3-team/BLAKE3
 
+include(FetchContent)
+
+# Fetch BLAKE3 from GitHub if it is not found
 if (NOT TARGET BLAKE3::blake3)
     message(STATUS "BLAKE3 not found. Fetching from GitHub...")
-    include(FetchContent)
 
     FetchContent_Declare(
             blake3
@@ -109,6 +110,17 @@ if (NOT TARGET BLAKE3::blake3)
     target_include_directories(privacyShield PRIVATE "${blake3_SOURCE_DIR}")
 
 endif ()
+
+# Fetch Isocline from GitHub
+FetchContent_Declare(
+        isocline
+        GIT_REPOSITORY https://github.com/daanx/isocline.git
+        GIT_TAG c9310ae58941559d761fe5d2dd2713d245f18da6
+        EXCLUDE_FROM_ALL
+)
+FetchContent_MakeAvailable(isocline)
+target_include_directories(privacyShield PRIVATE "${isocline_SOURCE_DIR}/include")
+add_library(ISOCline::isocline ALIAS isocline)
 
 # Sanitizers for debugging and testing
 # Requires llvm-symbolizer and sanitizer libraries (asan, ubsan, msan, tsan)
@@ -137,11 +149,12 @@ endif ()
 
 # Link libraries
 target_link_libraries(privacyShield PRIVATE
+
         OpenSSL::Crypto
-        Readline::Readline
         Sodium::sodium
         Gcrypt::Gcrypt
         BLAKE3::blake3
+        ISOCline::isocline
 )
 
 # Install the binary (optional), with 0755 permissions

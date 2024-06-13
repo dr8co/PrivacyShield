@@ -453,8 +453,8 @@ std::pair<std::string, privacy::string> initialSetup() noexcept {
         }
         if (resp == 2) {
             // Enter the path to an existing password file
-            std::string path = getResponseStr("Enter the path to the file: ");
-            if (!(fs::exists(path) && fs::is_regular_file(path))) {
+            fs::path path = getFilesystemPath("Enter the path to the file: ");
+            if (std::error_code ec; !(exists(path, ec) && is_regular_file(path, ec))) {
                 std::cerr << "That file doesn't exist or is not a regular file." << std::endl;
                 continue;
             }
@@ -506,13 +506,13 @@ privacy::string getHash(const std::string_view filePath) {
 /// \brief Export the password records to a CSV file.
 /// \param records the password records to export.
 /// \param filePath the file to export to.
-bool exportCsv(const privacy::vector<passwordRecords> &records, const std::string_view filePath) {
-    fs::path filepath(filePath);
+bool exportCsv(const privacy::vector<passwordRecords> &records, const std::filesystem::path &filePath) {
+    fs::path filepath = filePath;
     std::error_code ec;
 
     // Check if the file path is valid
-    if (!fs::path(filepath).has_filename()) {
-        printColoredErrorln('r', "Invalid file path: {}", filePath);
+    if (!filepath.has_filename()) {
+        printColoredErrorln('r', "Invalid file path: {}", filePath.string());
         return false;
     }
 
@@ -527,7 +527,7 @@ bool exportCsv(const privacy::vector<passwordRecords> &records, const std::strin
     if (exists(filepath, ec)) {
         // Check if the file is a regular file
         if (!is_regular_file(filepath)) [[unlikely]] {
-            printColoredErrorln('r', "The destination file ({}) is not a regular file.", filePath);
+            printColoredErrorln('r', "The destination file ({}) is not a regular file.", filepath.string());
             return false;
         }
 
@@ -549,7 +549,7 @@ bool exportCsv(const privacy::vector<passwordRecords> &records, const std::strin
     // Open the file for writing
     std::ofstream file(filepath);
     if (!file) {
-        printColoredErrorln('r', "Failed to open the destination file ({}) for writing.", filePath);
+        printColoredErrorln('r', "Failed to open the destination file ({}) for writing.", filepath.string());
         return false;
     }
 
@@ -587,15 +587,15 @@ inline void trim(std::string &str) {
 /// Non-compliant rows will be ignored entirely.
 ///
 /// \throws std::runtime_error if the file couldn't be opened for reading.
-privacy::vector<passwordRecords> importCsv(const std::string &filePath) {
+privacy::vector<passwordRecords> importCsv(const fs::path &filePath) {
     privacy::vector<passwordRecords> passwords;
 
-    checkCommonErrors(filePath);
+    checkCommonErrors(filePath.string());
     bool hasHeader = validateYesNo("Does the file have a header? (Skip the first line?) (y/n): ");
 
     std::ifstream file(filePath);
     if (!file)
-        throw std::runtime_error(std::format("Failed to open the file ({}) for reading.", filePath));
+        throw std::runtime_error(std::format("Failed to open the file ({}) for reading.", filePath.string()));
 
     privacy::string line, value;
     if (hasHeader)

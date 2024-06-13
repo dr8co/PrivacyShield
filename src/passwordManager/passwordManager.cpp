@@ -501,7 +501,7 @@ void searchPasswords(privacy::vector<passwordRecords> &passwords, std::vector<bo
 
 /// \brief Imports passwords from a csv file.
 void importPasswords(privacy::vector<passwordRecords> &passwords, std::vector<bool> &strengths) {
-    const string fileName = getResponseStr("Enter the path to the csv file: ");
+    const fs::path fileName = getFilesystemPath("Enter the path to the csv file: ");
 
     privacy::vector<passwordRecords> imports{importCsv(fileName)};
 
@@ -592,10 +592,10 @@ void exportPasswords(privacy::vector<passwordRecords> &passwords, std::vector<bo
         printColoredOutputln('r', "No passwords saved yet.");
         return;
     }
-    const string fileName = getResponseStr("Enter the path to save the file (leave blank for default): ");
+    const fs::path fileName = getFilesystemPath("Enter the path to save the file (leave blank for default): ");
 
     // Export the passwords to a csv file
-    if (const bool exported = fileName.empty()
+    if (const bool exported = fileName.string().empty()
                                   ? exportCsv(constPasswordsView)
                                   : exportCsv(constPasswordsView, fileName); exported) [[likely]]
             // Warn the user about the security risk
@@ -726,7 +726,7 @@ void passwordManager() {
 
         // Get the primary password
         do {
-            encryptionKey = getSensitiveInfo("Enter the primary password: ");
+            encryptionKey = getSensitiveInfo("Enter your primary password: ");
             isCorrect = verifyPassword(encryptionKey, pwHash);
             if (!isCorrect && attempts < 2)
                 printColoredErrorln('r', "Wrong password, please try again.");

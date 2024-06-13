@@ -200,11 +200,13 @@ export {
                     std::endl;
     }
 
+    fs::path getFilesystemPath(const char* prompt = "");
+
     std::vector<unsigned char> base64Decode(std::string_view encodedData);
 
-    int getResponseInt(std::string_view prompt = "");
+    int getResponseInt(const char* prompt = "");
 
-    std::string getResponseStr(std::string_view prompt = "");
+    std::string getResponseStr(const char* prompt = "");
 
     bool isWritable(const std::string &filename);
 
@@ -214,9 +216,9 @@ export {
 
     bool copyFilePermissions(std::string_view srcFile, std::string_view destFile) noexcept;
 
-    privacy::string getSensitiveInfo(std::string_view prompt = "");
+    privacy::string getSensitiveInfo(const char* prompt = "");
 
-    bool validateYesNo(std::string_view prompt = "");
+    bool validateYesNo(const char* prompt = "");
 
     std::string getHomeDir() noexcept;
 

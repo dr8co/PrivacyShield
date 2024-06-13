@@ -93,7 +93,7 @@ inline void handleAccessError(const std::string_view filename) {
 /// \brief recursively traverses a directory and collects file information.
 /// \param directoryPath the directory to process.
 /// \param files a vector to store the information from the files found in the directory.
-void traverseDirectory(const std::string_view directoryPath, std::vector<FileInfo> &files) {
+void traverseDirectory(const fs::path &directoryPath, std::vector<FileInfo> &files) {
     std::error_code ec;
 
     for (const auto &entry: fs::recursive_directory_iterator(directoryPath,
@@ -146,7 +146,7 @@ void calculateHashes(std::vector<FileInfo> &files, const std::size_t start, cons
 /// \brief finds duplicate files (by content) in a directory.
 /// \param directoryPath the directory to process.
 /// \return True if duplicates are found, else False.
-std::size_t findDuplicates(const std::string_view directoryPath) {
+std::size_t findDuplicates(const fs::path &directoryPath) {
     // Collect file information
     std::vector<FileInfo> files;
     traverseDirectory(directoryPath, files);
@@ -220,16 +220,13 @@ export void duplicateFinder() {
         if (const int resp = getResponseInt(); resp == 1) {
             try {
                 printColoredOutput('b', "Enter the path to the directory to scan:");
-                std::string dirPath = getResponseStr();
-
-                if (const auto len = dirPath.size(); len > 1 && (dirPath.ends_with('/') || dirPath.ends_with('\\')))
-                    dirPath.erase(len - 1);
+                fs::path dirPath = getFilesystemPath();
 
                 std::error_code ec;
                 const fs::file_status fileStatus = fs::status(dirPath, ec);
                 if (ec) {
                     printColoredError('y', "Unable to determine ");
-                    printColoredError('b', "{}", dirPath);
+                    printColoredError('b', "{}", dirPath.string());
 
                     printColoredError('y', "'s status: ");
                     printColoredErrorln('r', "{}", ec.message());
@@ -238,12 +235,12 @@ export void duplicateFinder() {
                     continue;
                 }
                 if (!exists(fileStatus)) {
-                    printColoredError('c', "{}", dirPath);
+                    printColoredError('c', "{}", dirPath.string());
                     printColoredErrorln('r', " does not exist.");
                     continue;
                 }
                 if (!is_directory(fileStatus)) {
-                    printColoredError('c', "{}", dirPath);
+                    printColoredError('c', "{}", dirPath.string());
                     printColoredErrorln('r', " is not a directory.");
                     continue;
                 }
