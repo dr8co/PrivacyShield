@@ -350,14 +350,14 @@ operating system, such as [Linux](https://en.wikipedia.org/wiki/Linux),
 * A C++ compiler with [C++23](https://en.cppreference.com/w/cpp/23) support,
 and [C++20 Modules](https://en.cppreference.com/w/cpp/language/modules) support.
 For this project, [GCC 14](https://gcc.gnu.org/gcc-14/) (or newer),
-or [LLVM Clang 17](https://clang.llvm.org/) (or newer) is required.
+or [LLVM Clang 18](https://clang.llvm.org/) (or newer) is required.
 * [CMake](https://cmake.org/) 3.28+
 * [Ninja](https://ninja-build.org/) 1.11+, or any other build system compatible with CMake and **C++20 Modules**.
 * [OpenSSL](https://www.openssl.org/) 3+
 * [Sodium](https://libsodium.org/) 1.0.18+
 * [GCrypt](https://gnupg.org/software/libgcrypt/index.html) 1.10+
-* [BLAKE3](https://github.com/BLAKE3-team/BLAKE3) 1.4+ (see the note below)
-* [GNU Readline](https://tiswww.case.edu/php/chet/readline/rltop.html) 8+
+* [BLAKE3](https://github.com/BLAKE3-team/BLAKE3) 1.4+ (Fetched automatically by CMake, if not already installed)
+* [Isocline](https://github.com/daanx/isocline) (Fetched automatically by CMake)
 
 **Note:**\
 This project utilizes the [C++20 Modules](https://en.cppreference.com/w/cpp/language/modules) feature,
@@ -433,6 +433,9 @@ The package will contain the built executable, and you can install it using the 
 
 For the macOS package, you can simply drag the .dmg file to your Applications folder.
 
+The current macOS package was built on macOS 14.5 arm64 (M1 chip),
+and might not work on older versions of macOS.
+
 For the Linux package, you can install the .deb or .rpm file using the package manager of your distribution.\
 Internet connection might be required to install the dependencies.
 
@@ -491,6 +494,8 @@ There is no need to remember commands or arguments, as the CLI will guide you th
 
 To use the CLI, simply run the program by typing `privacyShield` in your terminal.
 
+**Tab completion is supported** for most input fields.
+
 ## Contributing
 
 Contributions are welcome! Please read [CONTRIBUTING.md](./CONTRIBUTING.md) for details on our code of conduct,
@@ -532,11 +537,11 @@ However, the feeling of empowered privacy protection is a strong possibility!
 
 ![""](./media/blank.svg)
 
-[![Readline](./media/Heckert_GNU_white.svg)](https://tiswww.case.edu/php/chet/readline/rltop.html)
+[![CMake](./media/Cmake.svg)](https://cmake.org/)
 
 ![""](./media/blank.svg)
 
-[![CMake](./media/Cmake.svg)](https://cmake.org/)
+[![Isocline](./media/isocline.svg)](https://github.com/daanx/isocline)
 
 ## License
 
