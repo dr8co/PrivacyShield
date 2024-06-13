@@ -67,7 +67,6 @@ target_sources(privacyShield PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/src/encryption/encryptStrings.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/passwordManager/passwordManager.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/passwordManager/passwords.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/utils/utils.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp"
 )
 
