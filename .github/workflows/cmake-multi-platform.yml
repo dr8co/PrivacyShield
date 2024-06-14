@@ -7,6 +7,8 @@ on:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+    env:
+      GCC_MAJOR: 14
 
     strategy:
       fail-fast: false
@@ -19,8 +21,6 @@ jobs:
           - os: macos-latest
             c_compiler: clang
             cpp_compiler: clang++-18
-            env:
-              GCC_MAJOR: 14
 
           - os: ubuntu-24.04
             c_compiler: clang
@@ -30,6 +30,7 @@ jobs:
       - name: Install Dependencies
         if: matrix.os == 'macos-latest'
         run: |
+          echo "GCC_MAJOR: ${{ env.GCC_MAJOR }}"
           export HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=TRUE
           brew update
           brew install ninja cmake git "gcc@${{ env.GCC_MAJOR }}"
