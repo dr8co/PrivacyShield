@@ -19,6 +19,8 @@ jobs:
           - os: macos-latest
             c_compiler: clang
             cpp_compiler: clang++-18
+            env:
+              GCC_MAJOR: 14
 
           - os: ubuntu-24.04
             c_compiler: clang
@@ -30,11 +32,11 @@ jobs:
         run: |
           export HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=TRUE
           brew update
-          brew install gcc ninja cmake git
+          brew install ninja cmake git "gcc@${{ env.GCC_MAJOR }}"
           brew reinstall llvm
           echo 'export PATH="/opt/homebrew/opt/llvm/bin:$PATH"' >> ~/.bash_profile
           echo 'export PATH="/opt/homebrew/opt/gcc/bin:$PATH"' >> ~/.bash_profile
-          echo 'export PATH="/opt/homebrew/opt/gcc/lib/gcc/14:$PATH"' >> ~/.bash_profile   
+          echo 'export PATH="/opt/homebrew/opt/gcc/lib/gcc/${{ env.GCC_MAJOR }}:$PATH"' >> ~/.bash_profile   
           . ~/.bash_profile
 
       - uses: actions/checkout@v4
@@ -42,8 +44,15 @@ jobs:
       - name: Set reusable strings
         id: strings
         shell: bash
+        working-directory: ${{ github.workspace }}
         run: |
           echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+          # Set the paths to the GCC include and lib directories on macOS
+          if [ "${{ matrix.os }}" == "macos-latest" ]; then
+            echo "gcc-include-dir=$(./scripts/search.sh "/opt/homebrew/Cellar/gcc/*/include/c++/${{ env.GCC_MAJOR }}")" >> "$GITHUB_OUTPUT"
+            echo "gcc-sys-include-dir=$(./scripts/search.sh "/opt/homebrew/Cellar/gcc/*/include/c++/${{ env.GCC_MAJOR }}/*-apple-darwin*")" >> "$GITHUB_OUTPUT"
+            echo "gcc-lib-dir=$(./scripts/search.sh "/opt/homebrew/Cellar/gcc/*/lib/gcc/${{ env.GCC_MAJOR }}")" >> "$GITHUB_OUTPUT"
+          fi
 
       # Build the project
       - name: Build PrivacyShield
@@ -62,8 +71,8 @@ jobs:
           cmake -B ${{ steps.strings.outputs.build-output-dir }}
           -DCMAKE_CXX_COMPILER=/opt/homebrew/opt/llvm/bin/clang++
           -DCMAKE_C_COMPILER=/opt/homebrew/opt/llvm/bin/clang
-          -DCMAKE_CXX_FLAGS="-stdlib++-isystem /opt/homebrew/Cellar/gcc/14.1.0_1/include/c++/14 -cxx-isystem /opt/homebrew/Cellar/gcc/14.1.0_1/include/c++/14/aarch64-apple-darwin23"
-          -DCMAKE_EXE_LINKER_FLAGS="-stdlib=libstdc++ -L /opt/homebrew/Cellar/gcc/14.1.0_1/lib/gcc/14 -Wl,-rpath,/opt/homebrew/opt/gcc/lib/gcc/current"
+          -DCMAKE_CXX_FLAGS="-stdlib++-isystem ${{ steps.strings.outputs.gcc-include-dir }} -cxx-isystem ${{ steps.strings.outputs.gcc-sys-include-dir }}"
+          -DCMAKE_EXE_LINKER_FLAGS="-stdlib=libstdc++ -L ${{ steps.strings.outputs.gcc-lib-dir }} -Wl,-rpath,/opt/homebrew/opt/gcc/lib/gcc/current"
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
           -S ${{ github.workspace }} -G Ninja
           # -DCMAKE_CXX_FLAGS="-stdlib=libstdc++ -stdlib++-isystem /opt/homebrew/Cellar/gcc/14.1.0_1/include/c++/14 -cxx-isystem /opt/homebrew/Cellar/gcc/14.1.0_1/include/c++/14/aarch64-apple-darwin23 -L /opt/homebrew/Cellar/gcc/14.1.0_1/lib/gcc/14 -Wl,-rpath,/opt/homebrew/opt/gcc/lib/gcc/current"
