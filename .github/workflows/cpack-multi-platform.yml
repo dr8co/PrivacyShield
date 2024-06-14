@@ -32,7 +32,7 @@ jobs:
         run: |
           export HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=TRUE
           brew update
-          brew install ninja cmake git "gcc@${{ env.GCC_MAJOR }}"
+          brew install ninja cmake git gcc@${{ env.GCC_MAJOR }}
           brew reinstall llvm
           echo 'export PATH="/opt/homebrew/opt/llvm/bin:$PATH"' >> ~/.bash_profile
           echo 'export PATH="/opt/homebrew/opt/gcc/bin:$PATH"' >> ~/.bash_profile
@@ -51,7 +51,7 @@ jobs:
           if [ "${{ matrix.os }}" == "macos-latest" ]; then
             echo "gcc-include-dir=$(./scripts/search.sh "/opt/homebrew/Cellar/gcc/*/include/c++/${{ env.GCC_MAJOR }}")" >> "$GITHUB_OUTPUT"
             echo "gcc-sys-include-dir=$(./scripts/search.sh "/opt/homebrew/Cellar/gcc/*/include/c++/${{ env.GCC_MAJOR }}/*-apple-darwin*")" >> "$GITHUB_OUTPUT"
-            echo "gcc-lib-dir=$(./scripts/search.sh "/opt/homebrew/Cellar/gcc/*/lib/gcc/${{ env.GCC_MAJOR }}")" >> "$GITHUB_OUTPUT"
+            echo "gcc-lib-dir=$(./scripts/search.sh "/opt/homebrew/Cellar/gcc/${{ env.GCC_MAJOR }}*/lib/gcc/current")" >> "$GITHUB_OUTPUT"
           fi
 
       # Build the project
