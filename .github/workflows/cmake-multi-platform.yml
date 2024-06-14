@@ -30,10 +30,9 @@ jobs:
       - name: Install Dependencies
         if: matrix.os == 'macos-latest'
         run: |
-          echo "GCC_MAJOR: ${{ env.GCC_MAJOR }}"
           export HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=TRUE
           brew update
-          brew install ninja cmake git "gcc@${{ env.GCC_MAJOR }}"
+          brew install ninja cmake git gcc@${{ env.GCC_MAJOR }}
           brew reinstall llvm
           echo 'export PATH="/opt/homebrew/opt/llvm/bin:$PATH"' >> ~/.bash_profile
           echo 'export PATH="/opt/homebrew/opt/gcc/bin:$PATH"' >> ~/.bash_profile
@@ -50,9 +49,9 @@ jobs:
           echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
           # Set the paths to the GCC include and lib directories on macOS
           if [ "${{ matrix.os }}" == "macos-latest" ]; then
-            echo "gcc-include-dir=$(./scripts/search.sh "/opt/homebrew/Cellar/gcc/*/include/c++/${{ env.GCC_MAJOR }}")" >> "$GITHUB_OUTPUT"
-            echo "gcc-sys-include-dir=$(./scripts/search.sh "/opt/homebrew/Cellar/gcc/*/include/c++/${{ env.GCC_MAJOR }}/*-apple-darwin*")" >> "$GITHUB_OUTPUT"
-            echo "gcc-lib-dir=$(./scripts/search.sh "/opt/homebrew/Cellar/gcc/*/lib/gcc/${{ env.GCC_MAJOR }}")" >> "$GITHUB_OUTPUT"
+            echo "gcc-include-dir=$(./scripts/search.sh "/opt/homebrew/Cellar/gcc/${{ env.GCC_MAJOR }}*/include/c++/${{ env.GCC_MAJOR }}")" >> "$GITHUB_OUTPUT"
+            echo "gcc-sys-include-dir=$(./scripts/search.sh "/opt/homebrew/Cellar/gcc/${{ env.GCC_MAJOR }}*/include/c++/${{ env.GCC_MAJOR }}/*-apple-darwin*")" >> "$GITHUB_OUTPUT"
+            echo "gcc-lib-dir=$(./scripts/search.sh "/opt/homebrew/Cellar/gcc/${{ env.GCC_MAJOR }}*/lib/gcc/${{ env.GCC_MAJOR }}")" >> "$GITHUB_OUTPUT"
           fi
 
       # Build the project
