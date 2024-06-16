@@ -31,11 +31,12 @@ module;
 import utils;
 import FuzzyMatcher;
 import secureAllocator;
+import mimallocSTL;
 
 module passwordManager;
 
 namespace fs = std::filesystem;
-using string = std::string;
+using string = miSTL::string;
 const string DefaultPasswordFile = getHomeDir() + "/.privacyShield/passwords";
 
 /// \brief A binary predicate for searching, sorting, and deduplication of the password records,
@@ -88,7 +89,7 @@ constexpr void computeStrengths
 #if __clang__ || __GNUC__
 [[gnu::always_inline]]
 #endif
-(const privacy::vector<passwordRecords> &passwords, std::vector<bool> &pwStrengths) {
+(const privacy::vector<passwordRecords> &passwords, miSTL::vector<bool> &pwStrengths) {
     pwStrengths.resize(passwords.size());
     for (std::size_t i = 0; i < passwords.size(); ++i) {
         pwStrengths[i] = isPasswordStrong(std::get<2>(passwords[i]));
@@ -96,7 +97,7 @@ constexpr void computeStrengths
 }
 
 /// \brief Adds a new password to the saved records.
-void addPassword(privacy::vector<passwordRecords> &passwords, std::vector<bool> &strengths) {
+void addPassword(privacy::vector<passwordRecords> &passwords, miSTL::vector<bool> &strengths) {
     privacy::string site{getResponseStr("Enter the name of the site/app: ")};
     // The site name must be non-empty
     if (site.empty()) {
@@ -160,7 +161,7 @@ void addPassword(privacy::vector<passwordRecords> &passwords, std::vector<bool> 
 }
 
 /// \brief Generates a random password.
-void generatePassword(privacy::vector<passwordRecords> &, std::vector<bool> &) {
+void generatePassword(privacy::vector<passwordRecords> &, miSTL::vector<bool> &) {
     int length = getResponseInt("Enter the length of the password to generate: ");
 
     int tries{0};
@@ -183,7 +184,7 @@ void generatePassword(privacy::vector<passwordRecords> &, std::vector<bool> &) {
 }
 
 /// \brief Shows all saved passwords.
-void viewAllPasswords(privacy::vector<passwordRecords> &passwords, std::vector<bool> &strengths) {
+void viewAllPasswords(privacy::vector<passwordRecords> &passwords, miSTL::vector<bool> &strengths) {
     // Check if there are any passwords saved
     if (auto &&constPasswordsView = std::ranges::views::as_const(passwords); constPasswordsView.empty()) {
         printColoredOutputln('r', "You haven't saved any password yet.");
@@ -223,7 +224,7 @@ void checkFuzzyMatches(auto &iter, privacy::vector<passwordRecords> &records, pr
                                             [](const auto &lhs, const auto &rhs) noexcept -> bool {
                                                 return comparator(lhs, rhs);
                                             });
-            query = std::string{match};
+            query = miSTL::string{match};
         }
     } else if (!fuzzyMatched.empty()) {
         // multiple matches
@@ -237,7 +238,7 @@ void checkFuzzyMatches(auto &iter, privacy::vector<passwordRecords> &records, pr
 }
 
 /// \brief Updates a password record.
-void updatePassword(privacy::vector<passwordRecords> &passwords, std::vector<bool> &strengths) {
+void updatePassword(privacy::vector<passwordRecords> &passwords, miSTL::vector<bool> &strengths) {
     if (passwords.empty()) [[unlikely]] {
         // There is nothing to update
         printColoredErrorln('r', "No passwords saved yet.");
@@ -342,7 +343,7 @@ void updatePassword(privacy::vector<passwordRecords> &passwords, std::vector<boo
 }
 
 /// \brief Deletes a password record.
-void deletePassword(privacy::vector<passwordRecords> &passwords, std::vector<bool> &strengths) {
+void deletePassword(privacy::vector<passwordRecords> &passwords, miSTL::vector<bool> &strengths) {
     if (passwords.empty()) {
         printColoredErrorln('r', "No passwords saved yet.");
         return;
@@ -431,7 +432,7 @@ void deletePassword(privacy::vector<passwordRecords> &passwords, std::vector<boo
 }
 
 /// \brief Finds a password record.
-void searchPasswords(privacy::vector<passwordRecords> &passwords, std::vector<bool> &) {
+void searchPasswords(privacy::vector<passwordRecords> &passwords, miSTL::vector<bool> &) {
     if (passwords.empty()) [[unlikely]] {
         // There is nothing to search
         printColoredErrorln('r', "No passwords saved yet.");
@@ -500,7 +501,7 @@ void searchPasswords(privacy::vector<passwordRecords> &passwords, std::vector<bo
 }
 
 /// \brief Imports passwords from a csv file.
-void importPasswords(privacy::vector<passwordRecords> &passwords, std::vector<bool> &strengths) {
+void importPasswords(privacy::vector<passwordRecords> &passwords, miSTL::vector<bool> &strengths) {
     const fs::path fileName = getFilesystemPath("Enter the path to the csv file: ");
 
     privacy::vector<passwordRecords> imports{importCsv(fileName)};
@@ -585,7 +586,7 @@ void importPasswords(privacy::vector<passwordRecords> &passwords, std::vector<bo
 }
 
 /// \brief Exports passwords to a csv file.
-void exportPasswords(privacy::vector<passwordRecords> &passwords, std::vector<bool> &) {
+void exportPasswords(privacy::vector<passwordRecords> &passwords, miSTL::vector<bool> &) {
     auto &&constPasswordsView = std::as_const(passwords);
 
     if (constPasswordsView.empty()) [[unlikely]] {
@@ -605,7 +606,7 @@ void exportPasswords(privacy::vector<passwordRecords> &passwords, std::vector<bo
 }
 
 /// \brief Analyzes the saved passwords for weak passwords and password reuse.
-void analyzePasswords(privacy::vector<passwordRecords> &passwords, std::vector<bool> &strengths) {
+void analyzePasswords(privacy::vector<passwordRecords> &passwords, miSTL::vector<bool> &strengths) {
     if (passwords.empty()) {
         printColoredOutputln('r', "No passwords to analyze.");
         return;
@@ -627,7 +628,7 @@ void analyzePasswords(privacy::vector<passwordRecords> &passwords, std::vector<b
     }
 
     // Check for reused passwords
-    std::unordered_map<privacy::string, std::unordered_set<privacy::string> > passwordMap;
+    miSTL::unordered_map<privacy::string, miSTL::unordered_set<privacy::string> > passwordMap;
     for (const auto &[site, _, password]: constPasswordsView) {
         // Add the site to the set of sites that use the password
         passwordMap[password].insert(site);
@@ -647,7 +648,7 @@ void analyzePasswords(privacy::vector<passwordRecords> &passwords, std::vector<b
     } else printColoredOutputln('g', "No weak passwords found. Keep it up!");
 
     // Find reused passwords
-    using PasswordSites = std::pair<std::string, std::unordered_set<privacy::string> >;
+    using PasswordSites = std::pair<miSTL::string, miSTL::unordered_set<privacy::string> >;
     std::multimap<std::size_t, PasswordSites, std::greater<> > countMap;
 
     for (const auto &[password, sites]: passwordMap) {
@@ -692,7 +693,7 @@ void analyzePasswords(privacy::vector<passwordRecords> &passwords, std::vector<b
 /// \throws std::runtime_error if the primary password is incorrect after 3 attempts.
 void passwordManager() {
     privacy::string encryptionKey;
-    std::string passwordFile{DefaultPasswordFile};
+    miSTL::string passwordFile{DefaultPasswordFile};
     bool newSetup{false};
 
     // Reserve 32 bytes for the primary key.
@@ -711,7 +712,7 @@ void passwordManager() {
             newSetup = true;
         } else {
             // the user pointed us to an existing password records
-            passwordFile = path;
+            passwordFile = path.c_str();
         }
     }
 
@@ -747,13 +748,13 @@ void passwordManager() {
     });
 
     // Assess the passwords' strength
-    std::vector<bool> passwordStrength(passwords.size(), false);
+    miSTL::vector<bool> passwordStrength(passwords.size(), false);
     for (std::size_t i = 0; i < passwords.size(); ++i) {
         passwordStrength[i] = isPasswordStrong(std::get<2>(passwords[i]));
     }
 
     // A map of choices and their corresponding functions
-    std::unordered_map<int, void (*)(privacy::vector<passwordRecords> &, std::vector<bool> &)> choices = {
+    miSTL::unordered_map<int, void (*)(privacy::vector<passwordRecords> &, miSTL::vector<bool> &)> choices = {
         {1, addPassword},
         {2, updatePassword},
         {3, deletePassword},

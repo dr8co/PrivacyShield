@@ -29,6 +29,7 @@ module;
 
 import utils;
 import secureAllocator;
+import mimallocSTL;
 import passwordManager;
 
 module encryption;
@@ -63,14 +64,14 @@ constexpr struct {
 /// \brief Formats a file size into a human-readable string.
 /// \param size The file size as an unsigned integer.
 /// \return A string representing the formatted file size.
-std::string formatFileSize(const std::uintmax_t &size) {
+miSTL::string formatFileSize(const std::uintmax_t &size) {
     int i{};
     auto mantissa = static_cast<double>(size);
     for (; mantissa >= 1024.; mantissa /= 1024., ++i) {
     }
     mantissa = std::ceil(mantissa * 10.) / 10.;
-    std::string result = std::to_string(mantissa) + "BKMGTPE"[i];
-    return i == 0 ? result : result + "B (" + std::to_string(size) + ')';
+    miSTL::string result { std::to_string(mantissa) + "BKMGTPE"[i]};
+    return i == 0 ? result : result + "B (" + std::to_string(size).c_str() + ')';
 }
 
 /// \brief Checks for issues with the input file, that may hinder encryption/decryption.
@@ -101,7 +102,7 @@ void checkInputFile(const fs::path &inFile, const OperationMode &mode) {
                 std::format("{} is not a regular file.", inFile.string())); // Encrypted files are regular
     }
     // Check if the input file is readable
-    if (auto file = inFile.string(); !isReadable(file))
+    if (auto file = inFile.string(); !isReadable(file.c_str()))
         throw std::runtime_error(std::format("{} is not readable.", file));
 }
 
@@ -170,7 +171,7 @@ inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const Ope
                 throw std::runtime_error("Operation aborted.");
 
             // Determine if the output file can be written if it exists
-            if (auto file = weakly_canonical(outFile).string(); !(isWritable(file) && isReadable(file)))
+            if (auto file = weakly_canonical(outFile).string(); !(isWritable(file.c_str()) && isReadable(file.c_str())))
                 throw std::runtime_error(std::format("{} is not writable/readable.", file));
         }
     }
@@ -211,7 +212,7 @@ inline void copyLastWrite(const std::string_view srcFile, const std::string_view
 /// \param password the password to use for encryption/decryption.
 /// \param algo the algorithm to use for encryption/decryption.
 /// \param mode the mode of operation: encryption or decryption.
-void fileEncryptionDecryption(const std::string &inputFileName, const std::string &outputFileName,
+void fileEncryptionDecryption(const miSTL::string &inputFileName, const miSTL::string &outputFileName,
                               const privacy::string &password, const Algorithms &algo, const OperationMode &mode) {
     // The mode must be valid: must be either encryption or decryption
     if (mode != OperationMode::Encryption && mode != OperationMode::Decryption) [[unlikely]] {
@@ -221,7 +222,7 @@ void fileEncryptionDecryption(const std::string &inputFileName, const std::strin
 
     try {
         /// Encrypts/decrypts a file based on the passed mode and algorithm.
-        auto encryptDecrypt = [&](const std::string &algorithm) -> void {
+        auto encryptDecrypt = [&](const miSTL::string &algorithm) -> void {
             if (mode == OperationMode::Encryption) // Encryption
                 encryptFile(inputFileName, outputFileName, password, algorithm);
             else // Decryption
@@ -275,7 +276,7 @@ void fileEncryptionDecryption(const std::string &inputFileName, const std::strin
 /// \brief Encrypts and decrypts files.
 void encryptDecrypt() {
     // I'm using hashmaps as an alternative to multiple if-else statements
-    const std::unordered_map<int, Algorithms> algoChoice = {
+    const miSTL::unordered_map<int, Algorithms> algoChoice = {
         {0, Algorithms::AES}, // Default
         {1, Algorithms::AES},
         {2, Algorithms::Camellia},
@@ -284,7 +285,7 @@ void encryptDecrypt() {
         {5, Algorithms::Twofish}
     };
 
-    const std::unordered_map<Algorithms, std::string_view> algoDescription = {
+    const miSTL::unordered_map<Algorithms, std::string_view> algoDescription = {
         {Algorithms::AES, "256-bit AES in CBC mode"},
         {Algorithms::Camellia, "256-bit Camellia in CBC mode"},
         {Algorithms::Aria, "256-bit Aria in CBC mode"},
@@ -303,8 +304,8 @@ void encryptDecrypt() {
 
         if (const int choice = getResponseInt("Enter your choice: "); choice == 1 || choice == 2) {
             try {
-                std::string pre = choice == 1 ? "En" : "De"; // the prefix string
-                std::string pre_l{pre}; // the prefix in lowercase
+                miSTL::string pre = choice == 1 ? "En" : "De"; // the prefix string
+                miSTL::string pre_l{pre}; // the prefix in lowercase
 
                 // Transform the prefix to lowercase
                 std::ranges::transform(pre_l.begin(), pre_l.end(), pre_l.begin(),
@@ -370,7 +371,7 @@ void encryptDecrypt() {
                 printColoredOutput('c', "{}", algoDescription.find(cipher)->second);
                 printColoredOutputln('g', "...");
 
-                fileEncryptionDecryption(canonical(inputPath).string(), weakly_canonical(outputPath).string(),
+                fileEncryptionDecryption(canonical(inputPath).string().c_str(), weakly_canonical(outputPath).string().c_str(),
                                          password, cipher, static_cast<OperationMode>(choice));
                 std::println("");
             } catch (const std::exception &ex) {

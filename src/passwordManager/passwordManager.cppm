@@ -25,6 +25,7 @@ export module passwordManager;
 
 import utils;
 import secureAllocator;
+import mimallocSTL;
 
 using passwordRecords = std::tuple<privacy::string, privacy::string, privacy::string>;
 
@@ -39,7 +40,7 @@ privacy::string generatePassword(int length);
 
 bool changePrimaryPassword(privacy::string &primaryPassword);
 
-std::pair<std::string, privacy::string> initialSetup() noexcept;
+std::pair<miSTL::string, privacy::string> initialSetup() noexcept;
 
 privacy::string getHash(std::string_view filePath);
 

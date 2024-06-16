@@ -30,6 +30,7 @@ module;
 
 export module duplicateFinder;
 import utils;
+import mimallocSTL;
 
 namespace fs = std::filesystem;
 
@@ -38,17 +39,17 @@ constexpr std::size_t CHUNK_SIZE = 4096; ///< Read and process files in chunks o
 
 /// \brief Represents a file by its path (canonical) and hash.
 struct FileInfo {
-    std::string path; ///< the path to the file.
-    std::string hash; ///< the file's BLAKE3 hash
+    miSTL::string path; ///< the path to the file.
+    miSTL::string hash; ///< the file's BLAKE3 hash
 };
 
 /// \brief Calculates the 256-bit BLAKE3 hash of a file.
 /// \param filePath path to the file.
 /// \return Base64-encoded hash of the file.
 /// \throws std::runtime_error if the file cannot be opened.
-std::string calculateBlake3(const std::string &filePath) {
+miSTL::string calculateBlake3(const miSTL::string &filePath) {
     // Open the file
-    std::ifstream file(filePath, std::ios::binary);
+    std::ifstream file(filePath.c_str(), std::ios::binary);
     if (!file) {
         if (std::error_code ec; fs::exists(filePath, ec))
             throw std::runtime_error(std::format("Failed to open '{}' for hashing.", filePath));
@@ -72,7 +73,7 @@ std::string calculateBlake3(const std::string &filePath) {
     blake3_hasher_update(&hasher, buffer.data(), remainingBytes);
 
     // Finalize the hash calculation
-    std::vector<unsigned char> digest(BLAKE3_OUT_LEN);
+    miSTL::vector<unsigned char> digest(BLAKE3_OUT_LEN);
     blake3_hasher_finalize(&hasher, digest.data(), BLAKE3_OUT_LEN);
 
     return base64Encode(digest);
@@ -93,7 +94,7 @@ inline void handleAccessError(const std::string_view filename) {
 /// \brief recursively traverses a directory and collects file information.
 /// \param directoryPath the directory to process.
 /// \param files a vector to store the information from the files found in the directory.
-void traverseDirectory(const fs::path &directoryPath, std::vector<FileInfo> &files) {
+void traverseDirectory(const fs::path &directoryPath, miSTL::vector<FileInfo> &files) {
     std::error_code ec;
 
     for (const auto &entry: fs::recursive_directory_iterator(directoryPath,
@@ -109,7 +110,7 @@ void traverseDirectory(const fs::path &directoryPath, std::vector<FileInfo> &fil
                 continue;
             }
             // Make sure we can read the entry
-            if (isReadable(entry.path())) [[likely]] {
+            if (isReadable(entry.path().string().c_str())) [[likely]] {
                 // process only regular files
                 if (entry.is_regular_file()) [[likely]] {
                     FileInfo fileInfo;
@@ -133,14 +134,14 @@ void traverseDirectory(const fs::path &directoryPath, std::vector<FileInfo> &fil
 /// \param files the files to process.
 /// \param start the index where processing starts.
 /// \param end the index where processing ends.
-void calculateHashes(std::vector<FileInfo> &files, const std::size_t start, const std::size_t end) {
+void calculateHashes(miSTL::vector<FileInfo> &files, const std::size_t start, const std::size_t end) {
     // Check if the range is valid
     if (start > end || end > files.size())
         throw std::range_error("Invalid range.");
 
     // Calculate hashes for the files in the range
     for (std::size_t i = start; i < end; ++i)
-        files[i].hash = calculateBlake3(files[i].path);
+        files[i].hash = calculateBlake3(files[i].path).c_str();
 }
 
 /// \brief finds duplicate files (by content) in a directory.
@@ -148,7 +149,7 @@ void calculateHashes(std::vector<FileInfo> &files, const std::size_t start, cons
 /// \return True if duplicates are found, else False.
 std::size_t findDuplicates(const fs::path &directoryPath) {
     // Collect file information
-    std::vector<FileInfo> files;
+    miSTL::vector<FileInfo> files;
     traverseDirectory(directoryPath, files);
     const std::size_t filesProcessed = files.size();
     if (filesProcessed < 2) return 0;
@@ -158,7 +159,7 @@ std::size_t findDuplicates(const fs::path &directoryPath) {
     const unsigned int numThreads{n ? n : 8}; // Use 8 threads if hardware_concurrency() fails
 
     // Divide the files among the threads
-    std::vector<std::jthread> threads;
+    miSTL::vector<std::jthread> threads;
     const std::size_t filesPerThread = filesProcessed / numThreads;
     std::size_t start = 0;
 
@@ -174,7 +175,7 @@ std::size_t findDuplicates(const fs::path &directoryPath) {
     for (auto &thread: threads) thread.join();
 
     // A hash map to map the files to their corresponding hashes
-    std::unordered_map<std::string, std::vector<std::string> > hashMap;
+    miSTL::unordered_map<miSTL::string, miSTL::vector<miSTL::string> > hashMap;
 
     // Iterate over files and identify duplicates
     for (const auto &[filePath, hash]: files)

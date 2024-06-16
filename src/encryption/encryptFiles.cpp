@@ -30,6 +30,7 @@ module;
 
 import cryptoCipher;
 import secureAllocator;
+import mimallocSTL;
 
 module encryption;
 
@@ -45,7 +46,7 @@ privacy::vector<unsigned char> generateSalt(const int saltSize) {
     std::mutex m;
     privacy::vector<unsigned char> salt(saltSize);
 
-    if (std::scoped_lock<std::mutex> lock(m); RAND_bytes(salt.data(), saltSize) != 1) {
+    if (std::scoped_lock lock(m); RAND_bytes(salt.data(), saltSize) != 1) {
         std::cerr << "Failed to seed OpenSSL's CSPRNG properly."
                 "\nPlease check your system's randomness utilities." << std::endl;
 
@@ -134,15 +135,15 @@ deriveKey(const privacy::string &password, const privacy::vector<unsigned char> 
 /// \details Encryption mode: CBC.
 /// \details Key derivation function: PBKDF2 with BLAKE2b512 as the digest function (salted).
 /// \details The IV is generated randomly with a CSPRNG and prepended to the encrypted file.
-void encryptFile(const std::string &inputFile, const std::string &outputFile, const privacy::string &password,
-                 const std::string &algo) {
+void encryptFile(const miSTL::string &inputFile, const miSTL::string &outputFile, const privacy::string &password,
+                 const miSTL::string &algo) {
     // Open the input file for reading
-    std::ifstream inFile(inputFile, std::ios::binary);
+    std::ifstream inFile(inputFile.c_str(), std::ios::binary);
     if (!inFile)
         throw std::runtime_error(std::format("Failed to open '{}' for reading.", inputFile));
 
     // Open the output file for writing
-    std::ofstream outFile(outputFile, std::ios::binary | std::ios::trunc);
+    std::ofstream outFile(outputFile.c_str(), std::ios::binary | std::ios::trunc);
     if (!outFile)
         throw std::runtime_error(std::format("Failed to open '{}' for writing.", outputFile));
 
@@ -227,15 +228,15 @@ void encryptFile(const std::string &inputFile, const std::string &outputFile, co
 /// \param algo The cipher algorithm used to encrypt the file.
 ///
 /// \throws std::runtime_error if the decryption fails, and for other (documented) errors.
-void decryptFile(const std::string &inputFile, const std::string &outputFile, const privacy::string &password,
-                 const std::string &algo) {
+void decryptFile(const miSTL::string &inputFile, const miSTL::string &outputFile, const privacy::string &password,
+                 const miSTL::string &algo) {
     // Open the input file for reading
-    std::ifstream inFile(inputFile, std::ios::binary);
+    std::ifstream inFile(inputFile.c_str(), std::ios::binary);
     if (!inFile)
         throw std::runtime_error(std::format("Failed to open '{}' for reading.", inputFile));
 
     // Open the output file for writing
-    std::ofstream outFile(outputFile, std::ios::binary | std::ios::trunc);
+    std::ofstream outFile(outputFile.c_str(), std::ios::binary | std::ios::trunc);
     if (!outFile)
         throw std::runtime_error(std::format("Failed to open '{}' for writing.", outputFile));
 
@@ -343,15 +344,15 @@ inline void throwSafeError(const gcry_error_t &err, const std::string_view messa
 /// using PBKDF2 with BLAKE2b-512 as the hash function.
 /// \details The IV(nonce) is randomly generated and stored in the output file.
 void
-encryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &outputFilePath,
+encryptFileWithMoreRounds(const miSTL::string &inputFilePath, const miSTL::string &outputFilePath,
                           const privacy::string &password, const gcry_cipher_algos &algorithm) {
     // Open the input file for reading
-    std::ifstream inputFile(inputFilePath, std::ios::binary);
+    std::ifstream inputFile(inputFilePath.c_str(), std::ios::binary);
     if (!inputFile)
         throw std::runtime_error(std::format("Failed to open '{}' for reading.", inputFilePath));
 
     // Open the output file for writing
-    std::ofstream outputFile(outputFilePath, std::ios::binary | std::ios::trunc);
+    std::ofstream outputFile(outputFilePath.c_str(), std::ios::binary | std::ios::trunc);
     if (!outputFile)
         throw std::runtime_error(std::format("Failed to open '{}' for writing.", outputFilePath));
 
@@ -426,15 +427,15 @@ encryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
 ///
 /// \throws std::runtime_error if the decryption fails, and for other (documented) errors.
 void
-decryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &outputFilePath,
+decryptFileWithMoreRounds(const miSTL::string &inputFilePath, const miSTL::string &outputFilePath,
                           const privacy::string &password, const gcry_cipher_algos &algorithm) {
     // Open the input file for reading
-    std::ifstream inputFile(inputFilePath, std::ios::binary);
+    std::ifstream inputFile(inputFilePath.c_str(), std::ios::binary);
     if (!inputFile)
         throw std::runtime_error(std::format("Failed to open '{}' for reading.", inputFilePath));
 
     // Open the output file for writing
-    std::ofstream outputFile(outputFilePath, std::ios::binary | std::ios::trunc);
+    std::ofstream outputFile(outputFilePath.c_str(), std::ios::binary | std::ios::trunc);
     if (!outputFile)
         throw std::runtime_error(std::format("Failed to open '{}' for writing.", outputFilePath));
 

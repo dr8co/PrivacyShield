@@ -26,6 +26,7 @@ module;
 export module privacyTracks;
 
 import utils;
+import mimallocSTL;
 
 namespace fs = std::filesystem;
 
@@ -64,12 +65,12 @@ std::uint_fast8_t detectBrowsers(const std::string_view pathEnv) {
     }
 
     // Split the PATH variable into individual paths
-    std::string pathEnvStr{pathEnv};
-    std::vector<std::string> paths;
+    miSTL::string pathEnvStr{pathEnv};
+    miSTL::vector<miSTL::string> paths;
     paths.reserve(256);
     std::size_t pos;
 
-    while ((pos = pathEnvStr.find(':')) != std::string::npos) {
+    while ((pos = pathEnvStr.find(':')) != miSTL::string::npos) {
         paths.emplace_back(pathEnvStr.substr(0, pos));
         pathEnvStr.erase(0, pos + 1);
     }
@@ -133,7 +134,7 @@ bool clearFirefoxTracks(const std::string_view configDir) {
     std::error_code ec;
 
     // Find all default profiles
-    std::vector<fs::path> defaultProfileDirs;
+    miSTL::vector<fs::path> defaultProfileDirs;
     for (const auto &entry: fs::directory_iterator(configDir, fs::directory_options::skip_permission_denied |
                                                               fs::directory_options::follow_directory_symlink, ec)) {
         handleFileError(ec, "reading", configDir);
@@ -159,7 +160,7 @@ bool clearFirefoxTracks(const std::string_view configDir) {
     } else printColoredErrorln('r', "No default profiles found.");
 
     // Treat the other directories as profiles
-    std::vector<fs::path> profileDirs;
+    miSTL::vector<fs::path> profileDirs;
     for (const auto &entry: fs::directory_iterator(configDir, fs::directory_options::skip_permission_denied |
                                                               fs::directory_options::follow_directory_symlink, ec)) {
         handleFileError(ec, "reading", configDir);
@@ -257,7 +258,7 @@ bool clearChromiumTracks(const std::string_view configDir) {
     } else printColoredErrorln('r', "Default profile directory not found.");
 
     // Find other profile directories
-    std::vector<fs::path> profileDirs;
+    miSTL::vector<fs::path> profileDirs;
     for (const auto &entry: fs::directory_iterator(configDir, fs::directory_options::skip_permission_denied |
                                                               fs::directory_options::follow_directory_symlink, ec)) {
         handleFileError(ec, "reading", configDir);
@@ -338,7 +339,7 @@ bool clearOperaTracks(const std::string_view profilePath) {
         ec.clear();
         fs::remove(fs::path{profilePath} / "cookies", ec);
         if (ec) {
-            handleFileError(ec, "deleting", std::string{profilePath} + "/cookies");
+            handleFileError(ec, "deleting", miSTL::string{profilePath} + "/cookies");
             ec.clear();
             ret = false; // We don't to return yet, we want to try to clear history too
         }
@@ -350,7 +351,7 @@ bool clearOperaTracks(const std::string_view profilePath) {
         ec.clear();
         fs::remove(fs::path{profilePath} / "history", ec);
         if (ec) {
-            handleFileError(ec, "deleting", std::string{profilePath} + "/history");
+            handleFileError(ec, "deleting", miSTL::string{profilePath} + "/history");
             ec.clear();
             return false; // No point in continuing
         }
@@ -402,7 +403,7 @@ bool clearOperaTracks() {
 /// \return true if successful, false otherwise.
 bool clearSafariTracks() {
 #if __APPLE__
-    const std::string cookiesPath = getHomeDir() + "/Library/Cookies";
+    const miSTL::string cookiesPath = getHomeDir() + "/Library/Cookies";
     if (!fs::exists(cookiesPath)) {
         printColoredErrorln('r', "Safari cookies directory not found.");
         return false;
@@ -418,7 +419,7 @@ bool clearSafariTracks() {
         }
     }
 
-    const std::string historyPath = getHomeDir() + "/Library/Safari";
+    const miSTL::string historyPath = getHomeDir() + "/Library/Safari";
     if (!fs::exists(historyPath)) {
         printColoredErrorln('c', "Safari history directory not found.");
         return false;

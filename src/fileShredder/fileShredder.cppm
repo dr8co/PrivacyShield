@@ -32,6 +32,7 @@ using StatType = struct stat;
 
 export module fileShredder;
 import utils;
+import mimallocSTL;
 
 namespace fs = std::filesystem;
 constexpr std::streamoff BUFFER_SIZE = 4096;
@@ -56,7 +57,7 @@ void overwriteRandom(std::ofstream &file, const std::size_t fileSize, const int 
         // (Re)seed the Mersenne Twister engine in every pass
         std::mt19937_64 gen(rd());
 
-        std::vector<unsigned char> buffer(BUFFER_SIZE);
+        miSTL::vector<unsigned char> buffer(BUFFER_SIZE);
 
         // Overwrite the file with random data
         for (std::size_t pos = 0; pos < fileSize; pos += BUFFER_SIZE) {
@@ -91,7 +92,7 @@ void overwriteConstantByte(std::ofstream &file, T &byte, const auto &fileSize) {
     // seek to the beginning of the file
     file.seekp(0, std::ios::beg);
 
-    std::vector<T> buffer(BUFFER_SIZE, byte);
+    miSTL::vector<T> buffer(BUFFER_SIZE, byte);
 
     for (std::streamoff pos = 0; pos < fileSize; pos += BUFFER_SIZE) {
         if (pos + BUFFER_SIZE > fileSize) {
@@ -125,10 +126,10 @@ inline void renameAndRemove(const std::string_view filename, int numTimes = 1) {
     std::uniform_int_distribution<int> numDist(minNameLength, maxNameLength);
 
     // Get the file extension using std::filesystem
-    const std::string fileExtension = fs::path(filename).extension().string();
+    const miSTL::string fileExtension = fs::path(filename).extension().string().c_str();
 
     // Generate a random name using the safe characters (Not exhaustive)
-    const std::string safeChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    constexpr std::string_view safeChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     std::uniform_int_distribution<std::size_t> dist(0, safeChars.size() - 1);
 
     fs::path path(filename);
@@ -142,7 +143,7 @@ inline void renameAndRemove(const std::string_view filename, int numTimes = 1) {
         // Generate a random number of characters for the new name
         const int numChars = numDist(gen);
 
-        std::string newName;
+        miSTL::string newName;
         // Generate a random name
         for (int j = 0; j < numChars; ++j)
             newName += safeChars[dist(gen)];
@@ -177,9 +178,9 @@ inline void renameAndRemove(const std::string_view filename, int numTimes = 1) {
 struct FileDescriptor {
     int fd{-1};
 
-    explicit FileDescriptor(const std::string &filename) : fd(open(filename.c_str(), O_RDWR)) {
+    explicit FileDescriptor(const miSTL::string &filename) : fd(open(filename.c_str(), O_RDWR)) {
         if (fd == -1)
-            throw std::runtime_error("Failed to open file: " + filename + " (" + std::strerror(errno) + ")");
+            throw std::runtime_error(std::format("Failed to open file: {} ({})", filename, std::strerror(errno)));
     }
 
     ~FileDescriptor() { if (fd != -1) close(fd); }
@@ -203,7 +204,7 @@ struct FileStatInfo {
 /// \brief wipes the cluster tips of a file.
 /// \param fileName the path to the file to be wiped.
 /// \throws std::runtime_error if zeroing the cluster tips fails.
-inline void wipeClusterTips(const std::string &fileName) {
+inline void wipeClusterTips(const miSTL::string &fileName) {
     const FileDescriptor fileDescriptor(fileName);
     const FileStatInfo fileInformation(fileDescriptor.fd);
 
@@ -220,7 +221,7 @@ inline void wipeClusterTips(const std::string &fileName) {
     }
 
     // Write zeros to the cluster tip
-    const std::vector<char> zeroBuffer(clusterTipSize, 0);
+    const miSTL::vector<char> zeroBuffer(clusterTipSize, 0);
 
     if (write(fileDescriptor.fd, zeroBuffer.data(), zeroBuffer.size()) == static_cast<ssize_t>(-1)) {
         throw std::runtime_error(std::format("Failed to write zeros: ({})", std::strerror(errno)));
@@ -233,10 +234,10 @@ inline void wipeClusterTips(const std::string &fileName) {
 /// \param wipeClusterTip whether to wipe the cluster tips of the file.
 ///
 /// \throws std::runtime_error if the file cannot be opened.
-void simpleShred(const std::string &filename, const int &nPasses = 3, const bool wipeClusterTip = false) {
-    std::ofstream file(filename, std::ios::binary | std::ios::in);
+void simpleShred(const miSTL::string &filename, const int &nPasses = 3, const bool wipeClusterTip = false) {
+    std::ofstream file(filename.c_str(), std::ios::binary | std::ios::in);
     if (!file)
-        throw std::runtime_error("\nFailed to open file: " + filename);
+        throw std::runtime_error(std::format("\nFailed to open file: {}", filename));
 
     std::error_code ec;
     // Read last write time
@@ -268,10 +269,10 @@ void simpleShred(const std::string &filename, const int &nPasses = 3, const bool
 /// \param wipeClusterTip whether to wipe the cluster tips of the file.
 ///
 /// \throws std::runtime_error if the file cannot be opened, or if the number of passes is invalid.
-void dod5220Shred(const std::string &filename, const int &nPasses = 3, const bool wipeClusterTip = false) {
-    std::ofstream file(filename, std::ios::binary | std::ios::in);
+void dod5220Shred(const miSTL::string &filename, const int &nPasses = 3, const bool wipeClusterTip = false) {
+    std::ofstream file(filename.c_str(), std::ios::binary | std::ios::in);
     if (!file)
-        throw std::runtime_error("\nFailed to open file: " + filename);
+        throw std::runtime_error(std::format("\nFailed to open file: {}", filename));
 
     std::error_code ec;
     // Read last write time
@@ -359,7 +360,7 @@ static inline bool addReadWritePermissions(const std::string_view fileName) noex
 ///
 /// \warning If the filePath is a directory, then all its files and subdirectories
 /// are shredded without warning.
-bool shredFiles(const std::string &filePath, const std::uint_fast8_t &options, const int &simplePasses = 3) {
+bool shredFiles(const miSTL::string &filePath, const std::uint_fast8_t &options, const int &simplePasses = 3) {
     std::error_code ec;
     const fs::file_status fileStatus = fs::status(filePath, ec);
     if (ec) {
@@ -401,7 +402,7 @@ bool shredFiles(const std::string &filePath, const std::uint_fast8_t &options, c
                     printColoredOutput('b', "{}", canonical(entry.path()).string());
                     printColoredOutput('c', " ...");
                     try {
-                        const bool shredded = shredFiles(entry.path().string(), options);
+                        const bool shredded = shredFiles(entry.path().string().c_str(), options);
                         printColoredOutputln(shredded ? 'g' : 'r', "{}",
                                              shredded ? "\tshredded successfully." : "\tshredding failed.");
 
@@ -575,7 +576,7 @@ export void fileShredder() {
                     std::cout << "Shredding '";
                     printColoredOutput('c', "{}", canonicalPath);
                     std::cout << "'..." << std::endl;
-                    const bool shredded = shredFiles(path, preferences, simpleNumPass);
+                    const bool shredded = shredFiles(path.string().c_str(), preferences, simpleNumPass);
                     if (!isDir) {
                         printColoredOutput(shredded ? 'g' : 'r', "{}",
                                            shredded ? "Successfully shredded " : "Failed to shred ");

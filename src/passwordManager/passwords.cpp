@@ -29,6 +29,7 @@ module;
 import utils;
 import encryption;
 import secureAllocator;
+import mimallocSTL;
 
 module passwordManager;
 
@@ -78,7 +79,7 @@ privacy::string generatePassword(const int length) {
         throw std::length_error("Password too long.");
 
     // generate from a set of printable ascii characters
-    const std::string characters =
+    constexpr std::string_view characters =
             "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()-=_~+[]{}<>";
 
     // Seed the Mersenne Twister engine with a random source (ideally non-deterministic)
@@ -155,7 +156,7 @@ encryptDecryptRange(privacy::vector<passwordRecords> &passwords, const privacy::
         for (std::size_t i = start; i < end; ++i) {
             std::get<2>(passwords[i]) = encrypt
                                             ? encryptStringWithMoreRounds(std::get<2>(passwords[i]), key)
-                                            : decryptStringWithMoreRounds(std::string{std::get<2>(passwords[i])},
+                                            : decryptStringWithMoreRounds(miSTL::string{std::get<2>(passwords[i])},
                                                                           key);
         }
     } catch (const std::exception &ex) {
@@ -183,15 +184,15 @@ encryptDecryptRangeAllFields(privacy::vector<passwordRecords> &passwords, const 
         for (std::size_t i = start; i < end; ++i) {
             std::get<0>(passwords[i]) = encrypt
                                             ? encryptString(std::get<0>(passwords[i]), key)
-                                            : decryptString(std::string{std::get<0>(passwords[i])}, key);
+                                            : decryptString(miSTL::string{std::get<0>(passwords[i])}, key);
 
             std::get<1>(passwords[i]) = encrypt
                                             ? encryptString(std::get<1>(passwords[i]), key)
-                                            : decryptString(std::string{std::get<1>(passwords[i])}, key);
+                                            : decryptString(miSTL::string{std::get<1>(passwords[i])}, key);
 
             std::get<2>(passwords[i]) = encrypt
                                             ? encryptString(std::get<2>(passwords[i]), key)
-                                            : decryptString(std::string{std::get<2>(passwords[i])}, key);
+                                            : decryptString(miSTL::string{std::get<2>(passwords[i])}, key);
         }
     } catch (const std::exception &ex) {
         printColoredErrorln('r', "Error: {}", ex.what());
@@ -212,7 +213,7 @@ encryptDecryptConcurrently(privacy::vector<passwordRecords> &passwordEntries, co
     const unsigned int numThreads{std::jthread::hardware_concurrency() ? std::jthread::hardware_concurrency() : 8};
 
     // Divide the password entries among threads
-    std::vector<std::jthread> threads;
+    miSTL::vector<std::jthread> threads;
     const std::size_t passPerThread = numPasswords / numThreads;
     std::size_t start = 0;
 
@@ -259,7 +260,7 @@ inline void checkCommonErrors(const std::string_view path) {
 /// \return True, if successful.
 bool savePasswords(privacy::vector<passwordRecords> &passwords, const std::string_view filePath,
                    const privacy::string &encryptionKey) {
-    auto tempFile = std::string{filePath} + "XXXXXX";
+    auto tempFile = miSTL::string{filePath} + "XXXXXX";
 
     // Create a temporary file
     // If the temporary file couldn't be created, use the original file path
@@ -267,7 +268,7 @@ bool savePasswords(privacy::vector<passwordRecords> &passwords, const std::strin
         tempFile = filePath;
     else close(tmpFileFd); // Close the file descriptor
 
-    std::ofstream file(tempFile, std::ios::trunc);
+    std::ofstream file(tempFile.c_str(), std::ios::trunc);
     if (!file) {
         try {
             checkCommonErrors(tempFile);
@@ -407,8 +408,8 @@ bool changePrimaryPassword(privacy::string &primaryPassword) {
 
 /// \brief Helps with the initial setup of the password manager.
 /// \return New primary password and/or path to the password file, whichever is applicable.
-std::pair<std::string, privacy::string> initialSetup() noexcept {
-    std::pair<std::string, privacy::string> ret{"", ""}; // ret.first = path to file, ret.second = new primary password
+std::pair<miSTL::string, privacy::string> initialSetup() noexcept {
+    std::pair<miSTL::string, privacy::string> ret{"", ""}; // ret.first = path to file, ret.second = new primary password
 
     std::cout << "Looks like you don't have any passwords saved yet." << std::endl;
 
@@ -459,7 +460,7 @@ std::pair<std::string, privacy::string> initialSetup() noexcept {
                 continue;
             }
 
-            ret.first = path;
+            ret.first = path.string().c_str();
             break;
         }
         if (resp == 3) return ret;
@@ -569,7 +570,7 @@ bool exportCsv(const privacy::vector<passwordRecords> &records, const std::files
 
 /// \brief Trims space (whitespace) off the beginning and end of a string.
 /// \param str the string to trim.
-inline void trim(std::string &str) {
+inline void trim(miSTL::string &str) {
     constexpr std::string_view space = " \t\n\r\f\v";
 
     // Trim the leading space
@@ -604,7 +605,7 @@ privacy::vector<passwordRecords> importCsv(const fs::path &filePath) {
 
     while (std::getline<char, std::char_traits<char>, privacy::Allocator<char> >(file, line)) {
         privacy::istringstream iss(line);
-        privacy::vector<std::string> tokens;
+        privacy::vector<miSTL::string> tokens;
 
         while (std::getline<char, std::char_traits<char>, privacy::Allocator<char> >(iss, value, ','))
             tokens.emplace_back(value);

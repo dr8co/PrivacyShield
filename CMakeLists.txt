@@ -62,26 +62,27 @@ add_executable(privacyShield)
 
 # Add sources for the target
 target_sources(privacyShield PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/encryption/encryptDecrypt.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/encryption/encryptFiles.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/encryption/encryptStrings.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/passwordManager/passwordManager.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/passwordManager/passwords.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp"
+        src/encryption/encryptDecrypt.cpp
+        src/encryption/encryptFiles.cpp
+        src/encryption/encryptStrings.cpp
+        src/passwordManager/passwordManager.cpp
+        src/passwordManager/passwords.cpp
+        src/main.cpp
 )
 
 # C++20 Modules
 target_sources(privacyShield PRIVATE
         FILE_SET CXX_MODULES FILES
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/duplicateFinder/duplicateFinder.cppm"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/encryption/cryptoCipher.cppm"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/encryption/encryption.cppm"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/fileShredder/fileShredder.cppm"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/passwordManager/FuzzyMatcher.cppm"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/passwordManager/passwordManager.cppm"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/privacyTracks/privacyTracks.cppm"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/utils/utils.cppm"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/secureAllocator.cppm"
+        src/duplicateFinder/duplicateFinder.cppm
+        src/encryption/cryptoCipher.cppm
+        src/encryption/encryption.cppm
+        src/fileShredder/fileShredder.cppm
+        src/passwordManager/FuzzyMatcher.cppm
+        src/passwordManager/passwordManager.cppm
+        src/privacyTracks/privacyTracks.cppm
+        src/utils/utils.cppm
+        src/secureAllocator.cppm
+        src/mimallocSTL.cppm
 )
 
 # Find the required packages
@@ -109,6 +110,26 @@ if (NOT TARGET BLAKE3::blake3)
     target_include_directories(privacyShield PRIVATE "${blake3_SOURCE_DIR}")
 
 endif ()
+
+# Mimalloc allocator
+find_package(mimalloc 2.1 QUIET)
+if (NOT TARGET mimalloc)
+    message(STATUS "mimalloc not found. Fetching from GitHub...")
+
+    FetchContent_Declare(
+            mimalloc
+            GIT_REPOSITORY https://github.com/microsoft/mimalloc.git
+            GIT_TAG v2.1.7
+            EXCLUDE_FROM_ALL
+    )
+endif ()
+
+set(MI_BUILD_TESTS OFF) # Do not build tests
+
+FetchContent_MakeAvailable(mimalloc)
+target_include_directories(privacyShield PRIVATE "${mimalloc_SOURCE_DIR}/include")
+add_library(Mimalloc::mimalloc-static ALIAS mimalloc-static)
+add_library(Mimalloc::mimalloc ALIAS mimalloc)
 
 # Fetch Isocline from GitHub
 FetchContent_Declare(
@@ -148,12 +169,12 @@ endif ()
 
 # Link libraries
 target_link_libraries(privacyShield PRIVATE
-
         OpenSSL::Crypto
         Sodium::sodium
         Gcrypt::Gcrypt
         BLAKE3::blake3
         ISOCline::isocline
+        Mimalloc::mimalloc-static
 )
 
 # Install the binary (optional), with 0755 permissions

@@ -34,6 +34,7 @@ module;
 export module utils;
 
 import secureAllocator;
+import mimallocSTL;
 
 namespace fs = std::filesystem;
 
@@ -220,7 +221,7 @@ export {
     /// \return Base64-encoded string.
     /// \throws std::bad_alloc if memory allocation fails.
     /// \throws std::runtime_error if encoding fails.
-    std::string base64Encode(const uCharVector auto &input) {
+    miSTL::string base64Encode(const uCharVector auto &input) {
         // Create a BIO object to encode the data
         const std::unique_ptr<BIO, decltype(&BIO_free_all)> b64(BIO_new(BIO_f_base64()), &BIO_free_all);
         if (b64 == nullptr)
@@ -249,7 +250,7 @@ export {
         BIO_get_mem_ptr(b64.get(), &bufferPtr);
 
         // Create a string from the data
-        std::string encodedData(bufferPtr->data, bufferPtr->length);
+        miSTL::string encodedData(bufferPtr->data, bufferPtr->length);
 
         return encodedData;
     }
@@ -282,7 +283,7 @@ export {
     /// \return a vector of the decoded binary data.
     /// \throws std::bad_alloc if memory allocation fails.
     /// \throws std::runtime_error if the decoding operation fails.
-    std::vector<unsigned char> base64Decode(const std::string_view encodedData) {
+    miSTL::vector<unsigned char> base64Decode(const std::string_view encodedData) {
         // Create a BIO object to decode the data
         std::unique_ptr<BIO, decltype(&BIO_free_all)> bio(
             BIO_new_mem_buf(encodedData.data(), static_cast<int>(encodedData.size())), &BIO_free_all);
@@ -300,7 +301,7 @@ export {
         // Push the base64 BIO to the memory BIO
         bio.reset(BIO_push(b64, bio.release())); // Transfer ownership to bio
 
-        std::vector<unsigned char> decodedData(encodedData.size());
+        miSTL::vector<unsigned char> decodedData(encodedData.size());
 
         // Decode the data
         const int len = BIO_read(bio.get(), decodedData.data(), static_cast<int>(decodedData.size()));
@@ -318,7 +319,7 @@ export {
     /// from the standard input.
     /// \param prompt The prompt to display to the user.
     /// \return The response string entered by the user if successful, else an empty string.
-    std::string getResponseStr(const char *prompt = "") {
+    miSTL::string getResponseStr(const char *prompt = "") {
         std::scoped_lock lock(termutex);
         // Disable completions
         ic_set_default_completer(null_completer, nullptr);
@@ -326,7 +327,7 @@ export {
         // Read the response from the user
         std::puts(prompt);
         if (char *input = ic_readline("")) {
-            std::string result{input};
+            miSTL::string result{input};
             std::free(input);
             stripString(result);
             return result;
@@ -417,7 +418,7 @@ export {
     /// to the current user.
     /// \param filename the path to the file.
     /// \return true if the current user has write permissions, else false.
-    bool isWritable(const std::string &filename) {
+    bool isWritable(const miSTL::string &filename) {
         return access(filename.c_str(), F_OK | W_OK) == 0;
     }
 
@@ -425,7 +426,7 @@ export {
     /// to the current user.
     /// \param filename the path to the file.
     /// \return true if the current user has read permissions, else false.
-    bool isReadable(const std::string &filename) {
+    bool isReadable(const miSTL::string &filename) {
         return access(filename.c_str(), F_OK | R_OK) == 0;
     }
 
@@ -477,7 +478,7 @@ export {
     /// \param prompt The confirmation prompt.
     /// \return True if the user confirms the action, else false.
     bool validateYesNo(const char *prompt = "") {
-        const std::string resp = getResponseStr(prompt);
+        const miSTL::string resp = getResponseStr(prompt);
         if (resp.empty()) return false;
         return std::tolower(resp.at(0)) == 'y';
     }
@@ -486,7 +487,7 @@ export {
     /// \param var an environment variable to query.
     /// \return the value of the environment variable if it exists, else nullopt (nothing).
     /// \note The returned value MUST be checked before access.
-    std::optional<std::string> getEnv(const char *const var) {
+    std::optional<miSTL::string> getEnv(const char *const var) {
         // Use secure_getenv() if available
 #if _GNU_SOURCE
         if (const char *value = secure_getenv(var))
@@ -502,7 +503,7 @@ export {
     /// \return The home directory read from {'HOME', 'USERPROFILE'}
     /// environment variables, else the current working directory (or an empty
     /// string if the current directory couldn't be determined).
-    std::string getHomeDir() noexcept {
+    miSTL::string getHomeDir() noexcept {
         std::error_code ec;
         // Try to get the home directory from the environment variables
         if (const auto envHome = getEnv("HOME"); envHome)
@@ -513,7 +514,7 @@ export {
         // If the environment variables are not set, use the current working directory
         std::cerr << "\nCouldn't find your home directory, using the current working directory instead.." << std::endl;
 
-        std::string currentDir = std::filesystem::current_path(ec);
+        miSTL::string currentDir = std::filesystem::current_path(ec).string().c_str();
         if (ec) std::cerr << ec.message() << std::endl;
 
         return currentDir;
