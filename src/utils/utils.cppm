@@ -29,7 +29,6 @@ module;
 #include <sodium.h>
 #include <print>
 #include <isocline.h>
-#include <mutex>
 
 export module utils;
 
@@ -39,8 +38,6 @@ import mimallocSTL;
 namespace fs = std::filesystem;
 
 constexpr int MAX_PASSPHRASE_LEN = 1024; ///< Maximum length of a passphrase
-std::mutex termutex; ///< A mutex to prevent concurrent access to the terminal.
-
 
 
 /// \class ColorConfig
@@ -161,9 +158,6 @@ export {
     /// \param args The arguments to be printed.
     template<class... Args>
     void printColoredOutput(const char color, std::format_string<Args...> fmt, Args &&... args) {
-        // Lock the mutex to prevent concurrent access
-        std::scoped_lock lock(termutex);
-
         // Print the output depending on the color configuration
         if (ColorConfig::getInstance().getSuppressColor())
             std::cout << std::vformat(fmt.get(), std::make_format_args(args...));
@@ -177,8 +171,6 @@ export {
     /// \param args The arguments to be printed.
     template<class... Args>
     void printColoredOutputln(const char color, std::format_string<Args...> fmt, Args &&... args) {
-        std::scoped_lock lock(termutex);
-
         if (ColorConfig::getInstance().getSuppressColor())
             std::cout << std::vformat(fmt.get(), std::make_format_args(args...)) << std::endl;
         else
@@ -193,8 +185,6 @@ export {
     /// \param args The arguments to be printed.
     template<class... Args>
     void printColoredError(const char color, std::format_string<Args...> fmt, Args &&... args) {
-        std::scoped_lock lock(termutex);
-
         if (ColorConfig::getInstance().getSuppressColor())
             std::cerr << std::vformat(fmt.get(), std::make_format_args(args...));
         else std::cerr << getColorCode(color) << std::vformat(fmt.get(), std::make_format_args(args...)) << "\033[0m";
@@ -207,8 +197,6 @@ export {
     /// \param args The arguments to be printed.
     template<class... Args>
     void printColoredErrorln(const char color, std::format_string<Args...> fmt, Args &&... args) {
-        std::scoped_lock lock(termutex);
-
         if (ColorConfig::getInstance().getSuppressColor())
             std::cerr << std::vformat(fmt.get(), std::make_format_args(args...)) << std::endl;
         else
@@ -255,29 +243,6 @@ export {
         return encodedData;
     }
 
-    /// \brief Prompts the user for a filesystem path.
-    /// \param prompt The prompt to display to the user.
-    /// \return The filesystem path entered by the user if successful, else an empty path.
-    fs::path getFilesystemPath(const char *prompt = "") {
-        // Lock the mutex to prevent concurrent access
-        std::scoped_lock lock(termutex);
-
-        // Enable filename completion and automatic tab completion
-        ic_set_default_completer(normal_completer, nullptr);
-        ic_enable_auto_tab(true);
-
-        // Display the prompt
-        std::puts(prompt);
-        // Read the input from the user
-        if (char *input = ic_readline("")) {
-            fs::path result(input);
-            // Free the input buffer
-            std::free(input);
-            return result;
-        }
-        return fs::path{};
-    }
-
     /// \brief Performs Base64 decoding of a string into binary data.
     /// \param encodedData Base64 encoded string.
     /// \return a vector of the decoded binary data.
@@ -314,13 +279,39 @@ export {
         return decodedData;
     }
 
+    bool validateYesNo(const char *prompt = "");
+
+    /// \brief Prompts the user for a filesystem path.
+    /// \param prompt The prompt to display to the user.
+    /// \return The filesystem path entered by the user if successful, else an empty path.
+    fs::path getFilesystemPath(const char *prompt = "") {
+        // Enable filename completion and automatic tab completion
+        ic_set_default_completer(normal_completer, nullptr);
+        ic_enable_auto_tab(true);
+
+        // Display the prompt
+        std::puts(prompt);
+        // Read the input from the user
+        if (char *input = ic_readline("")) {
+            fs::path result(input);
+            // Free the input buffer
+            std::free(input);
+            return result;
+        }
+        // Handle Ctrl+C/D
+        printColoredError('r', "Input canceled. Unsaved data might be lost if you quit now."
+                          "\nDo you still want to quit? (y/n):");
+        if (validateYesNo()) std::exit(1);
+
+        return fs::path{};
+    }
+
     /// \brief Gets a response string from user input.
     /// This function prompts the user with the given prompt and reads a response string
     /// from the standard input.
     /// \param prompt The prompt to display to the user.
     /// \return The response string entered by the user if successful, else an empty string.
     miSTL::string getResponseStr(const char *prompt = "") {
-        std::scoped_lock lock(termutex);
         // Disable completions
         ic_set_default_completer(null_completer, nullptr);
 
@@ -332,6 +323,11 @@ export {
             stripString(result);
             return result;
         }
+        // Handle Ctrl+C/D
+        printColoredError('r', "Input canceled. Unsaved data might be lost if you quit now."
+                          "\nDo you still want to quit? (y/n):");
+        if (validateYesNo()) std::exit(1);
+
         return "";
     }
 
@@ -477,7 +473,7 @@ export {
     /// \brief Confirms a user's response to a yes/no (y/n) situation.
     /// \param prompt The confirmation prompt.
     /// \return True if the user confirms the action, else false.
-    bool validateYesNo(const char *prompt = "") {
+    bool validateYesNo(const char *prompt) {
         const miSTL::string resp = getResponseStr(prompt);
         if (resp.empty()) return false;
         return std::tolower(resp.at(0)) == 'y';
