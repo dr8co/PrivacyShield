@@ -39,8 +39,8 @@ constexpr std::size_t CHUNK_SIZE = 4096; ///< Read and process files in chunks o
 
 /// \brief Represents a file by its path (canonical) and hash.
 struct FileInfo {
-    miSTL::string path; ///< the path to the file.
-    miSTL::string hash; ///< the file's BLAKE3 hash
+    miSTL::string path{}; ///< the path to the file.
+    miSTL::string hash{}; ///< the file's BLAKE3 hash
 };
 
 /// \brief Calculates the 256-bit BLAKE3 hash of a file.
@@ -93,13 +93,20 @@ inline void handleAccessError(const std::string_view filename) {
 
 /// \brief recursively traverses a directory and collects file information.
 /// \param directoryPath the directory to process.
-/// \param files a vector to store the information from the files found in the directory.
-void traverseDirectory(const fs::path &directoryPath, miSTL::vector<FileInfo> &files) {
+/// \param candidateDuplicates a vector to store the information from the files found in the directory.
+std::size_t traverseDirectory(const fs::path &directoryPath, miSTL::vector<FileInfo> &candidateDuplicates) {
     std::error_code ec;
+
+    // Number of files processed
+    std::size_t filesProcessed{0};
+
+    // Map to store file sizes and their corresponding paths
+    miSTL::unordered_map<uintmax_t, miSTL::vector<fs::path> > sizeToFileMap;
 
     for (const auto &entry: fs::recursive_directory_iterator(directoryPath,
                                                              fs::directory_options::skip_permission_denied |
                                                              fs::directory_options::follow_directory_symlink)) {
+        ++filesProcessed;
         if (entry.exists(ec)) {
             // In case of broken symlinks
             if (ec) {
@@ -113,12 +120,7 @@ void traverseDirectory(const fs::path &directoryPath, miSTL::vector<FileInfo> &f
             if (isReadable(entry.path().string().c_str())) [[likely]] {
                 // process only regular files
                 if (entry.is_regular_file()) [[likely]] {
-                    FileInfo fileInfo;
-
-                    // Update the file details
-                    fileInfo.path = entry.path().string();
-                    fileInfo.hash = ""; // the hash will be calculated later
-                    files.emplace_back(fileInfo);
+                    sizeToFileMap[fs::file_size(entry.path())].push_back(entry.path());
                 } else if (!entry.is_directory()) {
                     // Neither regular nor a directory
                     printColoredError('r', "Skipping ");
@@ -128,6 +130,17 @@ void traverseDirectory(const fs::path &directoryPath, miSTL::vector<FileInfo> &f
             } else handleAccessError(entry.path().string());
         }
     }
+    candidateDuplicates.reserve(filesProcessed);
+    // Report files with the same sizes
+    for (auto &files: sizeToFileMap | std::views::values) {
+        if (files.size() > 1) {
+            for (const auto &file: files) {
+                candidateDuplicates.emplace_back(FileInfo{file.string().c_str(), ""});
+            }
+        }
+    }
+
+    return filesProcessed;
 }
 
 /// \brief calculates hashes for a range of files.
@@ -150,9 +163,10 @@ void calculateHashes(miSTL::vector<FileInfo> &files, const std::size_t start, co
 std::size_t findDuplicates(const fs::path &directoryPath) {
     // Collect file information
     miSTL::vector<FileInfo> files;
-    traverseDirectory(directoryPath, files);
-    const std::size_t filesProcessed = files.size();
-    if (filesProcessed < 2) return 0;
+    const std::size_t filesProcessed = traverseDirectory(directoryPath, files);
+    const std::size_t numFiles = files.size();
+
+    if (filesProcessed < 2 || numFiles < 2) return 0;
 
     // Number of threads to use
     const unsigned int n{std::jthread::hardware_concurrency()};
@@ -160,7 +174,7 @@ std::size_t findDuplicates(const fs::path &directoryPath) {
 
     // Divide the files among the threads
     miSTL::vector<std::jthread> threads;
-    const std::size_t filesPerThread = filesProcessed / numThreads;
+    const std::size_t filesPerThread = numFiles / numThreads;
     std::size_t start = 0;
 
     // Calculate the files' hashes in parallel
@@ -176,6 +190,7 @@ std::size_t findDuplicates(const fs::path &directoryPath) {
 
     // A hash map to map the files to their corresponding hashes
     miSTL::unordered_map<miSTL::string, miSTL::vector<miSTL::string> > hashMap;
+    hashMap.reserve(files.size());
 
     // Iterate over files and identify duplicates
     for (const auto &[filePath, hash]: files)
