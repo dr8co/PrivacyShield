@@ -14,10 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
+#include <mimalloc-override.h>
 #include <csignal>
 #include <sodium.h>
 #include <gcrypt.h>
-#include <unordered_map>
 #include <format>
 #include <functional>
 #include <unistd.h>
@@ -29,6 +29,7 @@ import privacyTracks;
 import encryption;
 import passwordManager;
 import fileShredder;
+import mimallocSTL;
 import utils;
 
 constexpr auto MINIMUM_LIBGCRYPT_VERSION = "1.10.0";
@@ -130,7 +131,7 @@ int main(const int argc, const char **argv) {
         printColoredOutputln('b', "https://www.gnu.org/licenses/gpl.html.");
 
         // All the available tools
-        std::unordered_map<int, std::function<void()> > apps = {
+        miSTL::unordered_map<int, std::function<void()> > apps = {
             {1, passwordManager},
             {2, encryptDecrypt},
             {3, fileShredder},

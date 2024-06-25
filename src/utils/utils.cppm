@@ -319,7 +319,7 @@ export {
         std::puts(prompt);
         if (char *input = ic_readline("")) {
             miSTL::string result{input};
-            std::free(input);
+            ic_free(input);
             stripString(result);
             return result;
         }
