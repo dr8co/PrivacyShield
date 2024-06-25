@@ -47,6 +47,9 @@ cmake_dependent_option(ENABLE_SANITIZERS
         "Enable sanitizers (Ignored if not using Clang compiler)" OFF
         "${CMAKE_CXX_COMPILER_ID} STREQUAL \"Clang\"" OFF)
 
+# Valgrind support
+option(VALGRIND_BUILD "Build with Valgrind support" OFF)
+
 # Additional checks for the Debug build
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_options(
@@ -85,6 +88,41 @@ target_sources(privacyShield PRIVATE
         src/mimallocSTL.cppm
 )
 
+# Sanitizers for debugging and testing
+# Requires llvm-symbolizer and sanitizer libraries (asan, ubsan, msan, tsan)
+if (ENABLE_SANITIZERS)
+    # Common flags for all sanitizers
+    set(sanitizer_common_flags "-fno-omit-frame-pointer -g -O1")
+
+    # Address, leak, undefined, integer, nullability sanitizers
+    set(address_sanitizer_flags "-fsanitize=address,leak,undefined,integer,nullability")
+
+    # Thread sanitizer, cannot be used with address sanitizer
+    set(thread_sanitizer_flags "-fsanitize=thread -fPIE")
+
+    # Memory sanitizer, cannot be used with address sanitizer.
+    set(memory_sanitizer_flags "-fsanitize=memory -fPIE -fno-optimize-sibling-calls")
+
+    # Add compile options
+    add_compile_options(
+            "SHELL:${sanitizer_common_flags}"
+            "SHELL:${address_sanitizer_flags}"
+    )
+
+    # Track mimalloc allocations for AddressSanitizer
+    set(MI_TRACK_ASAN ON)
+
+    # Link the enabled sanitizers.
+    target_link_libraries(privacyShield PRIVATE asan ubsan)
+endif ()
+
+# Valgrind support
+if (VALGRIND_BUILD)
+    add_compile_options(-g) # Valgrind requires debug symbols
+    #    target_link_libraries(privacyShield PRIVATE valgrind)
+    set(MI_TRACK_VALGRIND ON)
+endif ()
+
 # Find the required packages
 find_package(OpenSSL REQUIRED)
 find_package(Sodium REQUIRED)
@@ -112,8 +150,7 @@ if (NOT TARGET BLAKE3::blake3)
 endif ()
 
 # Mimalloc allocator
-find_package(mimalloc 2.1 QUIET)
-if (NOT TARGET mimalloc)
+if (NOT TARGET mimalloc-static OR NOT TARGET mimalloc)
     message(STATUS "mimalloc not found. Fetching from GitHub...")
 
     FetchContent_Declare(
@@ -141,31 +178,6 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(isocline)
 target_include_directories(privacyShield PRIVATE "${isocline_SOURCE_DIR}/include")
 add_library(ISOCline::isocline ALIAS isocline)
-
-# Sanitizers for debugging and testing
-# Requires llvm-symbolizer and sanitizer libraries (asan, ubsan, msan, tsan)
-if (ENABLE_SANITIZERS)
-    # Common flags for all sanitizers
-    set(sanitizer_common_flags "-fno-omit-frame-pointer -g -O1")
-
-    # Address, leak, undefined, integer, nullability sanitizers
-    set(address_sanitizer_flags "-fsanitize=address,leak,undefined,integer,nullability")
-
-    # Thread sanitizer, cannot be used with address sanitizer
-    set(thread_sanitizer_flags "-fsanitize=thread -fPIE")
-
-    # Memory sanitizer, cannot be used with address sanitizer.
-    set(memory_sanitizer_flags "-fsanitize=memory -fPIE -fno-optimize-sibling-calls")
-
-    # Add compile options
-    add_compile_options(
-            "SHELL:${sanitizer_common_flags}"
-            "SHELL:${address_sanitizer_flags}"
-    )
-
-    # Link the enabled sanitizers.
-    target_link_libraries(privacyShield PRIVATE asan ubsan)
-endif ()
 
 # Link libraries
 target_link_libraries(privacyShield PRIVATE
