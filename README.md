@@ -549,7 +549,7 @@ However, the feeling of empowered privacy protection is a strong possibility!
 
 ![""](./media/blank.svg)
 
-[![Isocline](./media/isocline.svg)](https://github.com/daanx/isocline)
+[![Isocline](./media/isocline.png)](https://github.com/daanx/isocline)
 
 ## License
 
