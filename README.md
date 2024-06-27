@@ -187,7 +187,7 @@ The process might be slow, and multithreading has been leveraged to speed up the
 The [Serpent cipher](https://en.wikipedia.org/wiki/Serpent_(cipher))
 is used for the first step because it is a
 conservative and secure cipher with more rounds than [AES cipher](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard)
-(32 rounds vs 14 rounds, hence a larger security margin) that is resistant to cryptanalysis.
+(32 rounds vs. 14 rounds, hence a larger security margin) that is resistant to cryptanalysis.
 The [counter mode (CTR)](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Counter_(CTR))
 is used for it because it is a fast and secure mode that is resistant to padding oracle attacks.
 A non-deterministic random [nonce](https://en.wikipedia.org/wiki/Cryptographic_nonce)
@@ -358,6 +358,7 @@ or [LLVM Clang 18](https://clang.llvm.org/) (or newer) is required.
 * [GCrypt](https://gnupg.org/software/libgcrypt/index.html) 1.10+
 * [BLAKE3](https://github.com/BLAKE3-team/BLAKE3) 1.4+ (Fetched automatically by CMake, if not already installed)
 * [Isocline](https://github.com/daanx/isocline) (Fetched automatically by CMake)
+* [Mimalloc](https://github.com/microsoft/mimalloc) 2.17+ (Fetched automatically by CMake)
 
 **Note:**\
 This project utilizes the [C++20 Modules](https://en.cppreference.com/w/cpp/language/modules) feature,
@@ -428,6 +429,9 @@ You can then run the program from the build directory:
 
 You can download a package for your platform from the
 [releases page](https://github.com/dr8co/PrivacyShield/releases).
+
+The packages expect the dependencies to be installed on the system,
+except the ones that are fetched automatically by CMake (they are statically linked to the executable).
 
 The package will contain the built executable, and you can install it using the package manager of your platform.
 
@@ -538,6 +542,10 @@ However, the feeling of empowered privacy protection is a strong possibility!
 ![""](./media/blank.svg)
 
 [![CMake](./media/Cmake.svg)](https://cmake.org/)
+
+![""](./media/blank.svg)
+
+[![Mimalloc](./media/mimalloc-logo.png)](https://github.com/microsoft/mimalloc)
 
 ![""](./media/blank.svg)
 
