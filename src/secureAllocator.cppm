@@ -16,12 +16,10 @@
 
 module;
 
-#include <new>
 #include <limits>
 #include <vector>
 #include <sodium.h>
 #include <string>
-#include <mimalloc.h>
 
 export module secureAllocator;
 

@@ -351,16 +351,21 @@ export {
     /// \throws std::bad_alloc if memory allocation fails.
     /// \throws std::runtime_error if memory locking/unlocking fails.
     privacy::string getSensitiveInfo(const char *prompt = "") {
-        // Allocate a buffer for the password
-        auto *buffer = static_cast<char *>(sodium_malloc(MAX_PASSPHRASE_LEN));
-        if (buffer == nullptr)
+        // A lambda to free memory allocated by sodium_malloc
+        auto deleter = [](char *ptr) noexcept -> void {
+            sodium_free(ptr);
+        };
+
+        // Allocate memory for the passphrase
+        const std::unique_ptr<char, decltype(deleter)> buffer(static_cast<char *>(sodium_malloc(MAX_PASSPHRASE_LEN)),
+                                                              deleter);
+
+        if (!buffer)
             throw std::bad_alloc(); // Memory allocation failed
 
         // Lock the memory to prevent swapping
-        if (sodium_mlock(buffer, MAX_PASSPHRASE_LEN) == -1) {
-            sodium_free(buffer);
+        if (sodium_mlock(buffer.get(), MAX_PASSPHRASE_LEN) == -1)
             throw std::runtime_error("Failed to lock memory.");
-        }
 
         // Turn off terminal echoing
         termios oldSettings{}, newSettings{};
@@ -384,23 +389,20 @@ export {
             } else {
                 // Check if buffer is not full
                 if (index < MAX_PASSPHRASE_LEN - 1) {
-                    buffer[index++] = ch;
+                    buffer.get()[index++] = ch;
                 }
             }
         }
-        buffer[index] = '\0'; // Null-terminate the string
+        buffer.get()[index] = '\0'; // Null-terminate the string
 
         // Restore terminal settings
         tcsetattr(STDIN_FILENO, TCSANOW, &oldSettings);
 
-        privacy::string passphrase{buffer};
+        privacy::string passphrase{buffer.get()};
 
         // Unlock the memory
-        if (sodium_munlock(buffer, MAX_PASSPHRASE_LEN) == -1)
+        if (sodium_munlock(buffer.get(), MAX_PASSPHRASE_LEN) == -1)
             throw std::runtime_error("Failed to unlock memory.");
-
-        // Free the buffer
-        sodium_free(buffer);
 
         // Trim leading and trailing spaces
         stripString(passphrase);
