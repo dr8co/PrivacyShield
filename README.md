@@ -458,13 +458,15 @@ sudo rpm -i privacyshield-3.0.0-1.x86_64.rpm # Replace with the actual file path
 ```
 
 The packages can be verified using the [GnuPG](https://gnupg.org/) signature files provided.
-To verify the packages, first import the public key from the releases page:
+To verify the packages, first import the [public GPG key](./security/privacyShield_pub_key.asc) provided:
 
 ```bash
 gpg --import public_gpg_key.asc
 ```
 
-Then verify the package using the signature file (which can be found on the releases page as well):
+The public key is provided in the [releases page](https://github.com/dr8co/PrivacyShield/releases) as well.
+Then verify the package using the signature file (which can also be found on the
+[releases page](https://github.com/dr8co/PrivacyShield/releases)):
 
 ```bash
 gpg --verify signatures/privacyshield_3.0.0_amd64.deb.sig privacyshield_3.0.0_amd64.deb
