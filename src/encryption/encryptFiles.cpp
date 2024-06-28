@@ -30,12 +30,13 @@ module;
 
 import cryptoCipher;
 import secureAllocator;
+import mimallocSTL;
 
 module encryption;
 
-constexpr int MAX_KEY_SIZE = EVP_MAX_KEY_LENGTH; // For bounds checking
-constexpr std::size_t CHUNK_SIZE = 4096; // Read/Write files in chunks of 4 kB
-constexpr unsigned int PBKDF2_ITERATIONS = 100'000; // Iterations for PBKDF2 key derivation
+constexpr int MAX_KEY_SIZE = EVP_MAX_KEY_LENGTH;    ///< Maximum length of a key
+constexpr std::streamsize CHUNK_SIZE = 4096;        ///< Read/Write files in chunks of 4 kB
+constexpr unsigned int PBKDF2_ITERATIONS = 100'000; ///< Iterations for PBKDF2 key derivation
 
 
 /// \brief Generates random bytes using a CSPRNG.
@@ -45,7 +46,7 @@ privacy::vector<unsigned char> generateSalt(const int saltSize) {
     std::mutex m;
     privacy::vector<unsigned char> salt(saltSize);
 
-    if (std::scoped_lock<std::mutex> lock(m); RAND_bytes(salt.data(), saltSize) != 1) {
+    if (std::scoped_lock lock(m); RAND_bytes(salt.data(), saltSize) != 1) {
         std::cerr << "Failed to seed OpenSSL's CSPRNG properly."
                 "\nPlease check your system's randomness utilities." << std::endl;
 
@@ -134,15 +135,15 @@ deriveKey(const privacy::string &password, const privacy::vector<unsigned char> 
 /// \details Encryption mode: CBC.
 /// \details Key derivation function: PBKDF2 with BLAKE2b512 as the digest function (salted).
 /// \details The IV is generated randomly with a CSPRNG and prepended to the encrypted file.
-void encryptFile(const std::string &inputFile, const std::string &outputFile, const privacy::string &password,
-                 const std::string &algo) {
+void encryptFile(const miSTL::string &inputFile, const miSTL::string &outputFile, const privacy::string &password,
+                 const miSTL::string &algo) {
     // Open the input file for reading
-    std::ifstream inFile(inputFile, std::ios::binary);
+    std::ifstream inFile(inputFile.c_str(), std::ios::binary);
     if (!inFile)
         throw std::runtime_error(std::format("Failed to open '{}' for reading.", inputFile));
 
     // Open the output file for writing
-    std::ofstream outFile(outputFile, std::ios::binary | std::ios::trunc);
+    std::ofstream outFile(outputFile.c_str(), std::ios::binary | std::ios::trunc);
     if (!outFile)
         throw std::runtime_error(std::format("Failed to open '{}' for writing.", outputFile));
 
@@ -184,33 +185,40 @@ void encryptFile(const std::string &inputFile, const std::string &outputFile, co
     outFile.write(reinterpret_cast<const char *>(salt.data()), static_cast<std::streamsize>(salt.size()));
     outFile.write(reinterpret_cast<const char *>(iv.data()), static_cast<std::streamsize>(iv.size()));
 
-    // Encrypt the file
-    std::vector<unsigned char> inBuf(CHUNK_SIZE);
-    std::vector<unsigned char> outBuf(CHUNK_SIZE + EVP_MAX_BLOCK_LENGTH);
+    // Buffers for file processing
+    unsigned char inBuf[CHUNK_SIZE];
+    unsigned char outBuf[CHUNK_SIZE + EVP_MAX_BLOCK_LENGTH];
+
+    // Lock the buffers
+    sodium_mlock(inBuf, CHUNK_SIZE);
+    sodium_mlock(outBuf, CHUNK_SIZE);
+
     int bytesRead, bytesWritten;
-
-    while (true) {
+    // The encryption loop
+    while (!inFile.eof()) {
         // Read data from the file in chunks
-        inFile.read(reinterpret_cast<char *>(inBuf.data()), static_cast<std::streamsize>(inBuf.size()));
+        inFile.read(reinterpret_cast<char *>(inBuf), CHUNK_SIZE);
         bytesRead = static_cast<int>(inFile.gcount());
-        if (bytesRead <= 0)
-            break;
 
-        // Encrypt the data
-        if (EVP_EncryptUpdate(cipher.getCtx(), outBuf.data(), &bytesWritten, inBuf.data(), bytesRead) != 1)
+        // Encrypt the chunk
+        if (EVP_EncryptUpdate(cipher.getCtx(), outBuf, &bytesWritten, inBuf, bytesRead) != 1)
             throw std::runtime_error("Failed to encrypt the data.");
 
         // Write the ciphertext (the encrypted data) to the output file
-        outFile.write(reinterpret_cast<const char *>(outBuf.data()), bytesWritten);
-        outFile.flush(); // Ensure data is written immediately
+        outFile.write(reinterpret_cast<const char *>(outBuf), bytesWritten);
+        // outFile.flush(); // Ensure data is written immediately
     }
 
     // Finalize the encryption operation
-    if (EVP_EncryptFinal_ex(cipher.getCtx(), outBuf.data(), &bytesWritten) != 1)
+    if (EVP_EncryptFinal_ex(cipher.getCtx(), outBuf, &bytesWritten) != 1)
         throw std::runtime_error("Failed to finalize encryption.");
 
     // Write the last chunk
-    outFile.write(reinterpret_cast<const char *>(outBuf.data()), bytesWritten);
+    outFile.write(reinterpret_cast<const char *>(outBuf), bytesWritten);
+
+    // Unlock and zeroize the buffers
+    sodium_munlock(inBuf, CHUNK_SIZE);
+    sodium_munlock(outBuf, CHUNK_SIZE);
 }
 
 /// \brief Decrypts a file encrypted by encryptFile() function.
@@ -220,15 +228,15 @@ void encryptFile(const std::string &inputFile, const std::string &outputFile, co
 /// \param algo The cipher algorithm used to encrypt the file.
 ///
 /// \throws std::runtime_error if the decryption fails, and for other (documented) errors.
-void decryptFile(const std::string &inputFile, const std::string &outputFile, const privacy::string &password,
-                 const std::string &algo) {
+void decryptFile(const miSTL::string &inputFile, const miSTL::string &outputFile, const privacy::string &password,
+                 const miSTL::string &algo) {
     // Open the input file for reading
-    std::ifstream inFile(inputFile, std::ios::binary);
+    std::ifstream inFile(inputFile.c_str(), std::ios::binary);
     if (!inFile)
         throw std::runtime_error(std::format("Failed to open '{}' for reading.", inputFile));
 
     // Open the output file for writing
-    std::ofstream outFile(outputFile, std::ios::binary | std::ios::trunc);
+    std::ofstream outFile(outputFile.c_str(), std::ios::binary | std::ios::trunc);
     if (!outFile)
         throw std::runtime_error(std::format("Failed to open '{}' for writing.", outputFile));
 
@@ -278,33 +286,38 @@ void decryptFile(const std::string &inputFile, const std::string &outputFile, co
     // Set automatic padding handling
     EVP_CIPHER_CTX_set_padding(cipher.getCtx(), EVP_PADDING_PKCS7);
 
-    // Decrypt the file
-    privacy::vector<unsigned char> inBuf(CHUNK_SIZE);
-    privacy::vector<unsigned char> outBuf(CHUNK_SIZE + EVP_MAX_BLOCK_LENGTH);
+    // Buffers for file processing
+    unsigned char inBuf[CHUNK_SIZE];
+    unsigned char outBuf[CHUNK_SIZE + EVP_MAX_BLOCK_LENGTH];
+
+    // Lock the buffers
+    sodium_mlock(inBuf, CHUNK_SIZE);
+    sodium_mlock(outBuf, CHUNK_SIZE);
     int bytesRead, bytesWritten;
 
-    while (true) {
+    while (!inFile.eof()) {
         // Read the data in chunks
-        inFile.read(reinterpret_cast<char *>(inBuf.data()), static_cast<std::streamsize>(inBuf.size()));
+        inFile.read(reinterpret_cast<char *>(inBuf), CHUNK_SIZE);
         bytesRead = static_cast<int>(inFile.gcount());
-        if (bytesRead <= 0)
-            break;
 
-        // Decrypt the data
-        if (EVP_DecryptUpdate(cipher.getCtx(), outBuf.data(), &bytesWritten, inBuf.data(), bytesRead) != 1)
+        // Decrypt the chunk
+        if (EVP_DecryptUpdate(cipher.getCtx(), outBuf, &bytesWritten, inBuf, bytesRead) != 1)
             throw std::runtime_error("Failed to decrypt the data.");
 
         // Write the decrypted data to the output file
-        outFile.write(reinterpret_cast<const char *>(outBuf.data()), bytesWritten);
-        outFile.flush();
+        outFile.write(reinterpret_cast<const char *>(outBuf), bytesWritten);
+        // outFile.flush();
     }
 
     // Finalize the decryption operation
-    if (EVP_DecryptFinal_ex(cipher.getCtx(), outBuf.data(), &bytesWritten) != 1)
+    if (EVP_DecryptFinal_ex(cipher.getCtx(), outBuf, &bytesWritten) != 1)
         throw std::runtime_error("Failed to finalize decryption.");
 
-    outFile.write(reinterpret_cast<const char *>(outBuf.data()), bytesWritten);
-    outFile.flush();
+    outFile.write(reinterpret_cast<const char *>(outBuf), bytesWritten);
+
+    // Unlock and zeroize the buffers
+    sodium_munlock(inBuf, CHUNK_SIZE);
+    sodium_munlock(outBuf, CHUNK_SIZE);
 }
 
 /// \brief Throws a thread-safe Gcrypt error.
@@ -331,15 +344,15 @@ inline void throwSafeError(const gcry_error_t &err, const std::string_view messa
 /// using PBKDF2 with BLAKE2b-512 as the hash function.
 /// \details The IV(nonce) is randomly generated and stored in the output file.
 void
-encryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &outputFilePath,
+encryptFileWithMoreRounds(const miSTL::string &inputFilePath, const miSTL::string &outputFilePath,
                           const privacy::string &password, const gcry_cipher_algos &algorithm) {
     // Open the input file for reading
-    std::ifstream inputFile(inputFilePath, std::ios::binary);
+    std::ifstream inputFile(inputFilePath.c_str(), std::ios::binary);
     if (!inputFile)
         throw std::runtime_error(std::format("Failed to open '{}' for reading.", inputFilePath));
 
     // Open the output file for writing
-    std::ofstream outputFile(outputFilePath, std::ios::binary | std::ios::trunc);
+    std::ofstream outputFile(outputFilePath.c_str(), std::ios::binary | std::ios::trunc);
     if (!outputFile)
         throw std::runtime_error(std::format("Failed to open '{}' for writing.", outputFilePath));
 
@@ -383,22 +396,27 @@ encryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
     outputFile.write(reinterpret_cast<const char *>(salt.data()), static_cast<std::streamsize>(salt.size()));
     outputFile.write(reinterpret_cast<const char *>(ctr.data()), static_cast<std::streamsize>(ctr.size()));
 
+    unsigned char buffer[CHUNK_SIZE];
+    // Lock the buffer
+    sodium_mlock(buffer, CHUNK_SIZE);
+
     // Encrypt the file in chunks
-    privacy::vector<unsigned char> buffer(CHUNK_SIZE);
     while (!inputFile.eof()) {
-        inputFile.read(reinterpret_cast<char *>(buffer.data()), CHUNK_SIZE);
+        inputFile.read(reinterpret_cast<char *>(buffer), CHUNK_SIZE);
         const auto bytesRead = inputFile.gcount();
 
         // Encrypt the chunk
-        err = gcry_cipher_encrypt(cipherHandle, buffer.data(), buffer.size(), nullptr, 0);
+        err = gcry_cipher_encrypt(cipherHandle, buffer, CHUNK_SIZE, nullptr, 0);
         if (err)
             throwSafeError(err, "Failed to encrypt file");
 
         // Write the encrypted chunk to the output file
-        outputFile.write(reinterpret_cast<const char *>(buffer.data()), bytesRead);
+        outputFile.write(reinterpret_cast<const char *>(buffer), bytesRead);
     }
-    // Clean up
+    // Release the handle
     gcry_cipher_close(cipherHandle);
+    // Unlock the buffer
+    sodium_munlock(buffer, CHUNK_SIZE);
 }
 
 /// \brief Decrypts a file encrypted by encryptFileWithMoreRounds() function.
@@ -409,15 +427,15 @@ encryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
 ///
 /// \throws std::runtime_error if the decryption fails, and for other (documented) errors.
 void
-decryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &outputFilePath,
+decryptFileWithMoreRounds(const miSTL::string &inputFilePath, const miSTL::string &outputFilePath,
                           const privacy::string &password, const gcry_cipher_algos &algorithm) {
     // Open the input file for reading
-    std::ifstream inputFile(inputFilePath, std::ios::binary);
+    std::ifstream inputFile(inputFilePath.c_str(), std::ios::binary);
     if (!inputFile)
         throw std::runtime_error(std::format("Failed to open '{}' for reading.", inputFilePath));
 
     // Open the output file for writing
-    std::ofstream outputFile(outputFilePath, std::ios::binary | std::ios::trunc);
+    std::ofstream outputFile(outputFilePath.c_str(), std::ios::binary | std::ios::trunc);
     if (!outputFile)
         throw std::runtime_error(std::format("Failed to open '{}' for writing.", outputFilePath));
 
@@ -466,20 +484,25 @@ decryptFileWithMoreRounds(const std::string &inputFilePath, const std::string &o
     if (err)
         throwSafeError(err, "Failed to set the decryption counter");
 
+    unsigned char buffer[CHUNK_SIZE];
+    // Lock the buffer
+    sodium_mlock(buffer, CHUNK_SIZE);
+
     // Decrypt the file in chunks
-    privacy::vector<unsigned char> buffer(CHUNK_SIZE);
     while (!inputFile.eof()) {
-        inputFile.read(reinterpret_cast<char *>(buffer.data()), CHUNK_SIZE);
+        inputFile.read(reinterpret_cast<char *>(buffer), CHUNK_SIZE);
         const auto bytesRead = inputFile.gcount();
 
         // Decrypt the chunk in place
-        err = gcry_cipher_decrypt(cipherHandle, buffer.data(), buffer.size(), nullptr, 0);
+        err = gcry_cipher_decrypt(cipherHandle, buffer, CHUNK_SIZE, nullptr, 0);
         if (err)
             throwSafeError(err, "Failed to decrypt the ciphertext");
 
         // Write the decrypted chunk to the output file
-        outputFile.write(reinterpret_cast<const char *>(buffer.data()), bytesRead);
+        outputFile.write(reinterpret_cast<const char *>(buffer), bytesRead);
     }
     // Release resources
     gcry_cipher_close(cipherHandle);
+    // Unlock the buffer
+    sodium_munlock(buffer, CHUNK_SIZE);
 }

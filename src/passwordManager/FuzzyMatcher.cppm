@@ -22,6 +22,7 @@ module;
 export module FuzzyMatcher;
 
 import secureAllocator;
+import mimallocSTL;
 
 template<typename T>
 /// \brief A concept describing a range of strings.
@@ -88,8 +89,8 @@ public:
     /// \param pattern the pattern to match.
     /// \param maxDistance the maximum Levenshtein Distance to consider a match.
     /// \return a vector of strings matching the pattern.
-    [[nodiscard]] std::vector<privacy::string> fuzzyMatch(const std::string_view pattern, const int &maxDistance) const {
-        std::vector<privacy::string> matches{};
+    [[nodiscard]] miSTL::vector<privacy::string> fuzzyMatch(const std::string_view pattern, const int &maxDistance) const {
+        miSTL::vector<privacy::string> matches{};
         matches.reserve(stringList.size());  // Worst case: every string in stringList is a match.
         // The maximum and minimum size of a string to be considered a match
         const auto maxSize{pattern.size() + maxDistance + 1};
@@ -110,7 +111,7 @@ public:
 
 
 private:
-    std::vector<privacy::string> stringList{};
+    miSTL::vector<privacy::string> stringList{};
 
     /// \brief Calculates the Levenshtein Distance between two strings.
     /// \param str1 the first string.
@@ -122,7 +123,7 @@ private:
         const int m = static_cast<int>(str1.length());
         const int n = static_cast<int>(str2.length());
 
-        std::vector<std::vector<int>> dp(m + 1, std::vector<int>(n + 1));
+        miSTL::vector<miSTL::vector<int>> dp(m + 1, miSTL::vector<int>(n + 1));
 
         // Initialize the first row and column
         for (int i = 0; i <= m; ++i)

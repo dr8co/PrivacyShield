@@ -48,8 +48,15 @@ if (READLINE_FOUND AND NOT APPLE)
 
     # Find the actual location of the Readline library file
     find_library(READLINE_LIBRARY
-            NAMES libreadline.so libreadline.dylib libreadline.a
+            NAMES libreadline.so libreadline.a
             HINTS ${READLINE_LIBRARY_DIRS}
+            PATHS
+            /usr/lib
+            /usr/lib/x86_64-linux-gnu
+            /opt/local/lib
+            /opt/homebrew/lib
+            /opt/homebrew/opt/readline/lib
+            /opt/homebrew/Cellar/readline/*/lib
     )
 
     # Set the imported location dynamically
@@ -69,7 +76,14 @@ if (NOT READLINE_FOUND AND APPLE)
     # Find library manually
     find_library(READLINE_LIBRARY REQUIRED
             NAMES libreadline.dylib libreadline.a
-            PATHS /usr/local/opt/readline/lib /usr/local/lib /opt/local/lib /usr/lib
+            PATHS
+            /usr/local/opt/readline/lib
+            /usr/local/lib
+            /opt/local/lib
+            /usr/lib
+            /opt/homebrew/lib
+            /opt/homebrew/opt/readline/lib
+            /opt/homebrew/Cellar/readline/*/lib
             NO_DEFAULT_PATH
     )
 

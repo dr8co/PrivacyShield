@@ -8,6 +8,8 @@ to help and details about how this project handles them. Please make sure to rea
 your contribution. It will make it a lot easier for us maintainers and smooth out the experience for all involved. The
 community looks forward to your contributions. 🎉
 
+For security issues, please follow the instructions in the [Security](./SECURITY.md) section.
+
 > And if you like the project, but just don't have time to contribute, that's fine. There are other easy ways to support
 > the project and show your appreciation, which we would also be very happy about:
 >
@@ -90,7 +92,7 @@ following steps in advance to help us fix any potential bug as fast as possible.
 #### How Do I Submit a Good Bug Report?
 
 > You must never report security related issues, vulnerabilities or bugs including sensitive information to the issue
-> tracker, or elsewhere in public. Instead sensitive bugs must be sent by email to <dr8co@duck.com>.
+> tracker, or elsewhere in public. Check the [Security](./SECURITY.md) section for more information.
 
 We use GitHub issues to track bugs and errors. If you run into an issue with the project:
 

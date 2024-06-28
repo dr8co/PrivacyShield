@@ -128,6 +128,24 @@ and are not saved in the shell command history.
 Any operation with any tool can be canceled at any time by pressing `Ctrl+C`,
 and confirming the cancellation.
 
+**Note:**\
+The program uses ANSI escape codes for colors and formatting. If you experience issues with the colors,
+you can disable them by setting the `NO_COLOR` environment variable to `true` (or `1`),
+or by using the `--no-color` or `-nc` option.
+
+```bash
+export NO_COLOR=true && privacyShield
+```
+
+or
+
+```bash
+privacyShield --no-color
+```
+
+The program will automatically detect the `NO_COLOR` environment variable, and the terminal capabilities
+to determine if colors should be used.
+
 ### Password Manager
 
 The password manager requires a primary password to encrypt/decrypt your passwords.
@@ -169,7 +187,7 @@ The process might be slow, and multithreading has been leveraged to speed up the
 The [Serpent cipher](https://en.wikipedia.org/wiki/Serpent_(cipher))
 is used for the first step because it is a
 conservative and secure cipher with more rounds than [AES cipher](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard)
-(32 rounds vs 14 rounds, hence a larger security margin) that is resistant to cryptanalysis.
+(32 rounds vs. 14 rounds, hence a larger security margin) that is resistant to cryptanalysis.
 The [counter mode (CTR)](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Counter_(CTR))
 is used for it because it is a fast and secure mode that is resistant to padding oracle attacks.
 A non-deterministic random [nonce](https://en.wikipedia.org/wiki/Cryptographic_nonce)
@@ -332,14 +350,15 @@ operating system, such as [Linux](https://en.wikipedia.org/wiki/Linux),
 * A C++ compiler with [C++23](https://en.cppreference.com/w/cpp/23) support,
 and [C++20 Modules](https://en.cppreference.com/w/cpp/language/modules) support.
 For this project, [GCC 14](https://gcc.gnu.org/gcc-14/) (or newer),
-or [LLVM Clang 17](https://clang.llvm.org/) (or newer) is required.
+or [LLVM Clang 18](https://clang.llvm.org/) (or newer) is required.
 * [CMake](https://cmake.org/) 3.28+
 * [Ninja](https://ninja-build.org/) 1.11+, or any other build system compatible with CMake and **C++20 Modules**.
 * [OpenSSL](https://www.openssl.org/) 3+
 * [Sodium](https://libsodium.org/) 1.0.18+
 * [GCrypt](https://gnupg.org/software/libgcrypt/index.html) 1.10+
-* [BLAKE3](https://github.com/BLAKE3-team/BLAKE3) 1.4+ (see the note below)
-* [GNU Readline](https://tiswww.case.edu/php/chet/readline/rltop.html) 8+
+* [BLAKE3](https://github.com/BLAKE3-team/BLAKE3) 1.4+ (Fetched automatically by CMake, if not already installed)
+* [Isocline](https://github.com/daanx/isocline) (Fetched automatically by CMake)
+* [Mimalloc](https://github.com/microsoft/mimalloc) 2.17+ (Fetched automatically by CMake)
 
 **Note:**\
 This project utilizes the [C++20 Modules](https://en.cppreference.com/w/cpp/language/modules) feature,
@@ -411,9 +430,15 @@ You can then run the program from the build directory:
 You can download a package for your platform from the
 [releases page](https://github.com/dr8co/PrivacyShield/releases).
 
+The packages expect the dependencies to be installed on the system,
+except the ones that are fetched automatically by CMake (they are statically linked to the executable).
+
 The package will contain the built executable, and you can install it using the package manager of your platform.
 
 For the macOS package, you can simply drag the .dmg file to your Applications folder.
+
+The current macOS package was built on macOS 14.5 arm64 (M1 chip),
+and might not work on older versions of macOS.
 
 For the Linux package, you can install the .deb or .rpm file using the package manager of your distribution.\
 Internet connection might be required to install the dependencies.
@@ -421,18 +446,42 @@ Internet connection might be required to install the dependencies.
 For instance, on Ubuntu, you can install the .deb file using the following command:
 
 ```bash
-sudo dpkg -i privacyshield_2.5.0_amd64.deb # Replace with the actual file path
+sudo dpkg -i privacyshield_3.0.0_amd64.deb # Replace with the actual file path
 # You can also use apt to install it:
-sudo apt install ./privacyshield_2.5.0_amd64.deb # Replace with the actual file path
+sudo apt install ./privacyshield_3.0.0_amd64.deb # Replace with the actual file path
 ```
 
 On RPM-based distributions like Fedora, you can install the .rpm file using the following command:
 
 ```bash
-sudo rpm -i privacyshield-2.5.0-1.x86_64.rpm # Replace with the actual file path
+sudo rpm -i privacyshield-3.0.0-1.x86_64.rpm # Replace with the actual file path
 ```
 
 The packages can be verified using the [GnuPG](https://gnupg.org/) signature files provided.
+To verify the packages, first import the [public GPG key](./security/privacyShield_pub_key.asc) provided:
+
+```bash
+gpg --import public_gpg_key.asc
+```
+
+The public key is provided in the [releases page](https://github.com/dr8co/PrivacyShield/releases) as well.
+Then verify the package using the signature file (which can also be found on the
+[releases page](https://github.com/dr8co/PrivacyShield/releases)):
+
+```bash
+gpg --verify signatures/privacyshield_3.0.0_amd64.deb.sig privacyshield_3.0.0_amd64.deb
+```
+
+The verification succeeds if the output says
+`gpg: Good signature from "Ian Duncan (Signing key for personal projects) <dr8co@duck.com> ..."`.
+
+SHA256 checksums are also provided for the packages, and you can verify the integrity of the packages using them.
+
+```bash
+shasum -a 256 -c privacyshield_3.0.0_amd64.deb.sha256
+# Or, if you have the sha256sum command available:
+sha256sum -c privacyshield_3.0.0_amd64.deb.sha256
+```
 
 #### Manual Installation
 
@@ -472,6 +521,8 @@ The CLI is interactive, which means that you can use it by choosing options from
 There is no need to remember commands or arguments, as the CLI will guide you through the process.
 
 To use the CLI, simply run the program by typing `privacyShield` in your terminal.
+
+**Tab completion is supported** for most input fields.
 
 ## Contributing
 
@@ -514,11 +565,15 @@ However, the feeling of empowered privacy protection is a strong possibility!
 
 ![""](./media/blank.svg)
 
-[![Readline](./media/Heckert_GNU_white.svg)](https://tiswww.case.edu/php/chet/readline/rltop.html)
+[![CMake](./media/Cmake.svg)](https://cmake.org/)
 
 ![""](./media/blank.svg)
 
-[![CMake](./media/Cmake.svg)](https://cmake.org/)
+[![Mimalloc](./media/mimalloc-logo.png)](https://github.com/microsoft/mimalloc)
+
+![""](./media/blank.svg)
+
+[![Isocline](./media/isocline.png)](https://github.com/daanx/isocline)
 
 ## License
 

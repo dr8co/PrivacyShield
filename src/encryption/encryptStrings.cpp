@@ -25,6 +25,7 @@ module;
 
 import utils;
 import secureAllocator;
+import mimallocSTL;
 import cryptoCipher;
 
 module encryption;
@@ -42,7 +43,7 @@ module encryption;
 /// \details The key is derived from the password using PBKDF2 with 100,000 rounds (salted).
 /// \details The IV is generated randomly using a CSPRNG and prepended to the ciphertext.
 privacy::string
-encryptString(const privacy::string &plaintext, const privacy::string &password, const std::string &algo) {
+encryptString(const privacy::string &plaintext, const privacy::string &password, const miSTL::string &algo) {
     CryptoCipher cipher;
 
     // Create the cipher context
@@ -112,7 +113,7 @@ encryptString(const privacy::string &plaintext, const privacy::string &password,
 ///
 /// \throws std::runtime_error if the decryption operation fails.
 privacy::string
-decryptString(const std::string_view encodedCiphertext, const privacy::string &password, const std::string &algo) {
+decryptString(const std::string_view encodedCiphertext, const privacy::string &password, const miSTL::string &algo) {
     CryptoCipher cipher;
 
     // Create the cipher context
@@ -134,7 +135,7 @@ decryptString(const std::string_view encodedCiphertext, const privacy::string &p
     privacy::vector<unsigned char> encryptedText;
 
     // Base64 decode the encoded ciphertext
-    if (std::vector<unsigned char> ciphertext = base64Decode(encodedCiphertext);
+    if (miSTL::vector<unsigned char> ciphertext = base64Decode(encodedCiphertext);
         ciphertext.size() > static_cast<std::size_t>(SALT_SIZE) + ivSize) [[likely]] {
         // Read the salt and IV from the ciphertext
         salt.assign(ciphertext.begin(), ciphertext.begin() + SALT_SIZE);
@@ -277,7 +278,7 @@ decryptStringWithMoreRounds(const std::string_view encodedCiphertext, const priv
     privacy::vector<unsigned char> encryptedText;
 
     // Base64-decode the encoded ciphertext
-    if (std::vector<unsigned char> ciphertext = base64Decode(encodedCiphertext);
+    if (miSTL::vector<unsigned char> ciphertext = base64Decode(encodedCiphertext);
         ciphertext.size() >= SALT_SIZE + ctrSize) [[likely]] {
         // Read the salt and the counter from the ciphertext
         salt.assign(ciphertext.begin(), ciphertext.begin() + SALT_SIZE);

@@ -1,11 +1,11 @@
-name: CMake Build
+name: CPack Multi-Platform
 
 on:
-  push:
-    branches: [ "main", "dev" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
-  build:
+  build_then_package:
     runs-on: ${{ matrix.os }}
     env:
       GCC_MAJOR: 14
@@ -15,7 +15,7 @@ jobs:
 
       matrix:
         os: [ ubuntu-24.04, macos-latest ]
-        build_type: [ Debug ]
+        build_type: [ Release ]
         c_compiler: [ clang ]
         include:
           - os: macos-latest
@@ -49,8 +49,8 @@ jobs:
           echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
           # Set the paths to the GCC include and lib directories on macOS
           if [ "${{ matrix.os }}" == "macos-latest" ]; then
-            echo "gcc-include-dir=$(./scripts/search.sh "/opt/homebrew/Cellar/gcc/${{ env.GCC_MAJOR }}*/include/c++/${{ env.GCC_MAJOR }}")" >> "$GITHUB_OUTPUT"
-            echo "gcc-sys-include-dir=$(./scripts/search.sh "/opt/homebrew/Cellar/gcc/${{ env.GCC_MAJOR }}*/include/c++/${{ env.GCC_MAJOR }}/*-apple-darwin*")" >> "$GITHUB_OUTPUT"
+            echo "gcc-include-dir=$(./scripts/search.sh "/opt/homebrew/Cellar/gcc/*/include/c++/${{ env.GCC_MAJOR }}")" >> "$GITHUB_OUTPUT"
+            echo "gcc-sys-include-dir=$(./scripts/search.sh "/opt/homebrew/Cellar/gcc/*/include/c++/${{ env.GCC_MAJOR }}/*-apple-darwin*")" >> "$GITHUB_OUTPUT"
             echo "gcc-lib-dir=$(./scripts/search.sh "/opt/homebrew/Cellar/gcc/${{ env.GCC_MAJOR }}*/lib/gcc/current")" >> "$GITHUB_OUTPUT"
           fi
 
@@ -75,13 +75,47 @@ jobs:
           -DCMAKE_EXE_LINKER_FLAGS="-stdlib=libstdc++ -L ${{ steps.strings.outputs.gcc-lib-dir }} -Wl,-rpath,/opt/homebrew/opt/gcc/lib/gcc/current"
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
           -S ${{ github.workspace }} -G Ninja
-          # -DCMAKE_CXX_FLAGS="-stdlib=libstdc++ -stdlib++-isystem /opt/homebrew/Cellar/gcc/14.1.0_1/include/c++/14 -cxx-isystem /opt/homebrew/Cellar/gcc/14.1.0_1/include/c++/14/aarch64-apple-darwin23 -L /opt/homebrew/Cellar/gcc/14.1.0_1/lib/gcc/14 -Wl,-rpath,/opt/homebrew/opt/gcc/lib/gcc/current"
 
       - name: Build
         if: matrix.os == 'macos-latest'
         run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }} -j 4
 
-      # Run Tests
-      - name: Test
+      - name: Package
+        if: matrix.os == 'macos-latest' && matrix.build_type == 'Release'
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
-        run: ctest -j 4
+        run: |
+          cpack
+
+      - name: Package
+        if: matrix.os == 'ubuntu-24.04' && matrix.build_type == 'Release'
+        working-directory: ${{ steps.strings.outputs.build-output-dir }}
+        run: |
+          sudo cpack
+          sudo chown -R $USER:$USER "${{ github.workspace }}/Packages"
+
+      - name: Import GPG Key
+        if: matrix.build_type == 'Release'
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_SIGNING_KEY }}
+          passphrase: ${{ secrets.GPG_PASS }}
+          trust_level: 5
+
+      - name: Sign Package
+        if: matrix.build_type == 'Release'
+        working-directory: ${{ github.workspace }}
+        run: |
+          for file in Packages/*; do
+            gpg --batch --status-file ~/gpg_log.txt --passphrase ${{ secrets.GPG_PASS }} --default-key dr8co@duck.com \
+              --pinentry-mode=loopback --detach-sign "$file" || (cat ~/gpg_log.txt && exit 1)
+          done
+
+      # Upload the built artifacts
+      - name: Upload Artifacts
+        if: matrix.build_type == 'Release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: "${{ matrix.os }}-${{ matrix.build_type }}"
+          path: "${{ github.workspace }}/Packages"
+          overwrite: true
+          if-no-files-found: 'warn'

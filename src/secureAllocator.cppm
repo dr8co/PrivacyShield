@@ -16,7 +16,6 @@
 
 module;
 
-#include <new>
 #include <limits>
 #include <vector>
 #include <sodium.h>
@@ -25,7 +24,6 @@ module;
 export module secureAllocator;
 
 export namespace privacy {
-
     template<typename T>
     /// \class Allocator
     /// \brief Custom allocator for STL containers, which locks and zeroizes memory.
@@ -33,7 +31,6 @@ export namespace privacy {
     /// \details Adapted from https://en.cppreference.com/w/cpp/named_req/Allocator
     class Allocator {
     public:
-
         [[maybe_unused]] typedef T value_type;
 
         /// Default constructor
@@ -47,15 +44,15 @@ export namespace privacy {
 
         /// Copy constructor
         template<class U>
-        constexpr explicit Allocator(const Allocator<U> &) noexcept {}
+        constexpr explicit Allocator(const Allocator<U> &) noexcept {
+        }
 
         /// Allocate memory
-        [[maybe_unused]] [[nodiscard]] constexpr T *allocate(std::size_t n) {
+        [[maybe_unused]] [[nodiscard]] constexpr T *allocate(const std::size_t n) {
             if (n > std::numeric_limits<std::size_t>::max() / sizeof(T))
                 throw std::bad_array_new_length();
 
-            if (auto p = static_cast<T *>(::operator new(n * sizeof(T)))) {
-                sodium_mlock(p, n * sizeof(T)); // Lock the allocated memory
+            if (auto p = static_cast<T *>(sodium_malloc(n * sizeof(T)))) {
                 return p;
             }
 
@@ -63,9 +60,8 @@ export namespace privacy {
         }
 
         /// Deallocate memory
-        [[maybe_unused]] constexpr void deallocate(T *p, std::size_t n) noexcept {
-            sodium_munlock(p, n * sizeof(T));  // Unlock and zeroize memory
-            ::operator delete(p);
+        [[maybe_unused]] static constexpr void deallocate(T *p, const std::size_t n [[maybe_unused]]) noexcept {
+            sodium_free(p);
         }
     };
 
@@ -85,8 +81,7 @@ export namespace privacy {
     using string = std::basic_string<char, std::char_traits<char>, Allocator<char> >;
 
     template<typename T>
-    using vector = std::vector<T, Allocator<T>>;
+    using vector = std::vector<T, Allocator<T> >;
 
     using istringstream = std::basic_istringstream<char, std::char_traits<char>, Allocator<char> >;
-
-}  // namespace privacy
+} // namespace privacy
