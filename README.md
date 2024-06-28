@@ -446,18 +446,40 @@ Internet connection might be required to install the dependencies.
 For instance, on Ubuntu, you can install the .deb file using the following command:
 
 ```bash
-sudo dpkg -i privacyshield_2.5.0_amd64.deb # Replace with the actual file path
+sudo dpkg -i privacyshield_3.0.0_amd64.deb # Replace with the actual file path
 # You can also use apt to install it:
-sudo apt install ./privacyshield_2.5.0_amd64.deb # Replace with the actual file path
+sudo apt install ./privacyshield_3.0.0_amd64.deb # Replace with the actual file path
 ```
 
 On RPM-based distributions like Fedora, you can install the .rpm file using the following command:
 
 ```bash
-sudo rpm -i privacyshield-2.5.0-1.x86_64.rpm # Replace with the actual file path
+sudo rpm -i privacyshield-3.0.0-1.x86_64.rpm # Replace with the actual file path
 ```
 
 The packages can be verified using the [GnuPG](https://gnupg.org/) signature files provided.
+To verify the packages, first import the public key from the releases page:
+
+```bash
+gpg --import public_gpg_key.asc
+```
+
+Then verify the package using the signature file (which can be found on the releases page as well):
+
+```bash
+gpg --verify signatures/privacyshield_3.0.0_amd64.deb.sig privacyshield_3.0.0_amd64.deb
+```
+
+The verification succeeds if the output says
+`gpg: Good signature from "Ian Duncan (Signing key for personal projects) <dr8co@duck.com> ..."`.
+
+SHA256 checksums are also provided for the packages, and you can verify the integrity of the packages using them.
+
+```bash
+shasum -a 256 -c privacyshield_3.0.0_amd64.deb.sha256
+# Or, if you have the sha256sum command available:
+sha256sum -c privacyshield_3.0.0_amd64.deb.sha256
+```
 
 #### Manual Installation
 
