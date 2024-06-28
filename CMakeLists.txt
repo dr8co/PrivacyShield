@@ -18,7 +18,7 @@
 cmake_minimum_required(VERSION 3.28)
 
 project(privacyShield
-        VERSION 2.5.0
+        VERSION 3.0.0
         DESCRIPTION "A suite of tools for privacy and security"
         HOMEPAGE_URL "https://shield.iandee.tech"
         LANGUAGES C CXX)
