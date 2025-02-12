@@ -1,5 +1,5 @@
 // Privacy Shield: A Suite of Tools Designed to Facilitate Privacy Management.
-// Copyright (C) 2024  Ian Duncan <dr8co@duck.com>
+// Copyright (C) 2025 Ian Duncan <dr8co@duck.com>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,22 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
-module;
-
 #include <format>
-#include <iostream>
-#include <string>
-#include <vector>
 #include <filesystem>
 #include <utility>
-
-export module privacyTracks;
-
-import utils;
-import mimallocSTL;
+#include "privacyTracks.hpp"
+#include "../utils/utils.hpp"
+#include "../mimallocSTL.hpp"
 
 namespace fs = std::filesystem;
 
+// clang-format off
 
 /// \brief Represents different browsers in a system.
 enum class Browser : std::uint_fast8_t {
@@ -40,11 +34,13 @@ enum class Browser : std::uint_fast8_t {
     Safari   = 1 << 4
 };
 
+// clang-format on
+
 /// \brief A convenience function for handling errors during file operations.
 /// \param ec the error code associated with the error.
 /// \param context the context in which the error occurred.
 /// \param path the path of the file in which the error occurred.
-inline void handleFileError(std::error_code &ec, const std::string_view context = "",
+inline void handleFileError(std::error_code& ec, const std::string_view context = "",
                             const std::string_view path = "") noexcept {
     if (ec) {
         printColoredErrorln('r', "Error {} {}: {}", context, path, ec.message());
@@ -78,14 +74,14 @@ std::uint_fast8_t detectBrowsers(const std::string_view pathEnv) {
 
     // Find the list of programs in each path
     std::error_code ec;
-    for (const auto &path: paths) {
+    for (const auto& path : paths) {
         if (!fs::exists(path, ec)) {
             handleFileError(ec, "reading", path);
             continue;
         }
         // Iterate over each entry in the directory and detect browsers
-        for (const auto &entry: fs::directory_iterator(path, fs::directory_options::skip_permission_denied |
-                                                             fs::directory_options::follow_directory_symlink, ec)) {
+        for (const auto& entry : fs::directory_iterator(path, fs::directory_options::skip_permission_denied |
+                                                        fs::directory_options::follow_directory_symlink, ec)) {
             // Handle errors while reading the directory
             handleFileError(ec, "reading", entry.path().string());
 
@@ -135,8 +131,8 @@ bool clearFirefoxTracks(const std::string_view configDir) {
 
     // Find all default profiles
     miSTL::vector<fs::path> defaultProfileDirs;
-    for (const auto &entry: fs::directory_iterator(configDir, fs::directory_options::skip_permission_denied |
-                                                              fs::directory_options::follow_directory_symlink, ec)) {
+    for (const auto& entry : fs::directory_iterator(configDir, fs::directory_options::skip_permission_denied |
+                                                    fs::directory_options::follow_directory_symlink, ec)) {
         handleFileError(ec, "reading", configDir);
         if (exists(entry.status())) {
             if (entry.is_directory() && entry.path().filename().string().contains(".default"))
@@ -147,7 +143,7 @@ bool clearFirefoxTracks(const std::string_view configDir) {
     // Clear cookies and history for default profiles
     if (!defaultProfileDirs.empty()) {
         std::cout << "Deleting cookies and history for the following default profiles:" << std::endl;
-        for (const auto &profile: defaultProfileDirs) {
+        for (const auto& profile : defaultProfileDirs) {
             printColoredOutputln('c', "{}", profile.filename().string());
             // Clearing cookies
             fs::remove(profile / "cookies.sqlite", ec);
@@ -161,8 +157,8 @@ bool clearFirefoxTracks(const std::string_view configDir) {
 
     // Treat the other directories as profiles
     miSTL::vector<fs::path> profileDirs;
-    for (const auto &entry: fs::directory_iterator(configDir, fs::directory_options::skip_permission_denied |
-                                                              fs::directory_options::follow_directory_symlink, ec)) {
+    for (const auto& entry : fs::directory_iterator(configDir, fs::directory_options::skip_permission_denied |
+                                                    fs::directory_options::follow_directory_symlink, ec)) {
         handleFileError(ec, "reading", configDir);
         if (exists(entry.status())) {
             // skip broken symlinks
@@ -178,10 +174,10 @@ bool clearFirefoxTracks(const std::string_view configDir) {
     if (!profileDirs.empty()) {
         // Find all cookies.sqlite files in the profile directories
         std::cout << "\nScanning non-default profiles..." << std::endl;
-        for (const auto &profile: profileDirs) {
-            for (const auto &entry: fs::directory_iterator(profile, fs::directory_options::skip_permission_denied |
-                                                                    fs::directory_options::follow_directory_symlink,
-                                                           ec)) {
+        for (const auto& profile : profileDirs) {
+            for (const auto& entry : fs::directory_iterator(profile, fs::directory_options::skip_permission_denied |
+                                                            fs::directory_options::follow_directory_symlink,
+                                                            ec)) {
                 handleFileError(ec, "reading", profile.string());
                 if (exists(entry.status())) {
                     // Ignore broken symlinks
@@ -233,8 +229,8 @@ bool clearChromiumTracks(const std::string_view configDir) {
 
     // Find the "Default" or "default" profile directory
     fs::path defaultProfileDir;
-    for (const auto &entry: fs::directory_iterator(configDir, fs::directory_options::skip_permission_denied |
-                                                              fs::directory_options::follow_directory_symlink, ec)) {
+    for (const auto& entry : fs::directory_iterator(configDir, fs::directory_options::skip_permission_denied |
+                                                    fs::directory_options::follow_directory_symlink, ec)) {
         handleFileError(ec, "reading", configDir);
         if (exists(entry.status())) {
             if (entry.is_directory() &&
@@ -259,8 +255,8 @@ bool clearChromiumTracks(const std::string_view configDir) {
 
     // Find other profile directories
     miSTL::vector<fs::path> profileDirs;
-    for (const auto &entry: fs::directory_iterator(configDir, fs::directory_options::skip_permission_denied |
-                                                              fs::directory_options::follow_directory_symlink, ec)) {
+    for (const auto& entry : fs::directory_iterator(configDir, fs::directory_options::skip_permission_denied |
+                                                    fs::directory_options::follow_directory_symlink, ec)) {
         handleFileError(ec, "reading", configDir);
         if (exists(entry.status())) {
             if (entry.is_directory() && entry.path().filename() != "Default" && entry.path().filename() != "default") {
@@ -275,10 +271,10 @@ bool clearChromiumTracks(const std::string_view configDir) {
     // Find all cookies files in the other profile directories
     if (!profileDirs.empty()) {
         std::cout << "\nScanning non-default profiles..." << std::endl;
-        for (const auto &profile: profileDirs) {
-            for (const auto &entry: fs::directory_iterator(profile, fs::directory_options::skip_permission_denied |
-                                                                    fs::directory_options::follow_directory_symlink,
-                                                           ec)) {
+        for (const auto& profile : profileDirs) {
+            for (const auto& entry : fs::directory_iterator(profile, fs::directory_options::skip_permission_denied |
+                                                            fs::directory_options::follow_directory_symlink,
+                                                            ec)) {
                 handleFileError(ec, "reading", profile.string());
                 if (exists(entry.status())) {
                     // ignore broken symlinks
@@ -363,7 +359,7 @@ bool clearOperaTracks(const std::string_view profilePath) {
 /// \brief Clears Opera cookies and history.
 /// \return true if successful, false otherwise.
 bool clearChromiumTracks() {
-#if __linux__ or __linux
+#if __linux__ || __linux
     return clearChromiumTracks(getHomeDir() + "/.config/chromium");
 #elif __APPLE__
     return clearChromiumTracks(getHomeDir() + "/Library/Application Support/Chromium");
@@ -376,7 +372,7 @@ bool clearChromiumTracks() {
 /// \brief Clears Google Chrome cookies and history.
 /// \return true if successful, false otherwise.
 bool clearChromeTracks() {
-#if __linux__ or __linux
+#if __linux__ || __linux
     return clearChromiumTracks(getHomeDir() + "/.config/google-chrome");
 #elif __APPLE__
     return clearChromiumTracks(getHomeDir() + "/Library/Application Support/Google/Chrome");
@@ -389,7 +385,7 @@ bool clearChromeTracks() {
 /// \brief Clears Opera cookies and history.
 /// \return true if successful, false otherwise.
 bool clearOperaTracks() {
-#if __linux__ or __linux
+#if __linux__ || __linux
     return clearOperaTracks(getHomeDir() + "/.config/opera");
 #elif __APPLE__
     return clearOperaTracks(getHomeDir() + "/Library/Application Support/com.operasoftware.Opera");
@@ -411,7 +407,7 @@ bool clearSafariTracks() {
 
     // clear cookies
     std::error_code ec;
-    for (const auto &entry: fs::directory_iterator(cookiesPath, fs::directory_options::skip_permission_denied, ec)) {
+    for (const auto& entry : fs::directory_iterator(cookiesPath, fs::directory_options::skip_permission_denied, ec)) {
         handleFileError(ec, "reading", cookiesPath);
         if (entry.is_regular_file() && entry.path().filename() == "Cookies.binarycookies") {
             fs::remove(entry.path(), ec);
@@ -426,7 +422,7 @@ bool clearSafariTracks() {
     }
 
     // clear history
-    for (const auto &entry: fs::directory_iterator(historyPath, fs::directory_options::skip_permission_denied, ec)) {
+    for (const auto& entry : fs::directory_iterator(historyPath, fs::directory_options::skip_permission_denied, ec)) {
         handleFileError(ec, "reading", historyPath);
         if (entry.is_regular_file() && entry.path().filename() == "History.db") {
             fs::remove(entry.path(), ec);
@@ -448,7 +444,7 @@ bool clearSafariTracks() {
 /// \brief Clears Firefox cookies and history.
 /// \return true if successful, false otherwise.
 bool clearFirefoxTracks() {
-#if __linux__ or __linux
+#if __linux__ || __linux
     return clearFirefoxTracks(getHomeDir() + "/.mozilla/firefox");
 #elif __APPLE__
     return clearFirefoxTracks(getHomeDir() + "/Library/Application Support/Firefox");
@@ -462,7 +458,7 @@ bool clearFirefoxTracks() {
 /// \param browsers the browsers to clear tracks for.
 /// \return true if successful, false otherwise.
 /// \note Only works for standard installations of the browsers.
-bool clearTracks(const std::uint_fast8_t &browsers) {
+bool clearTracks(const std::uint_fast8_t& browsers) {
     bool ret{true};
 
     if (browsers & std::to_underlying(Browser::Firefox)) {
@@ -511,7 +507,7 @@ bool clearTracks(const std::uint_fast8_t &browsers) {
 
 /// \brief Clears all tracks for all supported browsers installed on the system.
 /// \note Only works for standard installations of the browsers.
-export void clearPrivacyTracks() {
+void clearPrivacyTracks() {
     std::cout << "Scanning your system for browsers..." << std::endl;
 
     const std::uint_fast8_t browsers = detectBrowsers();

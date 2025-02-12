@@ -1,5 +1,5 @@
 # Privacy Shield: A Suite of Tools Designed to Facilitate Privacy Management.
-# Copyright (C) 2024  Ian Duncan <dr8co@duck.com>
+# Copyright (C) 2025 Ian Duncan <dr8co@duck.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,7 +14,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see https://www.gnu.org/licenses.
 
-# CMake 3.28+ is required for C++20 modules
 cmake_minimum_required(VERSION 3.28)
 
 project(privacyShield
@@ -50,9 +49,12 @@ cmake_dependent_option(ENABLE_SANITIZERS
 # Valgrind support
 option(VALGRIND_BUILD "Build with Valgrind support" OFF)
 
+# Add the executable target
+add_executable(privacyShield)
+
 # Additional checks for the Debug build
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    add_compile_options(
+    target_compile_options(privacyShield PRIVATE
             -Wall
             -Wextra
             -Werror
@@ -60,32 +62,18 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     )
 endif ()
 
-# Add the executable target
-add_executable(privacyShield)
-
-# Add sources for the target
+# project source files
 target_sources(privacyShield PRIVATE
+        src/duplicateFinder/duplicateFinder.cpp
         src/encryption/encryptDecrypt.cpp
         src/encryption/encryptFiles.cpp
         src/encryption/encryptStrings.cpp
+        src/fileShredder/fileShredder.cpp
         src/passwordManager/passwordManager.cpp
         src/passwordManager/passwords.cpp
+        src/privacyTracks/privacyTracks.cpp
+        src/utils/utils.cpp
         src/main.cpp
-)
-
-# C++20 Modules
-target_sources(privacyShield PRIVATE
-        FILE_SET CXX_MODULES FILES
-        src/duplicateFinder/duplicateFinder.cppm
-        src/encryption/cryptoCipher.cppm
-        src/encryption/encryption.cppm
-        src/fileShredder/fileShredder.cppm
-        src/passwordManager/FuzzyMatcher.cppm
-        src/passwordManager/passwordManager.cppm
-        src/privacyTracks/privacyTracks.cppm
-        src/utils/utils.cppm
-        src/secureAllocator.cppm
-        src/mimallocSTL.cppm
 )
 
 # Sanitizers for debugging and testing
@@ -111,6 +99,7 @@ if (ENABLE_SANITIZERS)
 
     # Track mimalloc allocations for AddressSanitizer
     set(MI_TRACK_ASAN ON)
+    set(MI_DEBUG_UBSAN ON)
 
     # Link the enabled sanitizers.
     target_link_libraries(privacyShield PRIVATE asan ubsan)
@@ -161,6 +150,7 @@ if (NOT TARGET mimalloc-static OR NOT TARGET mimalloc)
     )
 endif ()
 
+set(MI_SECURE ON)
 set(MI_BUILD_TESTS OFF) # Do not build tests
 
 FetchContent_MakeAvailable(mimalloc)

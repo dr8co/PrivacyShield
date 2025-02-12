@@ -1,5 +1,5 @@
 // Privacy Shield: A Suite of Tools Designed to Facilitate Privacy Management.
-// Copyright (C) 2024  Ian Duncan <dr8co@duck.com>
+// Copyright (C) 2025 Ian Duncan <dr8co@duck.com>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -13,18 +13,16 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
-
-module;
+#pragma once
 
 #include <limits>
 #include <vector>
 #include <sodium.h>
 #include <string>
 
-export module secureAllocator;
 
-export namespace privacy {
-    template<typename T>
+namespace privacy {
+    template <typename T>
     /// \class Allocator
     /// \brief Custom allocator for STL containers, which locks and zeroizes memory.
     /// \tparam T The type of the elements.
@@ -37,22 +35,21 @@ export namespace privacy {
         constexpr Allocator() noexcept = default;
 
         /// Assignment operator
-        constexpr Allocator &operator=(const Allocator &) noexcept = default;
+        constexpr Allocator& operator=(const Allocator&) noexcept = default;
 
         /// Destructor
         ~Allocator() noexcept = default;
 
         /// Copy constructor
-        template<class U>
-        constexpr explicit Allocator(const Allocator<U> &) noexcept {
-        }
+        template <class U>
+        constexpr explicit Allocator(const Allocator<U>&) noexcept {}
 
         /// Allocate memory
-        [[maybe_unused]] [[nodiscard]] constexpr T *allocate(const std::size_t n) {
+        [[maybe_unused]] [[nodiscard]] constexpr T* allocate(const std::size_t n) {
             if (n > std::numeric_limits<std::size_t>::max() / sizeof(T))
                 throw std::bad_array_new_length();
 
-            if (auto p = static_cast<T *>(sodium_malloc(n * sizeof(T)))) {
+            if (auto p = static_cast<T*>(sodium_malloc(n * sizeof(T)))) {
                 return p;
             }
 
@@ -60,28 +57,28 @@ export namespace privacy {
         }
 
         /// Deallocate memory
-        [[maybe_unused]] static constexpr void deallocate(T *p, const std::size_t n [[maybe_unused]]) noexcept {
+        [[maybe_unused]] static constexpr void deallocate(T* p, const std::size_t n [[maybe_unused]]) noexcept {
             sodium_free(p);
         }
     };
 
     /// Equality operators
-    template<class T, class U>
-    [[maybe_unused]] constexpr bool operator==(const Allocator<T> &, const Allocator<U> &) noexcept {
+    template <class T, class U>
+    [[maybe_unused]] constexpr bool operator==(const Allocator<T>&, const Allocator<U>&) noexcept {
         return true;
     }
 
     /// Inequality operators
-    template<class T, class U>
-    [[maybe_unused]] constexpr bool operator!=(const Allocator<T> &, const Allocator<U> &) noexcept {
+    template <class T, class U>
+    [[maybe_unused]] constexpr bool operator!=(const Allocator<T>&, const Allocator<U>&) noexcept {
         return false;
     }
 
     // Override string and vector types to use our allocator
-    using string = std::basic_string<char, std::char_traits<char>, Allocator<char> >;
+    using string = std::basic_string<char, std::char_traits<char>, Allocator<char>>;
 
-    template<typename T>
-    using vector = std::vector<T, Allocator<T> >;
+    template <typename T>
+    using vector = std::vector<T, Allocator<T>>;
 
-    using istringstream = std::basic_istringstream<char, std::char_traits<char>, Allocator<char> >;
+    using istringstream = std::basic_istringstream<char, std::char_traits<char>, Allocator<char>>;
 } // namespace privacy

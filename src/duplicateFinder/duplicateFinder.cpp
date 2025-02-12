@@ -1,5 +1,5 @@
 // Privacy Shield: A Suite of Tools Designed to Facilitate Privacy Management.
-// Copyright (C) 2024  Ian Duncan <dr8co@duck.com>
+// Copyright (C) 2025 Ian Duncan <dr8co@duck.com>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,23 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
-module;
-
-#include <print>
 #include <fstream>
 #include <system_error>
 #include <thread>
-#include <vector>
-#include <unordered_map>
-#include <filesystem>
 #include <blake3.h>
 #include <cstring>
-#include <format>
 #include <ranges>
 
-export module duplicateFinder;
-import utils;
-import mimallocSTL;
+#include "duplicateFinder.hpp"
+#include "../utils/utils.hpp"
+#include "../mimallocSTL.hpp"
 
 namespace fs = std::filesystem;
 
@@ -222,7 +215,7 @@ std::size_t findDuplicates(const fs::path &directoryPath) {
 }
 
 /// \brief A simple duplicate file detective.
-export void duplicateFinder() {
+void duplicateFinder() {
     while (true) {
         std::print("\n-------------------");
         printColoredOutput('m', " Duplicate Finder ");

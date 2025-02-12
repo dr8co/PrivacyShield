@@ -1,5 +1,5 @@
 // Privacy Shield: A Suite of Tools Designed to Facilitate Privacy Management.
-// Copyright (C) 2024  Ian Duncan <dr8co@duck.com>
+// Copyright (C) 2025 Ian Duncan <dr8co@duck.com>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -13,16 +13,10 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
+#pragma once
 
-module;
-
-#include <string>
-#include <vector>
-
-export module FuzzyMatcher;
-
-import secureAllocator;
-import mimallocSTL;
+#include "../mimallocSTL.hpp"
+#include "../secureAllocator.hpp"
 
 template<typename T>
 /// \brief A concept describing a range of strings.
@@ -31,8 +25,8 @@ concept StringRange = std::ranges::input_range<T> &&
                       std::same_as<std::ranges::range_value_t<T>, privacy::string>;
 
 /// \class FuzzyMatcher
-/// \brief A simple case insensitive fuzzy matcher.
-export class FuzzyMatcher final {
+/// \brief A simple case-insensitive fuzzy matcher.
+class FuzzyMatcher final {
 public:
     /// Default constructor
     constexpr FuzzyMatcher() noexcept = default;
@@ -117,8 +111,8 @@ private:
     /// \param str1 the first string.
     /// \param str2 the second string.
     /// \return the calculated distance.
-    /// \note The Levenshtein distance calculated by this function is case insensitive,
-    /// i.e the strings are converted to lowercase when calculating the edit distance.
+    /// \note The Levenshtein distance calculated by this function is case-insensitive,
+    /// i.e. the strings are converted to lowercase when calculating the edit distance.
     constexpr static int levenshteinDistance(const std::string_view str1, const std::string_view str2) {
         const int m = static_cast<int>(str1.length());
         const int n = static_cast<int>(str2.length());

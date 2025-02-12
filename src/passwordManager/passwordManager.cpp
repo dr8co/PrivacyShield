@@ -1,5 +1,5 @@
 // Privacy Shield: A Suite of Tools Designed to Facilitate Privacy Management.
-// Copyright (C) 2024  Ian Duncan <dr8co@duck.com>
+// Copyright (C) 2025 Ian Duncan <dr8co@duck.com>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,26 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
-module;
-
-#include <filesystem>
 #include <algorithm>
-#include <format>
 #include <ranges>
-#include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <cmath>
 #include <random>
-#include <map>
-#include <iostream>
 
-import utils;
-import FuzzyMatcher;
-import secureAllocator;
-import mimallocSTL;
+#include "passwordManager.hpp"
+#include "FuzzyMatcher.hpp"
 
-module passwordManager;
 
 namespace fs = std::filesystem;
 using string = miSTL::string;

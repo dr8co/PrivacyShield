@@ -1,5 +1,5 @@
 // Privacy Shield: A Suite of Tools Designed to Facilitate Privacy Management.
-// Copyright (C) 2024  Ian Duncan <dr8co@duck.com>
+// Copyright (C) 2025 Ian Duncan <dr8co@duck.com>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,21 +14,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
-module;
 
 #include <mutex>
-#include <sodium.h>
-#include <format>
-#include <vector>
-#include <openssl/evp.h>
-#include <gcrypt.h>
 
-import utils;
-import secureAllocator;
-import mimallocSTL;
-import cryptoCipher;
+#include "encryption.hpp"
+#include "cryptoCipher.hpp"
+#include "../utils/utils.hpp"
+#include "../mimallocSTL.hpp"
+#include "../secureAllocator.hpp"
 
-module encryption;
+// OpenSSL's library context and property query string
+static OSSL_LIB_CTX* libContext = nullptr;
+constexpr static char* propertyQuery = nullptr;
 
 /// \brief Encrypts a string using symmetric unauthenticated encryption.
 /// \param plaintext The string to be encrypted.

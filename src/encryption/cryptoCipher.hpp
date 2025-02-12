@@ -1,5 +1,5 @@
 // Privacy Shield: A Suite of Tools Designed to Facilitate Privacy Management.
-// Copyright (C) 2024  Ian Duncan <dr8co@duck.com>
+// Copyright (C) 2025 Ian Duncan <dr8co@duck.com>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -13,14 +13,12 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
-module;
+#pragma once
 
 #include <openssl/evp.h>
 
-export module cryptoCipher;
-
 /// \brief A class wrapper for OpenSSL cipher implementations and contexts.
-export class CryptoCipher final {
+class CryptoCipher final {
 public:
     // Default constructor
     constexpr CryptoCipher() noexcept = default;

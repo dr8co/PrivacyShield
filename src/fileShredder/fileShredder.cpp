@@ -1,5 +1,5 @@
 // Privacy Shield: A Suite of Tools Designed to Facilitate Privacy Management.
-// Copyright (C) 2024  Ian Duncan <dr8co@duck.com>
+// Copyright (C) 2025 Ian Duncan <dr8co@duck.com>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,25 +14,19 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
-module;
-
-#include<cstring>
+#include <cstring>
 #include <fstream>
 #include <random>
-#include <filesystem>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
-#include <format>
-#include <iostream>
 #include <utility>
-#include <print>
+
+#include "fileShredder.hpp"
+#include "../utils/utils.hpp"
+#include "../mimallocSTL.hpp"
 
 using StatType = struct stat;
-
-export module fileShredder;
-import utils;
-import mimallocSTL;
 
 namespace fs = std::filesystem;
 constexpr std::streamoff BUFFER_SIZE = 4096;
@@ -44,7 +38,7 @@ constexpr std::streamoff BUFFER_SIZE = 4096;
 /// \param nPasses the number of passes to overwrite the file.
 ///
 /// \throws std::runtime_error if the \p file is not open, or if there is a file write error.
-void overwriteRandom(std::ofstream &file, const std::size_t fileSize, const int nPasses = 1) {
+void overwriteRandom(std::ofstream& file, const std::size_t fileSize, const int nPasses = 1) {
     if (!file.is_open()) throw std::runtime_error("File not open.");
     // Instantiate the random number generator
     std::random_device rd;
@@ -62,7 +56,7 @@ void overwriteRandom(std::ofstream &file, const std::size_t fileSize, const int 
         // Overwrite the file with random data
         for (std::size_t pos = 0; pos < fileSize; pos += BUFFER_SIZE) {
             // Generate a buffer filled with random data
-            for (auto &byte: buffer) {
+            for (auto& byte : buffer) {
                 byte = dist(gen);
             }
             // Adjust the buffer size for the last chunk of data, which may be smaller than the buffer size
@@ -70,7 +64,7 @@ void overwriteRandom(std::ofstream &file, const std::size_t fileSize, const int 
                 buffer.resize(fileSize - pos);
             }
 
-            file.write(reinterpret_cast<char *>(buffer.data()), static_cast<std::streamsize>(buffer.size()));
+            file.write(reinterpret_cast<char*>(buffer.data()), static_cast<std::streamsize>(buffer.size()));
 
             if (!file) {
                 throw std::runtime_error("file write error");
@@ -86,8 +80,8 @@ void overwriteRandom(std::ofstream &file, const std::size_t fileSize, const int 
 /// \param fileSize the size of the file in bytes.
 ///
 /// \throws std::runtime_error if the \p file is not open, or if there is a file write error.
-template<typename T>
-void overwriteConstantByte(std::ofstream &file, T &byte, const auto &fileSize) {
+template <typename T>
+void overwriteConstantByte(std::ofstream& file, T& byte, const auto& fileSize) {
     if (!file.is_open()) throw std::runtime_error("File not open.");
     // seek to the beginning of the file
     file.seekp(0, std::ios::beg);
@@ -98,7 +92,7 @@ void overwriteConstantByte(std::ofstream &file, T &byte, const auto &fileSize) {
         if (pos + BUFFER_SIZE > fileSize) {
             buffer.resize(fileSize - pos);
         }
-        file.write(reinterpret_cast<char *>(buffer.data()), static_cast<std::streamsize>(buffer.size()));
+        file.write(reinterpret_cast<char*>(buffer.data()), static_cast<std::streamsize>(buffer.size()));
 
         if (!file) throw std::runtime_error("file write error.");
     }
@@ -178,7 +172,7 @@ inline void renameAndRemove(const std::string_view filename, int numTimes = 1) {
 struct FileDescriptor {
     int fd{-1};
 
-    explicit FileDescriptor(const miSTL::string &filename) : fd(open(filename.c_str(), O_RDWR)) {
+    explicit FileDescriptor(const miSTL::string& filename) : fd(open(filename.c_str(), O_RDWR)) {
         if (fd == -1)
             throw std::runtime_error(std::format("Failed to open file: {} ({})", filename, std::strerror(errno)));
     }
@@ -195,7 +189,7 @@ struct FileDescriptor {
 struct FileStatInfo {
     StatType fileStat{};
 
-    explicit FileStatInfo(const int &fileDescriptor) {
+    explicit FileStatInfo(const int& fileDescriptor) {
         if (fstat(fileDescriptor, &fileStat) == -1)
             throw std::runtime_error(std::format("Failed to get file size: ({})", std::strerror(errno)));
     }
@@ -204,13 +198,13 @@ struct FileStatInfo {
 /// \brief wipes the cluster tips of a file.
 /// \param fileName the path to the file to be wiped.
 /// \throws std::runtime_error if zeroing the cluster tips fails.
-inline void wipeClusterTips(const miSTL::string &fileName) {
+inline void wipeClusterTips(const miSTL::string& fileName) {
     const FileDescriptor fileDescriptor(fileName);
     const FileStatInfo fileInformation(fileDescriptor.fd);
 
     // Calculate the size of the cluster tip
     auto clusterTipSize = fileInformation.fileStat.st_blksize -
-                          (fileInformation.fileStat.st_size % fileInformation.fileStat.st_blksize);
+        (fileInformation.fileStat.st_size % fileInformation.fileStat.st_blksize);
 
     if (clusterTipSize >= fileInformation.fileStat.st_size) {
         clusterTipSize = 0;
@@ -234,7 +228,7 @@ inline void wipeClusterTips(const miSTL::string &fileName) {
 /// \param wipeClusterTip whether to wipe the cluster tips of the file.
 ///
 /// \throws std::runtime_error if the file cannot be opened.
-void simpleShred(const miSTL::string &filename, const int &nPasses = 3, const bool wipeClusterTip = false) {
+void simpleShred(const miSTL::string& filename, const int& nPasses = 3, const bool wipeClusterTip = false) {
     std::ofstream file(filename.c_str(), std::ios::binary | std::ios::in);
     if (!file)
         throw std::runtime_error(std::format("\nFailed to open file: {}", filename));
@@ -269,7 +263,7 @@ void simpleShred(const miSTL::string &filename, const int &nPasses = 3, const bo
 /// \param wipeClusterTip whether to wipe the cluster tips of the file.
 ///
 /// \throws std::runtime_error if the file cannot be opened, or if the number of passes is invalid.
-void dod5220Shred(const miSTL::string &filename, const int &nPasses = 3, const bool wipeClusterTip = false) {
+void dod5220Shred(const miSTL::string& filename, const int& nPasses = 3, const bool wipeClusterTip = false) {
     std::ofstream file(filename.c_str(), std::ios::binary | std::ios::in);
     if (!file)
         throw std::runtime_error(std::format("\nFailed to open file: {}", filename));
@@ -319,6 +313,8 @@ void dod5220Shred(const miSTL::string &filename, const int &nPasses = 3, const b
     renameAndRemove(filename, 3);
 }
 
+// clang-format off
+
 /// \enum ShredOptions
 /// \brief Represents the different shredding options.
 enum class ShredOptions : std::uint_fast8_t {
@@ -327,6 +323,8 @@ enum class ShredOptions : std::uint_fast8_t {
     Dod5220_7       = 1 << 2, ///< DoD 5220.22-M Standard algorithm with 7 passes
     WipeClusterTips = 1 << 3  ///< Wiping of the cluster tips
 };
+
+// clang-format on
 
 /// \brief Adds write and write permissions to a file, if the user has authority.
 /// \param fileName The file to modify.
@@ -343,7 +341,7 @@ enum class ShredOptions : std::uint_fast8_t {
 static inline bool addReadWritePermissions(const std::string_view fileName) noexcept {
     std::error_code ec;
     permissions(fileName, fs::perms::owner_read | fs::perms::owner_write | fs::perms::group_read |
-                          fs::perms::group_write | fs::perms::others_read | fs::perms::others_write,
+                fs::perms::group_write | fs::perms::others_read | fs::perms::others_write,
                 fs::perm_options::add, ec);
     return !ec;
 }
@@ -360,7 +358,7 @@ static inline bool addReadWritePermissions(const std::string_view fileName) noex
 ///
 /// \warning If the filePath is a directory, then all its files and subdirectories
 /// are shredded without warning.
-bool shredFiles(const miSTL::string &filePath, const std::uint_fast8_t &options, const int &simplePasses = 3) {
+bool shredFiles(const miSTL::string& filePath, const std::uint_fast8_t& options, const int& simplePasses = 3) {
     std::error_code ec;
     const fs::file_status fileStatus = fs::status(filePath, ec);
     if (ec) {
@@ -390,7 +388,7 @@ bool shredFiles(const miSTL::string &filePath, const std::uint_fast8_t &options,
         static std::size_t numShredded{0}, numNotShredded{0};
 
         // Shred all files in the directory and all subdirectories
-        for (const auto &entry: fs::recursive_directory_iterator(filePath)) {
+        for (const auto& entry : fs::recursive_directory_iterator(filePath)) {
             if (entry.exists(ec)) {
                 if (ec) {
                     printColoredErrorln('r', "{}", ec.message());
@@ -407,7 +405,7 @@ bool shredFiles(const miSTL::string &filePath, const std::uint_fast8_t &options,
                                              shredded ? "\tshredded successfully." : "\tshredding failed.");
 
                         ++(shredded ? numShredded : numNotShredded);
-                    } catch (const std::runtime_error &err) {
+                    } catch (const std::runtime_error& err) {
                         printColoredError('y', "Shredding failed: ");
                         printColoredErrorln('r', "{}", err.what());
                     }
@@ -415,7 +413,7 @@ bool shredFiles(const miSTL::string &filePath, const std::uint_fast8_t &options,
             }
         }
         if (numNotShredded == 0) // All files in the directory and all subdirectories were shredded successfully.
-            remove_all(fs::canonical(filePath));
+            fs::remove_all(fs::canonical(filePath));
         else printColoredErrorln('r', "Failed to shred some files.");
 
         std::println("\nProcessed  {} files.", numShredded + numNotShredded);
@@ -461,12 +459,12 @@ bool shredFiles(const miSTL::string &filePath, const std::uint_fast8_t &options,
 }
 
 /// \brief A simple file shredder.
-export void fileShredder() {
+void fileShredder() {
     // Configures the shredding options.
-    auto selectPreferences = [](std::uint_fast8_t &preferences, int &simpleNumPass) {
+    auto selectPreferences = [](std::uint_fast8_t& preferences, int& simpleNumPass) {
         const int moreChoices1 = getResponseInt("\n1. Continue with default shredding options\n"
             "2. Configure shredding options");
-        const std::uint_fast8_t &wipeTips = std::to_underlying(ShredOptions::WipeClusterTips);
+        const std::uint_fast8_t& wipeTips = std::to_underlying(ShredOptions::WipeClusterTips);
 
         if (moreChoices1 == 1) {
             // Default options: simple shredding with random bytes, and wipe cluster tips.
@@ -496,7 +494,7 @@ export void fileShredder() {
                     } else if (simpleConfig == 3) {
                         // Configure wiping of cluster tips
                         preferences = (preferences & ~wipeTips) |
-                                      (-validateYesNo("Wipe cluster tips? (Recommended) (y/n):") & wipeTips);
+                            (-validateYesNo("Wipe cluster tips? (Recommended) (y/n):") & wipeTips);
                     } else if (simpleConfig == 4) {
                         // Abort
                         throw std::runtime_error("Operation aborted.");
@@ -507,7 +505,7 @@ export void fileShredder() {
                 preferences |= std::to_underlying(alg == 2 ? ShredOptions::Dod5220 : ShredOptions::Dod5220_7);
 
                 preferences = (preferences & ~wipeTips) |
-                              (-validateYesNo("Wipe cluster tips? (Recommended) (y/n):") & wipeTips);
+                    (-validateYesNo("Wipe cluster tips? (Recommended) (y/n):") & wipeTips);
             } else throw std::invalid_argument("Invalid option");
         } else throw std::invalid_argument("Invalid option");
     };
@@ -565,7 +563,7 @@ export void fileShredder() {
                 // Select shredding preferences
                 try {
                     selectPreferences(preferences, simpleNumPass);
-                } catch (const std::exception &ex) {
+                } catch (const std::exception& ex) {
                     printColoredErrorln('r', "Error: {}", ex.what());
                     continue;
                 }
@@ -583,7 +581,7 @@ export void fileShredder() {
                         printColoredOutputln('c', "{}", canonicalPath);
                     }
                 }
-            } catch (const std::exception &err) {
+            } catch (const std::exception& err) {
                 printColoredErrorln('r', "Error: {}", err.what());
             }
         } else if (choice == 3) break;

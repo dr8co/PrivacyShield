@@ -1,5 +1,5 @@
 // Privacy Shield: A Suite of Tools Designed to Facilitate Privacy Management.
-// Copyright (C) 2024  Ian Duncan <dr8co@duck.com>
+// Copyright (C) 2025 Ian Duncan <dr8co@duck.com>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -15,26 +15,23 @@
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
 #include <csignal>
-#include <sodium.h>
-#include <gcrypt.h>
-#include <format>
 #include <functional>
 #include <unistd.h>
 #include <sys/resource.h>
-#include <iostream>
 
-import duplicateFinder;
-import privacyTracks;
-import encryption;
-import passwordManager;
-import fileShredder;
-import mimallocSTL;
-import utils;
+#include "duplicateFinder/duplicateFinder.hpp"
+#include "encryption/encryption.hpp"
+#include "fileShredder/fileShredder.hpp"
+#include "passwordManager/passwordManager.hpp"
+#include "privacyTracks/privacyTracks.hpp"
+#include "utils/utils.hpp"
+#include "mimallocSTL.hpp"
 
 constexpr auto MINIMUM_LIBGCRYPT_VERSION = "1.10.0";
+constexpr auto PRIVACY_SHIELD_VERSION = "3.0.0";
 
 
-int main(const int argc, const char **argv) {
+int main(const int argc, const char** argv) {
     // The program should be launched in interactive mode
     if (!isatty(STDIN_FILENO)) {
         if (errno == ENOTTY) {
@@ -68,8 +65,7 @@ int main(const int argc, const char **argv) {
 
     if (argc > 2) {
         printColoredOutput('y', "Ignoring extra arguments: ", 'y');
-        for (int i = 2; i < argc; printColoredOutput('r', "{} ", argv[i++])) {
-        }
+        for (int i = 2; i < argc; printColoredOutput('r', "{} ", argv[i++])) {}
         std::cout << std::endl;
     }
 
@@ -115,8 +111,8 @@ int main(const int argc, const char **argv) {
             throw std::runtime_error("Failed to initialize libsodium.");
 
         // Display information about the program
-        printColoredOutputln('c', "\nPrivacy Shield 3.0.0");
-        printColoredOutputln('b', "Copyright (C) 2024 Ian Duncan.");
+        printColoredOutputln('c', "\nPrivacy Shield {}", PRIVACY_SHIELD_VERSION);
+        printColoredOutputln('b', "Copyright (C) 2025 Ian Duncan.");
 
         printColoredOutput('g', "This program comes with ");
         printColoredOutputln('r', "ABSOLUTELY NO WARRANTY.");
@@ -130,7 +126,7 @@ int main(const int argc, const char **argv) {
         printColoredOutputln('b', "https://www.gnu.org/licenses/gpl.html.");
 
         // All the available tools
-        miSTL::unordered_map<int, std::function<void()> > apps = {
+        miSTL::unordered_map<int, std::function<void()>> apps = {
             {1, passwordManager},
             {2, encryptDecrypt},
             {3, fileShredder},
@@ -157,10 +153,10 @@ int main(const int argc, const char **argv) {
                 else if (choice == 6)
                     break;
                 else printColoredErrorln('r', "Invalid choice!");
-            } catch (const std::bad_function_call &bc) {
+            } catch (const std::bad_function_call& bc) {
                 // In case the std::function objects are called inappropriately
                 printColoredErrorln('r', "Bad function call: {}", bc.what());
-            } catch (const std::exception &ex) {
+            } catch (const std::exception& ex) {
                 printColoredErrorln('r', "Error: {}", ex.what());
             } catch (...) {
                 // All other exceptions, if any
@@ -168,7 +164,7 @@ int main(const int argc, const char **argv) {
             }
         }
         return 0;
-    } catch (const std::exception &ex) {
+    } catch (const std::exception& ex) {
         printColoredErrorln('r', "Error: {}", ex.what());
         return 1;
     } catch (...) {

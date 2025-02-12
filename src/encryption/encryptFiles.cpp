@@ -1,5 +1,5 @@
 // Privacy Shield: A Suite of Tools Designed to Facilitate Privacy Management.
-// Copyright (C) 2024  Ian Duncan <dr8co@duck.com>
+// Copyright (C) 2025 Ian Duncan <dr8co@duck.com>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
-module;
-
 #include <iostream>
 #include <fstream>
 #include <memory>
@@ -23,20 +21,19 @@ module;
 #include <openssl/core_names.h>
 #include <openssl/rand.h>
 #include <sodium.h>
-#include <format>
 #include <mutex>
-#include <vector>
+#include "encryption.hpp"
+#include "cryptoCipher.hpp"
 #include <gcrypt.h>
 
-import cryptoCipher;
-import secureAllocator;
-import mimallocSTL;
-
-module encryption;
 
 constexpr int MAX_KEY_SIZE = EVP_MAX_KEY_LENGTH;    ///< Maximum length of a key
 constexpr std::streamsize CHUNK_SIZE = 4096;        ///< Read/Write files in chunks of 4 kB
 constexpr unsigned int PBKDF2_ITERATIONS = 100'000; ///< Iterations for PBKDF2 key derivation
+
+// OpenSSL's library context and property query string
+static OSSL_LIB_CTX* libContext = nullptr;
+constexpr static char* propertyQuery = nullptr;
 
 
 /// \brief Generates random bytes using a CSPRNG.
