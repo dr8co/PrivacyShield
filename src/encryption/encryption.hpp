@@ -26,37 +26,37 @@ constexpr int KEY_SIZE_256 = 32; // Default key size (256 bits)
 privacy::vector<unsigned char> generateSalt(int saltSize);
 
 privacy::vector<unsigned char>
-deriveKey(const privacy::string& password, const privacy::vector<unsigned char>& salt,
-          const int& keySize = KEY_SIZE_256);
+deriveKey(const privacy::string &password, const privacy::vector<unsigned char> &salt,
+          const int &keySize = KEY_SIZE_256);
 
-void encryptFile(const miSTL::string& inputFile, const miSTL::string& outputFile, const privacy::string& password,
-                 const miSTL::string& algo = "AES-256-CBC");
-
-void
-encryptFileWithMoreRounds(const miSTL::string& inputFilePath, const miSTL::string& outputFilePath,
-                          const privacy::string& password,
-                          const gcry_cipher_algos& algorithm = GCRY_CIPHER_SERPENT256);
-
-void decryptFile(const miSTL::string& inputFile, const miSTL::string& outputFile, const privacy::string& password,
-                 const miSTL::string& algo = "AES-256-CBC");
+void encryptFile(const miSTL::string &inputFile, const miSTL::string &outputFile, const privacy::string &password,
+                 const miSTL::string &algo = "AES-256-CBC");
 
 void
-decryptFileWithMoreRounds(const miSTL::string& inputFilePath, const miSTL::string& outputFilePath,
-                          const privacy::string& password,
-                          const gcry_cipher_algos& algorithm = GCRY_CIPHER_SERPENT256);
+encryptFileWithMoreRounds(const miSTL::string &inputFilePath, const miSTL::string &outputFilePath,
+                          const privacy::string &password,
+                          const gcry_cipher_algos &algorithm = GCRY_CIPHER_SERPENT256);
+
+void decryptFile(const miSTL::string &inputFile, const miSTL::string &outputFile, const privacy::string &password,
+                 const miSTL::string &algo = "AES-256-CBC");
+
+void
+decryptFileWithMoreRounds(const miSTL::string &inputFilePath, const miSTL::string &outputFilePath,
+                          const privacy::string &password,
+                          const gcry_cipher_algos &algorithm = GCRY_CIPHER_SERPENT256);
 
 privacy::string
-encryptString(const privacy::string& plaintext, const privacy::string& password,
-              const miSTL::string& algo = "AES-256-CBC");
+encryptString(const privacy::string &plaintext, const privacy::string &password,
+              const miSTL::string &algo = "AES-256-CBC");
 
-privacy::string encryptStringWithMoreRounds(const privacy::string& plaintext, const privacy::string& password,
-                                            const gcry_cipher_algos& algorithm = GCRY_CIPHER_SERPENT256);
+privacy::string encryptStringWithMoreRounds(const privacy::string &plaintext, const privacy::string &password,
+                                            const gcry_cipher_algos &algorithm = GCRY_CIPHER_SERPENT256);
 
 privacy::string
-decryptString(std::string_view encodedCiphertext, const privacy::string& password,
-              const miSTL::string& algo = "AES-256-CBC");
+decryptString(std::string_view encodedCiphertext, const privacy::string &password,
+              const miSTL::string &algo = "AES-256-CBC");
 
-privacy::string decryptStringWithMoreRounds(std::string_view encodedCiphertext, const privacy::string& password,
-                                            const gcry_cipher_algos& algorithm = GCRY_CIPHER_SERPENT256);
+privacy::string decryptStringWithMoreRounds(std::string_view encodedCiphertext, const privacy::string &password,
+                                            const gcry_cipher_algos &algorithm = GCRY_CIPHER_SERPENT256);
 
 void encryptDecrypt();

@@ -18,11 +18,11 @@
 #include "../mimallocSTL.hpp"
 #include "../secureAllocator.hpp"
 
-template<typename T>
+template <typename T>
 /// \brief A concept describing a range of strings.
 /// @tparam T string type.
 concept StringRange = std::ranges::input_range<T> &&
-                      std::same_as<std::ranges::range_value_t<T>, privacy::string>;
+    std::same_as<std::ranges::range_value_t<T>, privacy::string>;
 
 /// \class FuzzyMatcher
 /// \brief A simple case-insensitive fuzzy matcher.
@@ -56,20 +56,20 @@ public:
     /// \brief Constructs a FuzzyMatcher object, with initialization.
     /// \param wordList the list of strings to be matched against a pattern.
     /// \tparam Range a range of strings.
-    /// \note The wordList should be sorted, for deduplication to be successful.
-    template<StringRange Range>
+    /// \note The wordList should be sorted for deduplication to be successful.
+    template <StringRange Range>
     explicit FuzzyMatcher(const Range &wordList) { setStringList(wordList); }
 
     /// \brief Sets the list of words for fuzzy matching
     /// \tparam Range a range of strings
     /// \param wordList the list of strings to be matched against a pattern.
-    template<StringRange Range>
+    template <StringRange Range>
     constexpr void setStringList(const Range &wordList) {
         stringList.reserve(std::ranges::distance(wordList));
 
         // Copy unique entries to the string list vector (wordList is sorted)
         stringList.emplace_back(*std::ranges::cbegin(wordList));
-        for (const auto &el: wordList)
+        for (const auto &el : wordList)
             if (el != stringList.back()) // Deduplicate
                 stringList.emplace_back(el);
     }
@@ -83,17 +83,18 @@ public:
     /// \param pattern the pattern to match.
     /// \param maxDistance the maximum Levenshtein Distance to consider a match.
     /// \return a vector of strings matching the pattern.
-    [[nodiscard]] miSTL::vector<privacy::string> fuzzyMatch(const std::string_view pattern, const int &maxDistance) const {
+    [[nodiscard]] miSTL::vector<privacy::string> fuzzyMatch(const std::string_view pattern,
+                                                            const int &maxDistance) const {
         miSTL::vector<privacy::string> matches{};
-        matches.reserve(stringList.size());  // Worst case: every string in stringList is a match.
+        matches.reserve(stringList.size()); // Worst case: every string in stringList is a match.
         // The maximum and minimum size of a string to be considered a match
         const auto maxSize{pattern.size() + maxDistance + 1};
         const auto minSize{pattern.size() - (maxDistance + 1)};
 
         // Iterate over the string list and find matches
-        for (const auto &str: stringList)
+        for (const auto &str : stringList)
             if (const auto size{str.size()}; size <= maxSize && size >= minSize &&
-                                       levenshteinDistance(pattern, str) <= maxDistance)
+                levenshteinDistance(pattern, str) <= maxDistance)
                 matches.emplace_back(str);
 
 
@@ -103,7 +104,6 @@ public:
     /// Default destructor
     ~FuzzyMatcher() noexcept = default;
 
-
 private:
     miSTL::vector<privacy::string> stringList{};
 
@@ -112,7 +112,7 @@ private:
     /// \param str2 the second string.
     /// \return the calculated distance.
     /// \note The Levenshtein distance calculated by this function is case-insensitive,
-    /// i.e. the strings are converted to lowercase when calculating the edit distance.
+    /// i.e., the strings are converted to lowercase when calculating the edit distance.
     constexpr static int levenshteinDistance(const std::string_view str1, const std::string_view str2) {
         const int m = static_cast<int>(str1.length());
         const int n = static_cast<int>(str2.length());
@@ -134,9 +134,9 @@ private:
                     dp[i][j] = dp[i - 1][j - 1];
                 } else {
                     // Otherwise, the cost is 1
-                    dp[i][j] = 1 + std::min(dp[i - 1][j],   // Deletion
-                                            std::min(dp[i][j - 1],  // Insertion
-                                                     dp[i - 1][j - 1])     // Substitution
+                    dp[i][j] = 1 + std::min(dp[i - 1][j], // Deletion
+                                            std::min(dp[i][j - 1], // Insertion
+                                                     dp[i - 1][j - 1]) // Substitution
                     );
                 }
             }
@@ -145,5 +145,4 @@ private:
         // Return the final Levenshtein distance
         return dp[m][n];
     }
-
 };

@@ -103,9 +103,14 @@ public:
     }
 
 private:
+    // clang-format off
+    // @formatter:off
     EVP_CIPHER *cipher{nullptr};    // cipher implementation
     EVP_CIPHER_CTX *ctx{nullptr};   // cipher context
     OSSL_LIB_CTX *libCtx{nullptr};  // OpenSSL library context
     const char *algo{nullptr};      // cipher algorithm
     const char *propQuery{nullptr}; // a string to filter cipher implementations
+
+    // clang-format on
+    // @formatter:on
 };

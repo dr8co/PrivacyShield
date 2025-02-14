@@ -14,16 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
-#include <fstream>
-#include <system_error>
-#include <thread>
 #include <blake3.h>
 #include <cstring>
+#include <fstream>
 #include <ranges>
+#include <system_error>
+#include <thread>
 
 #include "duplicateFinder.hpp"
-#include "../utils/utils.hpp"
 #include "../mimallocSTL.hpp"
+#include "../utils/utils.hpp"
 
 namespace fs = std::filesystem;
 
@@ -94,11 +94,11 @@ std::size_t traverseDirectory(const fs::path &directoryPath, miSTL::vector<FileI
     std::size_t filesProcessed{0};
 
     // Map to store file sizes and their corresponding paths
-    miSTL::unordered_map<uintmax_t, miSTL::vector<fs::path> > sizeToFileMap;
+    miSTL::unordered_map<uintmax_t, miSTL::vector<fs::path>> sizeToFileMap;
 
-    for (const auto &entry: fs::recursive_directory_iterator(directoryPath,
-                                                             fs::directory_options::skip_permission_denied |
-                                                             fs::directory_options::follow_directory_symlink)) {
+    for (const auto &entry : fs::recursive_directory_iterator(directoryPath,
+                                                              fs::directory_options::skip_permission_denied |
+                                                              fs::directory_options::follow_directory_symlink)) {
         ++filesProcessed;
         if (entry.exists(ec)) {
             // In case of broken symlinks
@@ -125,9 +125,9 @@ std::size_t traverseDirectory(const fs::path &directoryPath, miSTL::vector<FileI
     }
     candidateDuplicates.reserve(filesProcessed);
     // Report files with the same sizes
-    for (auto &files: sizeToFileMap | std::views::values) {
+    for (auto &files : sizeToFileMap | std::views::values) {
         if (files.size() > 1) {
-            for (const auto &file: files) {
+            for (const auto &file : files) {
                 candidateDuplicates.emplace_back(FileInfo{file.string().c_str(), ""});
             }
         }
@@ -179,21 +179,21 @@ std::size_t findDuplicates(const fs::path &directoryPath) {
     threads.emplace_back(calculateHashes, std::ref(files), start, files.size());
 
     // Wait for all threads to finish execution
-    for (auto &thread: threads) thread.join();
+    for (auto &thread : threads) thread.join();
 
     // A hash map to map the files to their corresponding hashes
-    miSTL::unordered_map<miSTL::string, miSTL::vector<miSTL::string> > hashMap;
+    miSTL::unordered_map<miSTL::string, miSTL::vector<miSTL::string>> hashMap;
     hashMap.reserve(files.size());
 
     // Iterate over files and identify duplicates
-    for (const auto &[filePath, hash]: files)
+    for (const auto &[filePath, hash] : files)
         hashMap[hash].push_back(filePath);
 
     std::size_t duplicatesSet{0}, numDuplicates{0};
 
     // Display duplicate files
     std::println("Duplicates found:");
-    for (const auto &duplicates: hashMap | std::views::values) {
+    for (const auto &duplicates : hashMap | std::views::values) {
         if (duplicates.size() > 1) {
             ++duplicatesSet;
 
@@ -202,7 +202,7 @@ std::size_t findDuplicates(const fs::path &directoryPath) {
             printColoredOutput('g', "{}", duplicatesSet);
             printColoredOutputln('c', ":");
 
-            for (const auto &filePath: duplicates) {
+            for (const auto &filePath : duplicates) {
                 ++numDuplicates;
                 std::println("  {}", filePath);
             }

@@ -16,9 +16,9 @@
 #pragma once
 
 #include <limits>
-#include <vector>
 #include <sodium.h>
 #include <string>
+#include <vector>
 
 
 namespace privacy {
@@ -35,21 +35,21 @@ namespace privacy {
         constexpr Allocator() noexcept = default;
 
         /// Assignment operator
-        constexpr Allocator& operator=(const Allocator&) noexcept = default;
+        constexpr Allocator &operator=(const Allocator &) noexcept = default;
 
         /// Destructor
         ~Allocator() noexcept = default;
 
         /// Copy constructor
         template <class U>
-        constexpr explicit Allocator(const Allocator<U>&) noexcept {}
+        constexpr explicit Allocator(const Allocator<U> &) noexcept {}
 
         /// Allocate memory
-        [[maybe_unused]] [[nodiscard]] constexpr T* allocate(const std::size_t n) {
+        [[maybe_unused]] [[nodiscard]] constexpr T *allocate(const std::size_t n) {
             if (n > std::numeric_limits<std::size_t>::max() / sizeof(T))
                 throw std::bad_array_new_length();
 
-            if (auto p = static_cast<T*>(sodium_malloc(n * sizeof(T)))) {
+            if (auto p = static_cast<T *>(sodium_malloc(n * sizeof(T)))) {
                 return p;
             }
 
@@ -57,20 +57,20 @@ namespace privacy {
         }
 
         /// Deallocate memory
-        [[maybe_unused]] static constexpr void deallocate(T* p, const std::size_t n [[maybe_unused]]) noexcept {
+        [[maybe_unused]] static constexpr void deallocate(T *p, const std::size_t n [[maybe_unused]]) noexcept {
             sodium_free(p);
         }
     };
 
     /// Equality operators
     template <class T, class U>
-    [[maybe_unused]] constexpr bool operator==(const Allocator<T>&, const Allocator<U>&) noexcept {
+    [[maybe_unused]] constexpr bool operator==(const Allocator<T> &, const Allocator<U> &) noexcept {
         return true;
     }
 
     /// Inequality operators
     template <class T, class U>
-    [[maybe_unused]] constexpr bool operator!=(const Allocator<T>&, const Allocator<U>&) noexcept {
+    [[maybe_unused]] constexpr bool operator!=(const Allocator<T> &, const Allocator<U> &) noexcept {
         return false;
     }
 

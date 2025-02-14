@@ -17,15 +17,15 @@
 
 #include <mutex>
 
-#include "encryption.hpp"
 #include "cryptoCipher.hpp"
-#include "../utils/utils.hpp"
+#include "encryption.hpp"
 #include "../mimallocSTL.hpp"
 #include "../secureAllocator.hpp"
+#include "../utils/utils.hpp"
 
 // OpenSSL's library context and property query string
-static OSSL_LIB_CTX* libContext = nullptr;
-constexpr static char* propertyQuery = nullptr;
+static OSSL_LIB_CTX *libContext = nullptr;
+constexpr static char *propertyQuery = nullptr;
 
 /// \brief Encrypts a string using symmetric unauthenticated encryption.
 /// \param plaintext The string to be encrypted.

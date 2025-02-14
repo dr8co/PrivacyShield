@@ -15,16 +15,16 @@
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
 #include <cstring>
+#include <fcntl.h>
 #include <fstream>
 #include <random>
-#include <fcntl.h>
 #include <unistd.h>
-#include <sys/stat.h>
 #include <utility>
+#include <sys/stat.h>
 
 #include "fileShredder.hpp"
-#include "../utils/utils.hpp"
 #include "../mimallocSTL.hpp"
+#include "../utils/utils.hpp"
 
 using StatType = struct stat;
 
@@ -38,7 +38,7 @@ constexpr std::streamoff BUFFER_SIZE = 4096;
 /// \param nPasses the number of passes to overwrite the file.
 ///
 /// \throws std::runtime_error if the \p file is not open, or if there is a file write error.
-void overwriteRandom(std::ofstream& file, const std::size_t fileSize, const int nPasses = 1) {
+void overwriteRandom(std::ofstream &file, const std::size_t fileSize, const int nPasses = 1) {
     if (!file.is_open()) throw std::runtime_error("File not open.");
     // Instantiate the random number generator
     std::random_device rd;
@@ -56,7 +56,7 @@ void overwriteRandom(std::ofstream& file, const std::size_t fileSize, const int 
         // Overwrite the file with random data
         for (std::size_t pos = 0; pos < fileSize; pos += BUFFER_SIZE) {
             // Generate a buffer filled with random data
-            for (auto& byte : buffer) {
+            for (auto &byte : buffer) {
                 byte = dist(gen);
             }
             // Adjust the buffer size for the last chunk of data, which may be smaller than the buffer size
@@ -64,7 +64,7 @@ void overwriteRandom(std::ofstream& file, const std::size_t fileSize, const int 
                 buffer.resize(fileSize - pos);
             }
 
-            file.write(reinterpret_cast<char*>(buffer.data()), static_cast<std::streamsize>(buffer.size()));
+            file.write(reinterpret_cast<char *>(buffer.data()), static_cast<std::streamsize>(buffer.size()));
 
             if (!file) {
                 throw std::runtime_error("file write error");
@@ -73,7 +73,7 @@ void overwriteRandom(std::ofstream& file, const std::size_t fileSize, const int 
     }
 }
 
-/// \brief overwrites a file wih a constant byte.
+/// \brief overwrites a file with a constant byte.
 /// \tparam T type of the byte.
 /// \param file output file stream object to overwrite.
 /// \param byte the byte to overwrite the file with.
@@ -81,7 +81,7 @@ void overwriteRandom(std::ofstream& file, const std::size_t fileSize, const int 
 ///
 /// \throws std::runtime_error if the \p file is not open, or if there is a file write error.
 template <typename T>
-void overwriteConstantByte(std::ofstream& file, T& byte, const auto& fileSize) {
+void overwriteConstantByte(std::ofstream &file, T &byte, const auto &fileSize) {
     if (!file.is_open()) throw std::runtime_error("File not open.");
     // seek to the beginning of the file
     file.seekp(0, std::ios::beg);
@@ -92,7 +92,7 @@ void overwriteConstantByte(std::ofstream& file, T& byte, const auto& fileSize) {
         if (pos + BUFFER_SIZE > fileSize) {
             buffer.resize(fileSize - pos);
         }
-        file.write(reinterpret_cast<char*>(buffer.data()), static_cast<std::streamsize>(buffer.size()));
+        file.write(reinterpret_cast<char *>(buffer.data()), static_cast<std::streamsize>(buffer.size()));
 
         if (!file) throw std::runtime_error("file write error.");
     }
@@ -167,12 +167,12 @@ inline void renameAndRemove(const std::string_view filename, int numTimes = 1) {
 /// \brief Represents a file descriptor.
 ///
 /// The FileDescriptor class provides a convenient way to manage a file descriptor. It automatically opens the file
-/// with the specified filename upon initialization, and closes the file when the object is destroyed. If the file
+/// with the specified filename upon initialization and closes the file when the object is destroyed. If the file
 /// open operation fails, a runtime_error exception is thrown.
 struct FileDescriptor {
     int fd{-1};
 
-    explicit FileDescriptor(const miSTL::string& filename) : fd(open(filename.c_str(), O_RDWR)) {
+    explicit FileDescriptor(const miSTL::string &filename) : fd(open(filename.c_str(), O_RDWR)) {
         if (fd == -1)
             throw std::runtime_error(std::format("Failed to open file: {} ({})", filename, std::strerror(errno)));
     }
@@ -189,7 +189,7 @@ struct FileDescriptor {
 struct FileStatInfo {
     StatType fileStat{};
 
-    explicit FileStatInfo(const int& fileDescriptor) {
+    explicit FileStatInfo(const int &fileDescriptor) {
         if (fstat(fileDescriptor, &fileStat) == -1)
             throw std::runtime_error(std::format("Failed to get file size: ({})", std::strerror(errno)));
     }
@@ -198,7 +198,7 @@ struct FileStatInfo {
 /// \brief wipes the cluster tips of a file.
 /// \param fileName the path to the file to be wiped.
 /// \throws std::runtime_error if zeroing the cluster tips fails.
-inline void wipeClusterTips(const miSTL::string& fileName) {
+inline void wipeClusterTips(const miSTL::string &fileName) {
     const FileDescriptor fileDescriptor(fileName);
     const FileStatInfo fileInformation(fileDescriptor.fd);
 
@@ -223,12 +223,12 @@ inline void wipeClusterTips(const miSTL::string& fileName) {
 }
 
 /// \brief shreds a file by overwriting it with random bytes.
-/// \param filename path to the file being overwritten.
+/// \param filename the path to the file being overwritten.
 /// \param nPasses the number of passes to overwrite the file.
 /// \param wipeClusterTip whether to wipe the cluster tips of the file.
 ///
 /// \throws std::runtime_error if the file cannot be opened.
-void simpleShred(const miSTL::string& filename, const int& nPasses = 3, const bool wipeClusterTip = false) {
+void simpleShred(const miSTL::string &filename, const int &nPasses = 3, const bool wipeClusterTip = false) {
     std::ofstream file(filename.c_str(), std::ios::binary | std::ios::in);
     if (!file)
         throw std::runtime_error(std::format("\nFailed to open file: {}", filename));
@@ -257,13 +257,13 @@ void simpleShred(const miSTL::string& filename, const int& nPasses = 3, const bo
 }
 
 /// \brief shreds a file using a simple version of
-/// The U.S Department of Defence (DoD) 5220.22-M Standard algorithm.
-/// \param filename - the path to the file to be shred.
+/// The U.S. Department of Defence (DoD) 5220.22-M Standard algorithm.
+/// \param filename - the path to the file to be shredded.
 /// \param nPasses the number of passes to overwrite the file.
 /// \param wipeClusterTip whether to wipe the cluster tips of the file.
 ///
 /// \throws std::runtime_error if the file cannot be opened, or if the number of passes is invalid.
-void dod5220Shred(const miSTL::string& filename, const int& nPasses = 3, const bool wipeClusterTip = false) {
+void dod5220Shred(const miSTL::string &filename, const int &nPasses = 3, const bool wipeClusterTip = false) {
     std::ofstream file(filename.c_str(), std::ios::binary | std::ios::in);
     if (!file)
         throw std::runtime_error(std::format("\nFailed to open file: {}", filename));
@@ -314,24 +314,26 @@ void dod5220Shred(const miSTL::string& filename, const int& nPasses = 3, const b
 }
 
 // clang-format off
+// @formatter:off
 
 /// \enum ShredOptions
 /// \brief Represents the different shredding options.
 enum class ShredOptions : std::uint_fast8_t {
     Simple          = 1 << 0, ///< Simple overwrite with random bytes
     Dod5220         = 1 << 1, ///< DoD 5220.22-M Standard algorithm
-    Dod5220_7       = 1 << 2, ///< DoD 5220.22-M Standard algorithm with 7 passes
+    Dod5220_7       = 1 << 2, ///< DoD 5220.22-M Standard algorithm with seven passes
     WipeClusterTips = 1 << 3  ///< Wiping of the cluster tips
 };
 
 // clang-format on
+// @formatter:on
 
-/// \brief Adds write and write permissions to a file, if the user has authority.
+/// \brief Adds read and write permissions to a file if the user has authority.
 /// \param fileName The file to modify.
 /// \return True if the operation succeeds, else false.
 ///
 /// \details The actions of this function are similar to the unix command:
-/// \code chmod ugo+rw fileName \endcode or \code chmod a+rw fileName \endcode. \n
+/// \code chmod ugo+rw fileName \endcode or \code chmod a+rw fileName\endcode. \n
 /// The read/write permissions are added for everyone.
 /// \note This function is meant for the file shredder ONLY, which might
 /// need to modify a file's permissions (if and only if it has to) to successfully shred it.
@@ -348,9 +350,9 @@ static inline bool addReadWritePermissions(const std::string_view fileName) noex
 
 /// \brief shreds a file (or all files and subdirectories of a directory)
 /// using the specified options.
-/// \param filePath - the path to the file to be shred.
+/// \param filePath - the path to the file to be shredded.
 /// \param options - the options to use when shredding the file.
-/// \param simplePasses - the number of passes for random overwrite
+/// \param simplePasses - the number of passes for random overwriting
 /// for simple shredding.
 /// \return true if the file (or directory) was shred successfully, false otherwise.
 ///
@@ -358,7 +360,7 @@ static inline bool addReadWritePermissions(const std::string_view fileName) noex
 ///
 /// \warning If the filePath is a directory, then all its files and subdirectories
 /// are shredded without warning.
-bool shredFiles(const miSTL::string& filePath, const std::uint_fast8_t& options, const int& simplePasses = 3) {
+bool shredFiles(const miSTL::string &filePath, const std::uint_fast8_t &options, const int &simplePasses = 3) {
     std::error_code ec;
     const fs::file_status fileStatus = fs::status(filePath, ec);
     if (ec) {
@@ -388,7 +390,7 @@ bool shredFiles(const miSTL::string& filePath, const std::uint_fast8_t& options,
         static std::size_t numShredded{0}, numNotShredded{0};
 
         // Shred all files in the directory and all subdirectories
-        for (const auto& entry : fs::recursive_directory_iterator(filePath)) {
+        for (const auto &entry : fs::recursive_directory_iterator(filePath)) {
             if (entry.exists(ec)) {
                 if (ec) {
                     printColoredErrorln('r', "{}", ec.message());
@@ -405,7 +407,7 @@ bool shredFiles(const miSTL::string& filePath, const std::uint_fast8_t& options,
                                              shredded ? "\tshredded successfully." : "\tshredding failed.");
 
                         ++(shredded ? numShredded : numNotShredded);
-                    } catch (const std::runtime_error& err) {
+                    } catch (const std::runtime_error &err) {
                         printColoredError('y', "Shredding failed: ");
                         printColoredErrorln('r', "{}", err.what());
                     }
@@ -461,10 +463,10 @@ bool shredFiles(const miSTL::string& filePath, const std::uint_fast8_t& options,
 /// \brief A simple file shredder.
 void fileShredder() {
     // Configures the shredding options.
-    auto selectPreferences = [](std::uint_fast8_t& preferences, int& simpleNumPass) {
+    auto selectPreferences = [](std::uint_fast8_t &preferences, int &simpleNumPass) {
         const int moreChoices1 = getResponseInt("\n1. Continue with default shredding options\n"
             "2. Configure shredding options");
-        const std::uint_fast8_t& wipeTips = std::to_underlying(ShredOptions::WipeClusterTips);
+        const std::uint_fast8_t &wipeTips = std::to_underlying(ShredOptions::WipeClusterTips);
 
         if (moreChoices1 == 1) {
             // Default options: simple shredding with random bytes, and wipe cluster tips.
@@ -563,7 +565,7 @@ void fileShredder() {
                 // Select shredding preferences
                 try {
                     selectPreferences(preferences, simpleNumPass);
-                } catch (const std::exception& ex) {
+                } catch (const std::exception &ex) {
                     printColoredErrorln('r', "Error: {}", ex.what());
                     continue;
                 }
@@ -581,7 +583,7 @@ void fileShredder() {
                         printColoredOutputln('c', "{}", canonicalPath);
                     }
                 }
-            } catch (const std::exception& err) {
+            } catch (const std::exception &err) {
                 printColoredErrorln('r', "Error: {}", err.what());
             }
         } else if (choice == 3) break;

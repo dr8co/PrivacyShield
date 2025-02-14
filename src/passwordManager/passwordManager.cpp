@@ -15,24 +15,45 @@
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
 #include <algorithm>
-#include <ranges>
-#include <utility>
 #include <cmath>
 #include <random>
+#include <ranges>
+#include <utility>
 
 #include "passwordManager.hpp"
 #include "FuzzyMatcher.hpp"
 
+constexpr int MIN_PASSWORD_LENGTH = 8;
+constexpr int MAX_PASSWORD_LENGTH = 256;
+constexpr int MAX_ATTEMPTS = 3;
 
 namespace fs = std::filesystem;
 using string = miSTL::string;
 const string DefaultPasswordFile = getHomeDir() + "/.privacyShield/passwords";
 
-/// \brief A binary predicate for searching, sorting, and deduplication of the password records,
-/// based on the site and username members of a password tuple.
+
+/// \brief Retrieves and validates a sensitive password input from the user.
+/// 
+/// \param prompt A C-string that holds the text to be shown to the user when requesting input.
+/// \return A validated password string.
+/// \note If the user fails to provide a non-empty password within \p MAX_ATTEMPTS,
+/// the function returns the last (possibly still empty) input.
+privacy::string getValidatedPassword(const char *prompt) {
+    privacy::string pwd{getSensitiveInfo(prompt)};
+    int attempts{0};
+    while (pwd.empty() && ++attempts < MAX_ATTEMPTS) {
+        printColoredOutput('y', "Password can't be blank. Please try again: ");
+        pwd = getSensitiveInfo();
+    }
+    return pwd;
+}
+
+/// \brief A binary predicate for searching, sorting, and deduplication of the
+/// password records, based on the site and username members of a password
+/// tuple.
 /// \param lhs a password record tuple.
 /// \param rhs another record to be compared with lhs.
-/// \return true if lhs is less than (i.e. is ordered before) rhs, else false.
+/// \return true if lhs is less than (i.e., is ordered before) rhs, else false.
 bool constexpr comparator
 #if __clang__ || __GNUC__
 [[gnu::always_inline]]
@@ -40,7 +61,7 @@ bool constexpr comparator
 (const auto &lhs, const auto &rhs) noexcept {
     // Compare the site and username members of the tuples
     return std::tie(std::get<0>(lhs), std::get<1>(lhs)) <
-           std::tie(std::get<0>(rhs), std::get<1>(rhs));
+        std::tie(std::get<0>(rhs), std::get<1>(rhs));
 }
 
 /// \brief Prints the details of a password record.
@@ -63,15 +84,12 @@ constexpr void printPasswordDetails(const auto &pw, const bool &isStrong = false
     printColoredOutputln(isStrong ? 'g' : 'r', "{}", pass);
 }
 
-/// \brief This function computes the strength of each password in the provided list of passwords.
-///
-/// The function iterates over the list of passwords and for each password, it checks if the password is strong or not.
-/// The result of this check (a boolean value) is stored in the corresponding index in the pwStrengths vector.
-/// A password is considered strong if it meets certain criteria defined in the isPasswordStrong function.
+/// \brief Computes the strength of each password in the provided list of passwords.
 ///
 /// \param passwords A vector of tuples, where each tuple represents a password record.
-/// \param pwStrengths A vector of boolean values where each element represents the strength of the corresponding password
-/// in the passwords vector. It is resized to match the size of the passwords vector.
+/// \param pwStrengths A vector of boolean values where each element represents the strength of
+/// the corresponding password in the \p passwords' vector.
+/// It is resized to match the size of the \p passwords' vector.
 ///
 /// \note This function is always inlined by the compiler.
 constexpr void computeStrengths
@@ -83,6 +101,21 @@ constexpr void computeStrengths
     for (std::size_t i = 0; i < passwords.size(); ++i) {
         pwStrengths[i] = isPasswordStrong(std::get<2>(passwords[i]));
     }
+}
+
+
+/// \brief Updates the records by sorting passwords and recomputing their strength.
+///
+/// \param passwords A vector of password records to be sorted and updated.
+/// \param strengths A vector of boolean values indicating the strength of each password.
+///
+/// \note This function keeps the password records sorted based on site and username.
+void updateRecords(privacy::vector<passwordRecords> &passwords, miSTL::vector<bool> &strengths) {
+    // Entries should always be sorted
+    std::ranges::sort(passwords, [](const auto &tuple1, const auto &tuple2) { return comparator(tuple1, tuple2); });
+
+    // Recompute strengths
+    computeStrengths(passwords, strengths);
 }
 
 /// \brief Adds a new password to the saved records.
@@ -111,14 +144,7 @@ void addPassword(privacy::vector<passwordRecords> &passwords, miSTL::vector<bool
         if (!update) return;
     }
 
-    privacy::string password{getSensitiveInfo("Enter the password: ")};
-
-    // The password can't be empty. Give the user 2 more tries to enter a non-empty password
-    int attempts{0};
-    while (password.empty() && ++attempts < 3) {
-        printColoredOutput('y', "Password can't be blank. Please try again: ");
-        password = getSensitiveInfo();
-    }
+    privacy::string password = getValidatedPassword("Enter the password: ");
 
     // If the password is still empty, return
     if (password.empty()) {
@@ -127,9 +153,9 @@ void addPassword(privacy::vector<passwordRecords> &passwords, miSTL::vector<bool
     }
     // Always warn on weak passwords
     if (!isPasswordStrong(password)) {
-        printColoredOutputln('y',
-                             "The password you entered is weak! A password should have at least 8 characters \nand include at least an "
-                             "uppercase character, a lowercase, a punctuator, \nand a digit.");
+        printColoredOutputln('y', "The password you entered is weak! A password should have at least 8 characters "
+                             "\nand include at least an uppercase character, a lowercase, a punctuator, \nand a digit.");
+
         printColoredOutputln('r', "Please consider using a stronger one.");
     }
 
@@ -140,13 +166,7 @@ void addPassword(privacy::vector<passwordRecords> &passwords, miSTL::vector<bool
 
     printColoredOutputln('g', "Password {} successfully.", update ? "updated" : "added");
 
-    // Entries should always be sorted
-    std::ranges::sort(passwords, [](const auto &tuple1, const auto &tuple2) {
-        return comparator(tuple1, tuple2);
-    });
-
-    // Recompute strengths
-    computeStrengths(passwords, strengths);
+    updateRecords(passwords, strengths);
 }
 
 /// \brief Generates a random password.
@@ -154,19 +174,19 @@ void generatePassword(privacy::vector<passwordRecords> &, miSTL::vector<bool> &)
     int length = getResponseInt("Enter the length of the password to generate: ");
 
     int tries{0};
-    // The password must be at least 8 characters long
-    while (length < 8 && ++tries < 3) {
-        printColoredOutputln('y', "A strong password should be at least 8 characters long.");
-        printColoredOutputln(tries == 2 ? 'r' : 'y', "{}", tries == 2 ? "Last chance:" : "Please try again:");
+    // The password must be at least MIN_PASSWORD_LENGTH characters long
+    while (length < MIN_PASSWORD_LENGTH && ++tries < MAX_ATTEMPTS) {
+        printColoredOutputln('y', "A strong password should be at least {} characters long.", MIN_PASSWORD_LENGTH);
+        printColoredOutputln(tries == MAX_ATTEMPTS - 1 ? 'r' : 'y', "{}",
+                             tries == MAX_ATTEMPTS - 1 ? "Last chance:" : "Please try again:");
         length = getResponseInt();
     }
-    // The password length must not exceed 256 characters
-    if (length > 256) {
-        printColoredErrorln('r', "The password length cannot exceed 256 characters.");
+    // The password length must not exceed MAX_PASSWORD_LENGTH
+    if (length > MAX_PASSWORD_LENGTH) {
+        printColoredErrorln('r', "The password length cannot exceed {} characters.", MAX_PASSWORD_LENGTH);
         return;
     }
-
-    if (length < 8) return;
+    if (length < MIN_PASSWORD_LENGTH) return;
 
     printColoredOutput('c', "Generated password: ");
     printColoredOutputln('g', "{}", generatePassword(length));
@@ -219,7 +239,7 @@ void checkFuzzyMatches(auto &iter, privacy::vector<passwordRecords> &records, pr
         // multiple matches
         printColoredOutputln('b', "Did you mean one of these?:");
         // Print all the matches
-        for (const auto &el: fuzzyMatched) {
+        for (const auto &el : fuzzyMatched) {
             printColoredOutputln('g', "{}", el);
             printColoredOutputln('b', "-----------------------------------------");
         }
@@ -259,7 +279,7 @@ void updatePassword(privacy::vector<passwordRecords> &passwords, miSTL::vector<b
         if (matches.size() > 1) {
             // there are multiple accounts under the site
             std::cout << "Found the following usernames for " << std::quoted(site) << ":\n";
-            for (const auto &[_, username, pass]: matches)
+            for (const auto &[_, username, pass] : matches)
                 printColoredOutputln('c', "{}", username.empty()
                                                     ? "'' [no username, reply with a blank to select]"
                                                     : username);
@@ -290,7 +310,7 @@ void updatePassword(privacy::vector<passwordRecords> &passwords, miSTL::vector<b
             newUsername = getResponseStr("Enter the new username (Leave blank to delete the current one):");
 
             // If the entered username exists, ignore the update
-            for (const auto &match: matches) {
+            for (const auto &match : matches) {
                 if (newUsername == std::get<1>(match)) {
                     std::cerr << "Username already exists for this site. Try again later." << std::endl;
                     return;
@@ -361,7 +381,7 @@ void deletePassword(privacy::vector<passwordRecords> &passwords, miSTL::vector<b
         // site found
         if (matches.size() > 1) {
             std::cout << "Found the following usernames for " << std::quoted(site) << ":\n";
-            for (const auto &[_, username, pass]: matches)
+            for (const auto &[_, username, pass] : matches)
                 printColoredOutputln('c', "{}", username.empty()
                                                     ? "'' [no username, reply with a blank to select]"
                                                     : username);
@@ -446,7 +466,7 @@ void searchPasswords(privacy::vector<passwordRecords> &passwords, miSTL::vector<
         std::cout << "All the matches:" << std::endl;
 
         printColoredOutputln('m', "------------------------------------------------------");
-        for (const auto &el: matches) {
+        for (const auto &el : matches) {
             printPasswordDetails(el, isPasswordStrong(std::get<2>(el)));
             printColoredOutputln('m', "------------------------------------------------------");
         }
@@ -471,7 +491,7 @@ void searchPasswords(privacy::vector<passwordRecords> &passwords, miSTL::vector<
                                                                 return std::get<0>(lhs) < std::get<0>(rhs);
                                                             }); !matched.empty()) [[likely]] {
                     printColoredOutputln('w', "-----------------------------------------------------");
-                    for (const auto &pass: matched) {
+                    for (const auto &pass : matched) {
                         printPasswordDetails(pass, isPasswordStrong(std::get<2>(pass)));
                         printColoredOutputln('w', "-----------------------------------------------------");
                     }
@@ -481,7 +501,7 @@ void searchPasswords(privacy::vector<passwordRecords> &passwords, miSTL::vector<
             // multiple matches
             printColoredOutputln('b', "Did you mean one of these?:");
             // Print all the matches
-            for (const auto &el: fuzzyMatched) {
+            for (const auto &el : fuzzyMatched) {
                 printColoredOutput('g', "{}", el);
                 std::cout << "---------------------------------------" << std::endl;
             }
@@ -530,7 +550,7 @@ void importPasswords(privacy::vector<passwordRecords> &passwords, miSTL::vector<
     // If there are duplicates, ask the user if they want to overwrite them
     if (!duplicates.empty()) {
         printColoredOutputln('y', "Warning: The following passwords already exist in the database:");
-        for (const auto &duplicate: duplicates) {
+        for (const auto &duplicate : duplicates) {
             printPasswordDetails(duplicate, isPasswordStrong(std::get<2>(duplicate)));
             printColoredOutputln('m', "-------------------------------------------------");
         }
@@ -548,7 +568,7 @@ void importPasswords(privacy::vector<passwordRecords> &passwords, miSTL::vector<
         // also preserving order.
         // So, if a record exists in both 'imports' and 'passwords' (it is guaranteed here that such a record
         // can be found only once in each range, as both have been deduplicated),
-        // then with 'imports' as the first argument, only 'imports' version will be copied to the result.
+        // then with 'imports' as the first argument, only the 'imports' version will be copied to the result.
         std::ranges::set_union(imports, passwords, std::back_inserter(recordsUnion),
                                [](const auto &pw1, const auto &pw2) {
                                    return comparator(pw1, pw2);
@@ -588,9 +608,9 @@ void exportPasswords(privacy::vector<passwordRecords> &passwords, miSTL::vector<
     if (const bool exported = fileName.string().empty()
                                   ? exportCsv(constPasswordsView)
                                   : exportCsv(constPasswordsView, fileName); exported) [[likely]]
-            // Warn the user about the security risk
-            printColoredOutputln('r', "WARNING: The exported file contains all your passwords in plain text."
-                                 "\nPlease delete it securely after use.");
+        // Warn the user about the security risk
+        printColoredOutputln('r', "WARNING: The exported file contains all your passwords in plain text."
+                             "\nPlease delete it securely after use.");
     else printColoredErrorln('r', "Passwords not exported.");
 }
 
@@ -617,8 +637,8 @@ void analyzePasswords(privacy::vector<passwordRecords> &passwords, miSTL::vector
     }
 
     // Check for reused passwords
-    miSTL::unordered_map<privacy::string, miSTL::unordered_set<privacy::string> > passwordMap;
-    for (const auto &[site, _, password]: constPasswordsView) {
+    miSTL::unordered_map<privacy::string, miSTL::unordered_set<privacy::string>> passwordMap;
+    for (const auto &[site, _, password] : constPasswordsView) {
         // Add the site to the set of sites that use the password
         passwordMap[password].insert(site);
     }
@@ -628,7 +648,7 @@ void analyzePasswords(privacy::vector<passwordRecords> &passwords, miSTL::vector
     if (!weakPasswords.empty()) [[likely]] {
         printColoredOutputln('r', "Found {} account{} with weak passwords:", weak, weak == 1 ? "" : "s");
         printColoredErrorln('r', "------------------------------------------------------");
-        for (const auto &password: weakPasswords) {
+        for (const auto &password : weakPasswords) {
             printPasswordDetails(password);
             printColoredErrorln('r', "------------------------------------------------------");
         }
@@ -637,10 +657,10 @@ void analyzePasswords(privacy::vector<passwordRecords> &passwords, miSTL::vector
     } else printColoredOutputln('g', "No weak passwords found. Keep it up!");
 
     // Find reused passwords
-    using PasswordSites = std::pair<miSTL::string, miSTL::unordered_set<privacy::string> >;
-    std::multimap<std::size_t, PasswordSites, std::greater<> > countMap;
+    using PasswordSites = std::pair<miSTL::string, miSTL::unordered_set<privacy::string>>;
+    std::multimap<std::size_t, PasswordSites, std::greater<>> countMap;
 
-    for (const auto &[password, sites]: passwordMap) {
+    for (const auto &[password, sites] : passwordMap) {
         if (const auto &x = sites.size(); x > 1) {
             countMap.insert(std::make_pair(x, PasswordSites(password, sites)));
         }
@@ -648,11 +668,11 @@ void analyzePasswords(privacy::vector<passwordRecords> &passwords, miSTL::vector
 
     // Print reused passwords in descending order of counts
     std::size_t reused{0};
-    for (const auto &[count, password_sites]: countMap) {
+    for (const auto &[count, password_sites] : countMap) {
         printColoredOutput('y', "Password '");
         printColoredOutput('r', "{}", password_sites.first);
         printColoredOutputln('y', "' is reused on {} sites:", count);
-        for (const auto &site: password_sites.second)
+        for (const auto &site : password_sites.second)
             printColoredOutputln('m', "{}", site);
 
         std::cout << std::endl;
@@ -679,7 +699,7 @@ void analyzePasswords(privacy::vector<passwordRecords> &passwords, miSTL::vector
 }
 
 /// \brief A simple, minimalistic password manager.
-/// \throws std::runtime_error if the primary password is incorrect after 3 attempts.
+/// \throws std::runtime_error if the primary password is incorrect after three attempts.
 void passwordManager() {
     privacy::string encryptionKey;
     miSTL::string passwordFile{DefaultPasswordFile};
@@ -700,7 +720,7 @@ void passwordManager() {
             encryptionKey = pass;
             newSetup = true;
         } else {
-            // the user pointed us to an existing password records
+            // the user pointed us to an existing password record
             passwordFile = path.c_str();
         }
     }
@@ -755,8 +775,8 @@ void passwordManager() {
         {9, exportPasswords}
     };
     // A fast, lightweight random number generator
-    std::minstd_rand gen(std::random_device{}()); // seed the generator
-    std::uniform_int_distribution<int> dist(0, 6); // define the range
+    std::minstd_rand gen(std::random_device{}());
+    std::uniform_int_distribution<int> dist(0, 6);
 
     while (true) {
         // Colors to use for the menu

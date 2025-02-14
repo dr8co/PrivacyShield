@@ -1,0 +1,49 @@
+<component name="ProjectCodeStyleConfiguration">
+  <code_scheme name="Project" version="173">
+    <RiderCodeStyleSettings>
+      <option name="/Default/CodeStyle/EditorConfig/EnableClangFormatSupport/@EntryValue" value="false" type="bool" />
+      <option name="/Default/CodeStyle/CppIncludeDirective/SortIncludeDirectives/@EntryValue" value="true" type="bool" />
+      <option name="/Default/CodeInspection/CppInitialization/UseUniformInitializationInMemberInitializers/@EntryValue" value="true" type="bool" />
+      <option name="/Default/CodeInspection/CppInitialization/PreferUniformInitializationInNSDMIs/@EntryValue" value="true" type="bool" />
+      <option name="/Default/CodeStyle/CodeFormatting/CppFormatting/NAMESPACE_DECLARATION_BRACES/@EntryValue" value="END_OF_LINE" type="string" />
+      <option name="/Default/CodeStyle/CodeFormatting/CppFormatting/EXPORT_DECLARATION_BRACES/@EntryValue" value="END_OF_LINE" type="string" />
+      <option name="/Default/CodeStyle/CodeFormatting/CppFormatting/TYPE_DECLARATION_BRACES/@EntryValue" value="END_OF_LINE" type="string" />
+      <option name="/Default/CodeStyle/CodeFormatting/CppFormatting/INVOCABLE_DECLARATION_BRACES/@EntryValue" value="END_OF_LINE" type="string" />
+      <option name="/Default/CodeStyle/CodeFormatting/CppFormatting/ANONYMOUS_METHOD_DECLARATION_BRACES/@EntryValue" value="END_OF_LINE" type="string" />
+      <option name="/Default/CodeStyle/CodeFormatting/CppFormatting/CASE_BLOCK_BRACES/@EntryValue" value="END_OF_LINE" type="string" />
+      <option name="/Default/CodeStyle/CodeFormatting/CppFormatting/REQUIRES_EXPRESSION_BRACES/@EntryValue" value="END_OF_LINE" type="string" />
+      <option name="/Default/CodeStyle/CodeFormatting/CppFormatting/OTHER_BRACES/@EntryValue" value="END_OF_LINE" type="string" />
+      <option name="/Default/CodeStyle/CodeFormatting/CppFormatting/EMPTY_BLOCK_STYLE/@EntryValue" value="TOGETHER_SAME_LINE" type="string" />
+      <option name="/Default/CodeStyle/CodeFormatting/CppFormatting/BLANK_LINES_AROUND_FUNCTION_DECLARATION/@EntryValue" value="1" type="long" />
+      <option name="/Default/CodeStyle/CodeFormatting/CppFormatting/PLACE_ELSE_ON_NEW_LINE/@EntryValue" value="false" type="bool" />
+      <option name="/Default/CodeStyle/CodeFormatting/CppFormatting/PLACE_WHILE_ON_NEW_LINE/@EntryValue" value="false" type="bool" />
+      <option name="/Default/CodeStyle/CodeFormatting/CppFormatting/PLACE_CATCH_ON_NEW_LINE/@EntryValue" value="false" type="bool" />
+      <option name="/Default/CodeStyle/CodeFormatting/CppFormatting/SPACE_BEFORE_PTR_IN_DATA_MEMBER/@EntryValue" value="true" type="bool" />
+      <option name="/Default/CodeStyle/CodeFormatting/CppFormatting/SPACE_AFTER_REF_IN_DATA_MEMBER/@EntryValue" value="false" type="bool" />
+      <option name="/Default/CodeStyle/CodeFormatting/CppFormatting/SPACE_BEFORE_REF_IN_DATA_MEMBER/@EntryValue" value="true" type="bool" />
+      <option name="/Default/CodeStyle/CodeFormatting/CppFormatting/SPACE_AFTER_CAST_EXPRESSION_PARENTHESES/@EntryValue" value="true" type="bool" />
+      <option name="/Default/CodeStyle/CodeFormatting/CppFormatting/LINKAGE_SPECIFICATION_INDENTATION/@EntryValue" value="All" type="string" />
+      <option name="/Default/CodeStyle/CodeFormatting/CppFormatting/INDENT_CASE_FROM_SWITCH/@EntryValue" value="true" type="bool" />
+      <option name="/Default/CodeStyle/CodeFormatting/CppFormatting/SPACE_AFTER_PTR_IN_DATA_MEMBER/@EntryValue" value="false" type="bool" />
+      <option name="/Default/CodeStyle/CodeFormatting/CppFormatting/SPACE_BEFORE_PTR_IN_METHOD/@EntryValue" value="true" type="bool" />
+      <option name="/Default/CodeStyle/CodeFormatting/CppFormatting/SPACE_AFTER_PTR_IN_METHOD/@EntryValue" value="false" type="bool" />
+      <option name="/Default/CodeStyle/CodeFormatting/CppFormatting/SPACE_BEFORE_PTR_IN_ABSTRACT_DECL/@EntryValue" value="true" type="bool" />
+      <option name="/Default/CodeStyle/CodeFormatting/CppFormatting/SPACE_BEFORE_REF_IN_METHOD/@EntryValue" value="true" type="bool" />
+      <option name="/Default/CodeStyle/CodeFormatting/CppFormatting/SPACE_AFTER_REF_IN_METHOD/@EntryValue" value="false" type="bool" />
+      <option name="/Default/CodeStyle/CodeFormatting/CppFormatting/SPACE_BEFORE_REF_IN_ABSTRACT_DECL/@EntryValue" value="true" type="bool" />
+    </RiderCodeStyleSettings>
+    <files>
+      <extensions>
+        <pair source="cpp" header="hpp" fileNamingConvention="NONE" />
+        <pair source="c" header="h" fileNamingConvention="NONE" />
+        <pair source="cu" header="cuh" fileNamingConvention="NONE" />
+        <pair source="ixx" header="" fileNamingConvention="NONE" />
+        <pair source="mxx" header="" fileNamingConvention="NONE" />
+        <pair source="cppm" header="" fileNamingConvention="NONE" />
+        <pair source="ccm" header="" fileNamingConvention="NONE" />
+        <pair source="cxxm" header="" fileNamingConvention="NONE" />
+        <pair source="c++m" header="" fileNamingConvention="NONE" />
+      </extensions>
+    </files>
+  </code_scheme>
+</component>

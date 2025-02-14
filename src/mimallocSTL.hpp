@@ -15,20 +15,20 @@
 // along with this program.  If not, see https://www.gnu.org/licenses.
 #pragma once
 
-#include <mimalloc.h>
 #include <array>
-#include <vector>
 #include <deque>
-#include <list>
 #include <forward_list>
-#include <set>
+#include <list>
 #include <map>
-#include <unordered_set>
-#include <unordered_map>
-#include <stack>
+#include <mimalloc.h>
 #include <queue>
-#include <string>
+#include <set>
 #include <sstream>
+#include <stack>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 #ifdef __has_include
 #if __has_include(<version>)

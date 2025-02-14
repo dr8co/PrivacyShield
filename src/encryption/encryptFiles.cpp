@@ -14,26 +14,29 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
-#include <iostream>
 #include <fstream>
-#include <memory>
-#include <openssl/kdf.h>
-#include <openssl/core_names.h>
-#include <openssl/rand.h>
-#include <sodium.h>
-#include <mutex>
-#include "encryption.hpp"
-#include "cryptoCipher.hpp"
 #include <gcrypt.h>
+#include <iostream>
+#include <memory>
+#include <mutex>
+#include <sodium.h>
+#include <openssl/core_names.h>
+#include <openssl/kdf.h>
+#include <openssl/rand.h>
+#include "cryptoCipher.hpp"
+#include "encryption.hpp"
 
-
+// clang-format off
+// @formatter:off
 constexpr int MAX_KEY_SIZE = EVP_MAX_KEY_LENGTH;    ///< Maximum length of a key
 constexpr std::streamsize CHUNK_SIZE = 4096;        ///< Read/Write files in chunks of 4 kB
 constexpr unsigned int PBKDF2_ITERATIONS = 100'000; ///< Iterations for PBKDF2 key derivation
+// clang-format on
+// @formatter:on
 
 // OpenSSL's library context and property query string
-static OSSL_LIB_CTX* libContext = nullptr;
-constexpr static char* propertyQuery = nullptr;
+static OSSL_LIB_CTX *libContext = nullptr;
+constexpr static char *propertyQuery = nullptr;
 
 
 /// \brief Generates random bytes using a CSPRNG.
@@ -45,7 +48,7 @@ privacy::vector<unsigned char> generateSalt(const int saltSize) {
 
     if (std::scoped_lock lock(m); RAND_bytes(salt.data(), saltSize) != 1) {
         std::cerr << "Failed to seed OpenSSL's CSPRNG properly."
-                "\nPlease check your system's randomness utilities." << std::endl;
+            "\nPlease check your system's randomness utilities." << std::endl;
 
         randombytes_buf(salt.data(), salt.size()); // Use Sodium's random generator as a backup
     }

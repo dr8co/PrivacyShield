@@ -16,11 +16,11 @@
 
 
 #include <algorithm>
-#include <system_error>
-#include <utility>
 #include <cmath>
 #include <gcrypt.h>
 #include <sodium.h>
+#include <system_error>
+#include <utility>
 
 #include "encryption.hpp"
 #include "../passwordManager/passwordManager.hpp"
@@ -29,6 +29,7 @@
 namespace fs = std::filesystem;
 
 // clang-format off
+// @formatter:off
 
 /// \brief Available encryption/decryption ciphers.
 enum class Algorithms : std::uint_fast8_t {
@@ -55,12 +56,12 @@ constexpr struct {
 } AlgoSelection;
 
 // clang-format on
-
+// @formatter:on
 
 /// \brief Formats a file size into a human-readable string.
 /// \param size The file size as an unsigned integer.
 /// \return A string representing the formatted file size.
-miSTL::string formatFileSize(const std::uintmax_t& size) {
+miSTL::string formatFileSize(const std::uintmax_t &size) {
     int i{};
     auto mantissa = static_cast<double>(size);
     for (; mantissa >= 1024.; mantissa /= 1024., ++i) {}
@@ -75,7 +76,7 @@ miSTL::string formatFileSize(const std::uintmax_t& size) {
 /// \throws std::invalid_argument if \p mode is invalid.
 /// \throws std::runtime_error if the input file does not exist, is a directory,
 /// is not a regular file, or is not readable.
-void checkInputFile(const fs::path& inFile, const OperationMode& mode) {
+void checkInputFile(const fs::path &inFile, const OperationMode &mode) {
     if (mode != OperationMode::Encryption && mode != OperationMode::Decryption)
         throw std::invalid_argument("Invalid mode of operation.");
 
@@ -104,7 +105,7 @@ void checkInputFile(const fs::path& inFile, const OperationMode& mode) {
 /// \brief Creates non-existing parent directories for a file.
 /// \param filePath The file path for which the directory path needs to be created.
 /// \return True if the directory path is created successfully or already exists, false otherwise.
-bool createPath(const fs::path& filePath) noexcept {
+bool createPath(const fs::path &filePath) noexcept {
     if (filePath.string().empty()) return false; // Can't create empty paths
 
     std::error_code ec;
@@ -131,7 +132,7 @@ bool createPath(const fs::path& filePath) noexcept {
 /// \param mode the mode of operation: encryption or decryption.
 /// \throws std::invalid_argument if \p mode is invalid.
 /// \throws std::runtime_error if the output file is not writable, readable, or there is not enough space to save it.
-inline void checkOutputFile(const fs::path& inFile, fs::path& outFile, const OperationMode& mode) {
+inline void checkOutputFile(const fs::path &inFile, fs::path &outFile, const OperationMode &mode) {
     if (mode != OperationMode::Encryption && mode != OperationMode::Decryption)
         throw std::invalid_argument("Invalid mode of operation.");
 
@@ -207,8 +208,8 @@ inline void copyLastWrite(const std::string_view srcFile, const std::string_view
 /// \param password the password to use for encryption/decryption.
 /// \param algo the algorithm to use for encryption/decryption.
 /// \param mode the mode of operation: encryption or decryption.
-void fileEncryptionDecryption(const miSTL::string& inputFileName, const miSTL::string& outputFileName,
-                              const privacy::string& password, const Algorithms& algo, const OperationMode& mode) {
+void fileEncryptionDecryption(const miSTL::string &inputFileName, const miSTL::string &outputFileName,
+                              const privacy::string &password, const Algorithms &algo, const OperationMode &mode) {
     // The mode must be valid: must be either encryption or decryption
     if (mode != OperationMode::Encryption && mode != OperationMode::Decryption) [[unlikely]] {
         printColoredErrorln('r', "Invalid mode of operation.");
@@ -217,7 +218,7 @@ void fileEncryptionDecryption(const miSTL::string& inputFileName, const miSTL::s
 
     try {
         /// Encrypts/decrypts a file based on the passed mode and algorithm.
-        auto encryptDecrypt = [&](const miSTL::string& algorithm) -> void {
+        auto encryptDecrypt = [&](const miSTL::string &algorithm) -> void {
             if (mode == OperationMode::Encryption) // Encryption
                 encryptFile(inputFileName, outputFileName, password, algorithm);
             else // Decryption
@@ -225,7 +226,7 @@ void fileEncryptionDecryption(const miSTL::string& inputFileName, const miSTL::s
         };
 
         /// Encrypts/decrypts a file using a cipher with more rounds.
-        auto encryptDecryptMoreRounds = [&](const gcry_cipher_algos& algorithm) -> void {
+        auto encryptDecryptMoreRounds = [&](const gcry_cipher_algos &algorithm) -> void {
             if (mode == OperationMode::Encryption) // Encryption
                 encryptFileWithMoreRounds(inputFileName, outputFileName, password, algorithm);
             else // Decryption
@@ -263,7 +264,7 @@ void fileEncryptionDecryption(const miSTL::string& inputFileName, const miSTL::s
 
         // Try to preserve the time of last modification
         copyLastWrite(inputFileName, outputFileName);
-    } catch (const std::exception& ex) {
+    } catch (const std::exception &ex) {
         printColoredErrorln('r', "Error: {}", ex.what());
     }
 }
@@ -370,7 +371,7 @@ void encryptDecrypt() {
                                          weakly_canonical(outputPath).string().c_str(),
                                          password, cipher, static_cast<OperationMode>(choice));
                 std::println("");
-            } catch (const std::exception& ex) {
+            } catch (const std::exception &ex) {
                 printColoredError('y', "Error: ");
                 printColoredErrorln('r', "{}", ex.what());
             }

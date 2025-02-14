@@ -17,13 +17,13 @@
 #pragma once
 
 #include <concepts>
+#include <filesystem>
 #include <iostream>
+#include <memory>
+#include <optional>
 #include <print>
 #include <openssl/buffer.h>
 #include <openssl/evp.h>
-#include <memory>
-#include <optional>
-#include <filesystem>
 
 #include "../mimallocSTL.hpp"
 #include "../secureAllocator.hpp"
@@ -37,15 +37,15 @@ class ColorConfig {
 public:
     /// \brief Gets the instance of the \p ColorConfig singleton.
     /// \return A reference to the singleton instance of the \p ColorConfig class.
-    static ColorConfig& getInstance() noexcept {
+    static ColorConfig &getInstance() noexcept {
         static ColorConfig instance;
         return instance;
     }
 
     // Delete the copy constructor and assignment operator
-    ColorConfig(ColorConfig const&) = delete;
+    ColorConfig(ColorConfig const &) = delete;
 
-    void operator=(ColorConfig const&) = delete;
+    void operator=(ColorConfig const &) = delete;
 
     /// \brief Gets the \p suppressColor value.
     /// \return The current value of the \p suppressColor variable.
@@ -71,7 +71,7 @@ private:
 template <typename T>
 // Describes a vector of unsigned characters (For use with vectors using different allocators)
 concept uCharVector = std::copy_constructible<T> && requires(T t, unsigned char c) {
-    { t.data() } -> std::same_as<unsigned char*>;
+    { t.data() } -> std::same_as<unsigned char *>;
     { t.size() } -> std::integral;
     { t.capacity() } -> std::integral;
     std::is_same_v<decltype(t[0]), unsigned char>;
@@ -83,7 +83,7 @@ concept uCharVector = std::copy_constructible<T> && requires(T t, unsigned char 
 /// \brief Returns the ANSI color code for the given character.
 /// \param color The character representing the color.
 /// \return The ANSI color code corresponding to the input character.
-constexpr const char* getColorCode(const char color) noexcept {
+constexpr const char *getColorCode(const char color) noexcept {
     switch (color) {
         case 'r': // Red
             return "\033[1;31m";
@@ -110,7 +110,7 @@ constexpr const char* getColorCode(const char color) noexcept {
 /// \param fmt The format string for the output.
 /// \param args The arguments to be printed.
 template <class... Args>
-void printColoredOutput(const char color, std::format_string<Args...> fmt, Args&&... args) {
+void printColoredOutput(const char color, std::format_string<Args...> fmt, Args &&... args) {
     // Print the output depending on the color configuration
     if (ColorConfig::getInstance().getSuppressColor())
         std::cout << std::vformat(fmt.get(), std::make_format_args(args...));
@@ -123,7 +123,7 @@ void printColoredOutput(const char color, std::format_string<Args...> fmt, Args&
 /// \param fmt The format string for the output.
 /// \param args The arguments to be printed.
 template <class... Args>
-void printColoredOutputln(const char color, std::format_string<Args...> fmt, Args&&... args) {
+void printColoredOutputln(const char color, std::format_string<Args...> fmt, Args &&... args) {
     if (ColorConfig::getInstance().getSuppressColor())
         std::cout << std::vformat(fmt.get(), std::make_format_args(args...)) << std::endl;
     else
@@ -137,7 +137,7 @@ void printColoredOutputln(const char color, std::format_string<Args...> fmt, Arg
 /// \param fmt The format string for the output.
 /// \param args The arguments to be printed.
 template <class... Args>
-void printColoredError(const char color, std::format_string<Args...> fmt, Args&&... args) {
+void printColoredError(const char color, std::format_string<Args...> fmt, Args &&... args) {
     if (ColorConfig::getInstance().getSuppressColor())
         std::cerr << std::vformat(fmt.get(), std::make_format_args(args...));
     else std::cerr << getColorCode(color) << std::vformat(fmt.get(), std::make_format_args(args...)) << "\033[0m";
@@ -149,7 +149,7 @@ void printColoredError(const char color, std::format_string<Args...> fmt, Args&&
 /// \param fmt The format string for the output.
 /// \param args The arguments to be printed.
 template <class... Args>
-void printColoredErrorln(const char color, std::format_string<Args...> fmt, Args&&... args) {
+void printColoredErrorln(const char color, std::format_string<Args...> fmt, Args &&... args) {
     if (ColorConfig::getInstance().getSuppressColor())
         std::cerr << std::vformat(fmt.get(), std::make_format_args(args...)) << std::endl;
     else
@@ -162,14 +162,14 @@ void printColoredErrorln(const char color, std::format_string<Args...> fmt, Args
 /// \return Base64-encoded string.
 /// \throws std::bad_alloc if memory allocation fails.
 /// \throws std::runtime_error if encoding fails.
-miSTL::string base64Encode(const uCharVector auto& input) {
+miSTL::string base64Encode(const uCharVector auto &input) {
     // Create a BIO object to encode the data
     const std::unique_ptr<BIO, decltype(&BIO_free_all)> b64(BIO_new(BIO_f_base64()), &BIO_free_all);
     if (b64 == nullptr)
         throw std::bad_alloc(); // Memory allocation failed
 
     // Create a memory BIO to store the encoded data
-    BIO* bio = BIO_new(BIO_s_mem());
+    BIO *bio = BIO_new(BIO_s_mem());
     if (bio == nullptr)
         throw std::bad_alloc(); // Memory allocation failed
 
@@ -187,7 +187,7 @@ miSTL::string base64Encode(const uCharVector auto& input) {
     BIO_flush(bio);
 
     // Get the pointer to the BIO's data
-    BUF_MEM* bufferPtr;
+    BUF_MEM *bufferPtr;
     BIO_get_mem_ptr(b64.get(), &bufferPtr);
 
     // Create a string from the data
@@ -198,25 +198,25 @@ miSTL::string base64Encode(const uCharVector auto& input) {
 
 miSTL::vector<unsigned char> base64Decode(std::string_view encodedData);
 
-bool validateYesNo(const char* prompt = "");
+bool validateYesNo(const char *prompt = "");
 
-std::filesystem::path getFilesystemPath(const char* prompt = "");
+std::filesystem::path getFilesystemPath(const char *prompt = "");
 
-miSTL::string getResponseStr(const char* prompt = "");
+miSTL::string getResponseStr(const char *prompt = "");
 
-int getResponseInt(const char* prompt = "");
+int getResponseInt(const char *prompt = "");
 
-privacy::string getSensitiveInfo(const char* prompt = "");
+privacy::string getSensitiveInfo(const char *prompt = "");
 
-bool isWritable(const miSTL::string& filename);
+bool isWritable(const miSTL::string &filename);
 
-bool isReadable(const miSTL::string& filename);
+bool isReadable(const miSTL::string &filename);
 
-std::uintmax_t getAvailableSpace(const std::filesystem::path& path) noexcept;
+std::uintmax_t getAvailableSpace(const std::filesystem::path &path) noexcept;
 
 bool copyFilePermissions(std::string_view srcFile, std::string_view destFile) noexcept;
 
-std::optional<miSTL::string> getEnv(const char* var);
+std::optional<miSTL::string> getEnv(const char *var);
 
 miSTL::string getHomeDir() noexcept;
 

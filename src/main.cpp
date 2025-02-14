@@ -19,19 +19,18 @@
 #include <unistd.h>
 #include <sys/resource.h>
 
+#include "mimallocSTL.hpp"
 #include "duplicateFinder/duplicateFinder.hpp"
 #include "encryption/encryption.hpp"
 #include "fileShredder/fileShredder.hpp"
 #include "passwordManager/passwordManager.hpp"
 #include "privacyTracks/privacyTracks.hpp"
 #include "utils/utils.hpp"
-#include "mimallocSTL.hpp"
 
 constexpr auto MINIMUM_LIBGCRYPT_VERSION = "1.10.0";
 constexpr auto PRIVACY_SHIELD_VERSION = "3.0.0";
 
-
-int main(const int argc, const char** argv) {
+int main(const int argc, const char **argv) {
     // The program should be launched in interactive mode
     if (!isatty(STDIN_FILENO)) {
         if (errno == ENOTTY) {
@@ -90,8 +89,8 @@ int main(const int argc, const char** argv) {
     try {
         // Initialize Gcrypt
         if (!gcry_check_version(MINIMUM_LIBGCRYPT_VERSION)) {
-            throw std::runtime_error(std::format("libgcrypt is too old (need {}, have {}).",
-                                                 MINIMUM_LIBGCRYPT_VERSION, gcry_check_version(nullptr)));
+            throw std::runtime_error(std::format("libgcrypt is too old (need {}, have {}).", MINIMUM_LIBGCRYPT_VERSION,
+                                                 gcry_check_version(nullptr)));
         }
 
         gcry_control(GCRYCTL_SUSPEND_SECMEM_WARN); // Postpone warning messages from the secure memory subsystem
@@ -117,8 +116,8 @@ int main(const int argc, const char** argv) {
         printColoredOutput('g', "This program comes with ");
         printColoredOutputln('r', "ABSOLUTELY NO WARRANTY.");
 
-        printColoredOutput('g', "This is a free software; you are free to change and redistribute it\n"
-                           "under the terms of the ");
+        printColoredOutput('g',
+                           "This is a free software; you are free to change and redistribute it\n under the terms of the ");
         printColoredOutput('r', "GNU General Public License v3 ");
         printColoredOutputln('g', "or later.");
 
@@ -152,11 +151,12 @@ int main(const int argc, const char** argv) {
                     iter->second();
                 else if (choice == 6)
                     break;
-                else printColoredErrorln('r', "Invalid choice!");
-            } catch (const std::bad_function_call& bc) {
+                else
+                    printColoredErrorln('r', "Invalid choice!");
+            } catch (const std::bad_function_call &bc) {
                 // In case the std::function objects are called inappropriately
                 printColoredErrorln('r', "Bad function call: {}", bc.what());
-            } catch (const std::exception& ex) {
+            } catch (const std::exception &ex) {
                 printColoredErrorln('r', "Error: {}", ex.what());
             } catch (...) {
                 // All other exceptions, if any
@@ -164,7 +164,7 @@ int main(const int argc, const char** argv) {
             }
         }
         return 0;
-    } catch (const std::exception& ex) {
+    } catch (const std::exception &ex) {
         printColoredErrorln('r', "Error: {}", ex.what());
         return 1;
     } catch (...) {

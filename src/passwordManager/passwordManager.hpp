@@ -17,36 +17,36 @@
 
 // #include <sodium.h>
 // #include <tuple>
-#include "../utils/utils.hpp"
-#include "../secureAllocator.hpp"
 #include "../mimallocSTL.hpp"
+#include "../secureAllocator.hpp"
+#include "../utils/utils.hpp"
 
 using passwordRecords = std::tuple<privacy::string, privacy::string, privacy::string>;
 
-privacy::vector<passwordRecords> loadPasswords(std::string_view filePath, const privacy::string& decryptionKey);
+privacy::vector<passwordRecords> loadPasswords(std::string_view filePath, const privacy::string &decryptionKey);
 
-bool savePasswords(privacy::vector<passwordRecords>& passwords, std::string_view filePath,
-                   const privacy::string& encryptionKey);
+bool savePasswords(privacy::vector<passwordRecords> &passwords, std::string_view filePath,
+                   const privacy::string &encryptionKey);
 
 bool isPasswordStrong(std::string_view password) noexcept;
 
 privacy::string generatePassword(int length);
 
-bool changePrimaryPassword(privacy::string& primaryPassword);
+bool changePrimaryPassword(privacy::string &primaryPassword);
 
 std::pair<miSTL::string, privacy::string> initialSetup() noexcept;
 
 privacy::string getHash(std::string_view filePath);
 
-privacy::vector<passwordRecords> importCsv(const std::filesystem::path& filePath);
+privacy::vector<passwordRecords> importCsv(const std::filesystem::path &filePath);
 
-bool exportCsv(const privacy::vector<passwordRecords>& records, const std::filesystem::path& filePath = getHomeDir());
+bool exportCsv(const privacy::vector<passwordRecords> &records, const std::filesystem::path &filePath = getHomeDir());
 
 
-privacy::string hashPassword(const privacy::string& password,
-                             const std::size_t& opsLimit = crypto_pwhash_OPSLIMIT_SENSITIVE,
-                             const std::size_t& memLimit = crypto_pwhash_MEMLIMIT_SENSITIVE);
+privacy::string hashPassword(const privacy::string &password,
+                             const std::size_t &opsLimit = crypto_pwhash_OPSLIMIT_SENSITIVE,
+                             const std::size_t &memLimit = crypto_pwhash_MEMLIMIT_SENSITIVE);
 
 void passwordManager();
 
-bool verifyPassword(const privacy::string& password, const privacy::string& storedHash);
+bool verifyPassword(const privacy::string &password, const privacy::string &storedHash);

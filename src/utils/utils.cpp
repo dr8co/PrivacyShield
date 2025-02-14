@@ -14,12 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see https://www.gnu.org/licenses.
 
+#include "utils.hpp"
 #include <charconv>
+#include <isocline.h>
+#include <termios.h>
 #include <unistd.h>
 #include <utility>
-#include <termios.h>
-#include <isocline.h>
-#include "utils.hpp"
 
 namespace fs = std::filesystem;
 
@@ -30,14 +30,14 @@ constexpr int MAX_PASSPHRASE_LEN = 1024; ///< Maximum length of a passphrase
 /// It provides filename completion when the user presses the Tab key.
 /// \param cenv A pointer to the completion environment provided by readline.
 /// \param input The user's input.
-static void normal_completer(ic_completion_env_t* cenv, const char* input) {
+static void normal_completer(ic_completion_env_t *cenv, const char *input) {
     ic_complete_filename(cenv, input, 0, nullptr, nullptr);
 }
 
 /// \brief A null completer function for the isocline library's readline function.
 /// This function is used as a callback for the isocline library's readline function.
 /// It does not provide any completion, and is used when no completion is desired.
-static void null_completer(ic_completion_env_t*, const char*) {}
+static void null_completer(ic_completion_env_t *, const char *) {}
 
 /// \brief This concept checks if a type provides the functionality of a string
 /// \tparam T The type to check.
@@ -47,7 +47,7 @@ concept StringLike = std::same_as<T, std::basic_string<typename T::value_type,
 
 /// \brief Trims space (whitespace) off the beginning and end of a string.
 /// \param str the string to trim.
-void stripString(StringLike auto& str) noexcept {
+void stripString(StringLike auto &str) noexcept {
     constexpr std::string_view space = " \t\n\r\f\v";
 
     // Trim the leading space
@@ -70,7 +70,7 @@ miSTL::vector<unsigned char> base64Decode(const std::string_view encodedData) {
         throw std::bad_alloc(); // Memory allocation failed
 
     // Create a base64 BIO
-    BIO* b64 = BIO_new(BIO_f_base64());
+    BIO *b64 = BIO_new(BIO_f_base64());
     if (b64 == nullptr)
         throw std::bad_alloc(); // Memory allocation failed
 
@@ -96,7 +96,7 @@ miSTL::vector<unsigned char> base64Decode(const std::string_view encodedData) {
 /// \brief Prompts the user for a filesystem path.
 /// \param prompt The prompt to display to the user.
 /// \return The filesystem path entered by the user if successful, else an empty path.
-fs::path getFilesystemPath(const char* prompt) {
+fs::path getFilesystemPath(const char *prompt) {
     // Enable filename completion and automatic tab completion
     ic_set_default_completer(normal_completer, nullptr);
     ic_enable_auto_tab(true);
@@ -104,7 +104,7 @@ fs::path getFilesystemPath(const char* prompt) {
     // Display the prompt
     std::puts(prompt);
     // Read the input from the user
-    if (char* input = ic_readline("")) {
+    if (char *input = ic_readline("")) {
         fs::path result(input);
         // Free the input buffer
         std::free(input);
@@ -123,13 +123,13 @@ fs::path getFilesystemPath(const char* prompt) {
 /// from the standard input.
 /// \param prompt The prompt to display to the user.
 /// \return The response string entered by the user if successful, else an empty string.
-miSTL::string getResponseStr(const char* prompt) {
+miSTL::string getResponseStr(const char *prompt) {
     // Disable completions
     ic_set_default_completer(null_completer, nullptr);
 
     // Read the response from the user
     std::puts(prompt);
-    if (char* input = ic_readline("")) {
+    if (char *input = ic_readline("")) {
         miSTL::string result{input};
         ic_free(input);
         stripString(result);
@@ -147,7 +147,7 @@ miSTL::string getResponseStr(const char* prompt) {
 /// while the user is entering the data.
 /// \param prompt the prompt displayed to the user for the input.
 /// \return the user's input (an integer) on if it's convertible to integer, else 0.
-int getResponseInt(const char* prompt) {
+int getResponseInt(const char *prompt) {
     // A lambda to convert a string to an integer
     constexpr auto toInt = [](const std::string_view s) noexcept -> int {
         int value;
@@ -162,14 +162,14 @@ int getResponseInt(const char* prompt) {
 /// \return the user's input.
 /// \throws std::bad_alloc if memory allocation fails.
 /// \throws std::runtime_error if memory locking/unlocking fails.
-privacy::string getSensitiveInfo(const char* prompt) {
+privacy::string getSensitiveInfo(const char *prompt) {
     // A lambda to free memory allocated by sodium_malloc
-    auto deleter = [](char* ptr) noexcept -> void {
+    auto deleter = [](char *ptr) noexcept -> void {
         sodium_free(ptr);
     };
 
     // Allocate memory for the passphrase
-    const std::unique_ptr<char, decltype(deleter)> buffer(static_cast<char*>(sodium_malloc(MAX_PASSPHRASE_LEN)),
+    const std::unique_ptr<char, decltype(deleter)> buffer(static_cast<char *>(sodium_malloc(MAX_PASSPHRASE_LEN)),
                                                           deleter);
 
     if (!buffer)
@@ -228,7 +228,7 @@ privacy::string getSensitiveInfo(const char* prompt) {
 /// to the current user.
 /// \param filename the path to the file.
 /// \return true if the current user has write permissions, else false.
-bool isWritable(const miSTL::string& filename) {
+bool isWritable(const miSTL::string &filename) {
     return access(filename.c_str(), F_OK | W_OK) == 0;
 }
 
@@ -236,7 +236,7 @@ bool isWritable(const miSTL::string& filename) {
     /// to the current user.
     /// \param filename the path to the file.
     /// \return true if the current user has read permissions, else false.
-bool isReadable(const miSTL::string& filename) {
+bool isReadable(const miSTL::string &filename) {
     return access(filename.c_str(), F_OK | R_OK) == 0;
 }
 
@@ -248,7 +248,7 @@ bool isReadable(const miSTL::string& filename) {
 /// \note This function is meant to be used to detect possible errors
 /// early enough before file operations, and to warn the user to
 /// check their filesystem storage space when it seems insufficient.
-std::uintmax_t getAvailableSpace(const fs::path& path) noexcept {
+std::uintmax_t getAvailableSpace(const fs::path &path) noexcept {
     fs::path filePath{path};
 
     std::error_code ec; // For ignoring errors to avoid throwing
@@ -287,7 +287,7 @@ bool copyFilePermissions(const std::string_view srcFile, const std::string_view 
 /// \brief Confirms a user's response to a yes/no (y/n) situation.
 /// \param prompt The confirmation prompt.
 /// \return True if the user confirms the action, else false.
-bool validateYesNo(const char* prompt) {
+bool validateYesNo(const char *prompt) {
     const miSTL::string resp = getResponseStr(prompt);
     if (resp.empty()) return false;
     return std::tolower(resp.at(0)) == 'y';
@@ -297,10 +297,10 @@ bool validateYesNo(const char* prompt) {
 /// \param var an environment variable to query.
 /// \return the value of the environment variable if it exists, else nullopt (nothing).
 /// \note The returned value MUST be checked before access.
-std::optional<miSTL::string> getEnv(const char* const var) {
+std::optional<miSTL::string> getEnv(const char *const var) {
     // Use secure_getenv() if available
 #if _GNU_SOURCE
-    if (const char* value = secure_getenv(var))
+    if (const char *value = secure_getenv(var))
         return value;
 #else
         if (const char *value = std::getenv(var))
