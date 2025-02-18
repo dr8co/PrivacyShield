@@ -92,7 +92,6 @@ jobs:
               -DCMAKE_CXX_COMPILER=${{ steps.strings.outputs.clangxxpath }} \
               -DCMAKE_C_COMPILER=${{ steps.strings.outputs.clangpath }} \
               -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-              # -DCMAKE_EXE_LINKER_FLAGS="-L$(brew --prefix llvm@19)/lib/c++ -Wl,-rpath,$(brew --prefix llvm@19)/lib/c++" \
               -DCMAKE_CXX_FLAGS="-stdlib=libstdc++" \
               -S ${{ github.workspace }} -G Ninja
           fi
