@@ -15,22 +15,11 @@ jobs:
         os: [ ubuntu-latest, macos-latest ]
         build_type: [ Debug ]
         c_compiler: [ clang, gcc ]
-        include:
+        
+        # Clang's libc++ lacks std::jthread implementation (as of 2025-02-19), so use Gcc's libstdc++ instead
+        exclude:
           - os: macos-latest
             c_compiler: clang
-            cpp_compiler: clang++-19
-
-          - os: macos-latest
-            c_compiler: gcc
-            cpp_compiler: g++-14
-
-          - os: ubuntu-latest
-            c_compiler: clang
-            cpp_compiler: clang++-19
-
-          - os: ubuntu-latest
-            c_compiler: gcc
-            cpp_compiler: g++-14
 
     steps:
       - name: Install Dependencies
@@ -92,7 +81,7 @@ jobs:
               -DCMAKE_CXX_COMPILER=${{ steps.strings.outputs.clangxxpath }} \
               -DCMAKE_C_COMPILER=${{ steps.strings.outputs.clangpath }} \
               -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-              -DCMAKE_CXX_FLAGS="-stdlib=libstdc++ -stdlib++-isystem /opt/homebrew/Cellar/gcc/14.1.0_1/include/c++/14 -cxx-isystem /opt/homebrew/Cellar/gcc/14.1.0_1/include/c++/14/aarch64-apple-darwin23 -L /opt/homebrew/Cellar/gcc/14.1.0_1/lib/gcc/14 -Wl,-rpath,/opt/homebrew/opt/gcc/lib/gcc/current"
+              -DCMAKE_EXE_LINKER_FLAGS="-L$(brew --prefix llvm@19)/lib/c++ -Wl,-rpath,$(brew --prefix llvm@19)/lib/c++" \
               -S ${{ github.workspace }} -G Ninja
           fi
 
