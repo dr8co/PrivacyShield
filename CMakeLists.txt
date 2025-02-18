@@ -128,12 +128,19 @@ if (NOT TARGET BLAKE3::blake3)
     FetchContent_Declare(
             blake3
             GIT_REPOSITORY https://github.com/BLAKE3-team/BLAKE3.git
-            GIT_TAG 454ee5a7c73583cb3060d1464a5d3a4e65f06062
+            GIT_TAG 1.6.0
             SOURCE_SUBDIR c
             EXCLUDE_FROM_ALL
     )
 
     FetchContent_MakeAvailable(blake3)
+
+    # Verify that the BLAKE3 target was successfully fetched and is available
+    if (NOT TARGET BLAKE3::blake3)
+        message(FATAL_ERROR "Failed to fetch BLAKE3.")
+    endif ()
+
+    # Include the BLAKE3 headers
     target_include_directories(privacyShield PRIVATE "${blake3_SOURCE_DIR}")
 
 endif ()
@@ -145,7 +152,7 @@ if (NOT TARGET mimalloc-static OR NOT TARGET mimalloc)
     FetchContent_Declare(
             mimalloc
             GIT_REPOSITORY https://github.com/microsoft/mimalloc.git
-            GIT_TAG v2.1.7
+            GIT_TAG v3.0.1
             EXCLUDE_FROM_ALL
     )
 endif ()
@@ -154,6 +161,10 @@ set(MI_SECURE ON)
 set(MI_BUILD_TESTS OFF) # Do not build tests
 
 FetchContent_MakeAvailable(mimalloc)
+if (NOT TARGET mimalloc) 
+    message(FATAL_ERROR "Failed to fetch mimalloc.")
+endif ()
+
 target_include_directories(privacyShield PRIVATE "${mimalloc_SOURCE_DIR}/include")
 add_library(Mimalloc::mimalloc-static ALIAS mimalloc-static)
 add_library(Mimalloc::mimalloc ALIAS mimalloc)
@@ -166,6 +177,13 @@ FetchContent_Declare(
         EXCLUDE_FROM_ALL
 )
 FetchContent_MakeAvailable(isocline)
+
+# Verify that the Isocline target was successfully fetched and is available
+if (NOT TARGET isocline)
+    message(FATAL_ERROR "Failed to fetch Isocline.")
+endif ()
+
+# Include the Isocline headers
 target_include_directories(privacyShield PRIVATE "${isocline_SOURCE_DIR}/include")
 add_library(ISOCline::isocline ALIAS isocline)
 
