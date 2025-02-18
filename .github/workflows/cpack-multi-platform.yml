@@ -39,18 +39,18 @@ jobs:
         run: |
           if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
                if [[ "${{ matrix.c_compiler }}" == "gcc" ]]; then
-                  sudo apt-get install cmake ninja-build gcc-14 g++-14 libsodium-dev libsodium23 -y
+                  sudo apt-get install cmake ninja-build gcc-14 g++-14 libsodium-dev libsodium23 libgcrypt20-dev -y
                elif [[ "${{ matrix.c_compiler }}" == "clang" ]]; then
                   wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
                   sudo apt-add-repository "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-19 main"
                   sudo apt-get update
-                  sudo apt-get install cmake ninja-build clang-19 clang-tools-19 libsodium-dev libsodium23 -y
+                  sudo apt-get install cmake ninja-build clang-19 clang-tools-19 libsodium-dev libsodium23 libgcrypt20-dev -y
                fi
           elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
               if [[ "${{ matrix.c_compiler }}" == "clang" ]]; then
-                  brew install cmake ninja libsodium llvm@19
+                  brew install cmake ninja libsodium libgcrypt llvm@19 lld@19
               else
-                  brew install cmake ninja libsodium
+                  brew install cmake ninja libsodium libgcrypt
               fi
           fi
 
@@ -63,7 +63,7 @@ jobs:
         run: |
           echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
           # Set the paths to the GCC include and lib directories on macOS
-          if [[ "${{ matrix.os }}" == "macos-13" && "${{ matrix.c_compiler }}" == "clang" ]]; then
+          if [[ "${{ matrix.os }}" == "macos-latest" && "${{ matrix.c_compiler }}" == "clang" ]]; then
             echo "clangpath=$(brew --prefix llvm@19)/bin/clang" >> "$GITHUB_OUTPUT"
             echo "clangxxpath=$(brew --prefix llvm@19)/bin/clang++" >> "$GITHUB_OUTPUT"
           elif [[ "${{ matrix.os }}" == "ubuntu-latest" && "${{ matrix.c_compiler }}" == "clang" ]]; then
