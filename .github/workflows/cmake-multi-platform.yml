@@ -7,37 +7,50 @@ on:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
-    env:
-      GCC_MAJOR: 14
 
     strategy:
       fail-fast: false
 
       matrix:
-        os: [ ubuntu-24.04, macos-latest ]
+        os: [ ubuntu-latest, macos-latest ]
         build_type: [ Debug ]
-        c_compiler: [ clang ]
+        c_compiler: [ clang, gcc ]
         include:
           - os: macos-latest
             c_compiler: clang
-            cpp_compiler: clang++-18
+            cpp_compiler: clang++-19
 
-          - os: ubuntu-24.04
+          - os: macos-latest
+            c_compiler: gcc
+            cpp_compiler: g++-14
+
+          - os: ubuntu-latest
             c_compiler: clang
-            cpp_compiler: clang++-18
+            cpp_compiler: clang++-19
+
+          - os: ubuntu-latest
+            c_compiler: gcc
+            cpp_compiler: g++-14
 
     steps:
       - name: Install Dependencies
-        if: matrix.os == 'macos-latest'
         run: |
-          export HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=TRUE
-          brew update
-          brew install ninja cmake git gcc@${{ env.GCC_MAJOR }}
-          brew reinstall llvm
-          echo 'export PATH="/opt/homebrew/opt/llvm/bin:$PATH"' >> ~/.bash_profile
-          echo 'export PATH="/opt/homebrew/opt/gcc/bin:$PATH"' >> ~/.bash_profile
-          echo 'export PATH="/opt/homebrew/opt/gcc/lib/gcc/${{ env.GCC_MAJOR }}:$PATH"' >> ~/.bash_profile   
-          . ~/.bash_profile
+          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+               if [[ "${{ matrix.c_compiler }}" == "gcc" ]]; then
+                  sudo apt-get install cmake ninja-build gcc-14 g++-14 -y
+               elif [[ "${{ matrix.c_compiler }}" == "clang" ]]; then
+                  wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+                  sudo apt-add-repository "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-19 main"
+                  sudo apt-get update
+                  sudo apt-get install cmake ninja-build clang-19 clang-tools-19 -y
+               fi
+          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+              if [[ "${{ matrix.c_compiler }}" == "clang" ]]; then
+                  brew install cmake ninja lld llvm@19
+              else
+                  brew install cmake ninja
+              fi
+          fi
 
       - uses: actions/checkout@v4
 
@@ -48,40 +61,45 @@ jobs:
         run: |
           echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
           # Set the paths to the GCC include and lib directories on macOS
-          if [ "${{ matrix.os }}" == "macos-latest" ]; then
-            echo "gcc-include-dir=$(./scripts/search.sh "/opt/homebrew/Cellar/gcc/${{ env.GCC_MAJOR }}*/include/c++/${{ env.GCC_MAJOR }}")" >> "$GITHUB_OUTPUT"
-            echo "gcc-sys-include-dir=$(./scripts/search.sh "/opt/homebrew/Cellar/gcc/${{ env.GCC_MAJOR }}*/include/c++/${{ env.GCC_MAJOR }}/*-apple-darwin*")" >> "$GITHUB_OUTPUT"
-            echo "gcc-lib-dir=$(./scripts/search.sh "/opt/homebrew/Cellar/gcc/${{ env.GCC_MAJOR }}*/lib/gcc/current")" >> "$GITHUB_OUTPUT"
+          if [[ "${{ matrix.os }}" == "macos-13" && "${{ matrix.c_compiler }}" == "clang" ]]; then
+            echo "clangpath=$(brew --prefix llvm@19)/bin/clang" >> "$GITHUB_OUTPUT"
+            echo "clangxxpath=$(brew --prefix llvm@19)/bin/clang++" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ matrix.os }}" == "ubuntu-latest" && "${{ matrix.c_compiler }}" == "clang" ]]; then
+            echo "clangpath=clang-19" >> "$GITHUB_OUTPUT"
+            echo "clangxxpath=clang++-19" >> "$GITHUB_OUTPUT"
+          fi
+          if [[ "${{ matrix.c_compiler }}" == "gcc" ]]; then
+            echo "gccpath=gcc-14" >> "$GITHUB_OUTPUT"
+            echo "gxxpath=g++-14" >> "$GITHUB_OUTPUT"
           fi
 
-      # Build the project
-      - name: Build PrivacyShield
-        if: matrix.os == 'ubuntu-24.04'
-        run: |
-          sudo ./scripts/build.sh
-
-      - name: Install Blake3
-        if: matrix.os == 'macos-latest'
-        run: |
-          sudo ./scripts/install-blake3.sh ${{ matrix.c_compiler }}
-
       - name: Configure CMake
-        if: matrix.os == 'macos-latest'
-        run: >
-          cmake -B ${{ steps.strings.outputs.build-output-dir }}
-          -DCMAKE_CXX_COMPILER=/opt/homebrew/opt/llvm/bin/clang++
-          -DCMAKE_C_COMPILER=/opt/homebrew/opt/llvm/bin/clang
-          -DCMAKE_CXX_FLAGS="-stdlib++-isystem ${{ steps.strings.outputs.gcc-include-dir }} -cxx-isystem ${{ steps.strings.outputs.gcc-sys-include-dir }}"
-          -DCMAKE_EXE_LINKER_FLAGS="-stdlib=libstdc++ -L ${{ steps.strings.outputs.gcc-lib-dir }} -Wl,-rpath,/opt/homebrew/opt/gcc/lib/gcc/current"
-          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-          -S ${{ github.workspace }} -G Ninja
-          # -DCMAKE_CXX_FLAGS="-stdlib=libstdc++ -stdlib++-isystem /opt/homebrew/Cellar/gcc/14.1.0_1/include/c++/14 -cxx-isystem /opt/homebrew/Cellar/gcc/14.1.0_1/include/c++/14/aarch64-apple-darwin23 -L /opt/homebrew/Cellar/gcc/14.1.0_1/lib/gcc/14 -Wl,-rpath,/opt/homebrew/opt/gcc/lib/gcc/current"
+        run: |
+          if [[ "${{ matrix.c_compiler }}" == "gcc" ]]; then
+            cmake -B ${{ steps.strings.outputs.build-output-dir }} \
+              -DCMAKE_CXX_COMPILER=${{ steps.strings.outputs.gxxpath }} \
+              -DCMAKE_C_COMPILER=${{ steps.strings.outputs.gccpath }} \
+              -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+              -S ${{ github.workspace }} -G Ninja
+          elif [[ "${{ matrix.c_compiler }}" == "clang" && "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+            cmake -B ${{ steps.strings.outputs.build-output-dir }} \
+              -DCMAKE_CXX_COMPILER=${{ steps.strings.outputs.clangxxpath }} \
+              -DCMAKE_C_COMPILER=${{ steps.strings.outputs.clangpath }} \
+              -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+              -S ${{ github.workspace }} -G Ninja
+          elif [[ "${{ matrix.c_compiler }}" == "clang" && "${{ matrix.os }}" == "macos-latest" ]]; then
+            cmake -B ${{ steps.strings.outputs.build-output-dir }} \
+              -DCMAKE_CXX_COMPILER=${{ steps.strings.outputs.clangxxpath }} \
+              -DCMAKE_C_COMPILER=${{ steps.strings.outputs.clangpath }} \
+              -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+              -DCMAKE_EXE_LINKER_FLAGS="-L$(brew --prefix llvm@19)/lib/c++ -Wl,-rpath,$(brew --prefix llvm@19)/lib/c++" \
+              -S ${{ github.workspace }} -G Ninja
+          fi
 
       - name: Build
-        if: matrix.os == 'macos-latest'
         run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }} -j 4
 
       # Run Tests
       - name: Test
         working-directory: ${{ steps.strings.outputs.build-output-dir }}
-        run: ctest -j 4
+        run: ctest --output-on-failure -j 4
