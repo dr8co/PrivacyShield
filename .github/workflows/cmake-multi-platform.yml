@@ -46,7 +46,7 @@ jobs:
                fi
           elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
               if [[ "${{ matrix.c_compiler }}" == "clang" ]]; then
-                  brew install cmake ninja libsodium libgcrypt llvm@19 lld@19
+                  brew install cmake ninja libsodium libgcrypt llvm@19 lld
               else
                   brew install cmake ninja libsodium libgcrypt
               fi
