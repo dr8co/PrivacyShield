@@ -22,6 +22,10 @@ project(privacyShield
         HOMEPAGE_URL "https://shield.iandee.tech"
         LANGUAGES C CXX)
 
+# === Project Settings ===
+# Enable position-independent code (useful for shared libraries)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 # C++23 support is required for this project
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -31,9 +35,9 @@ if (NOT UNIX)
     message(FATAL_ERROR "This project is only supported on unix-like systems.")
 endif ()
 
-# If the build type is not specified, default to Release
+# Cache default build type to ensure consistency (for single-configuration generators)
 if (NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 endif ()
 
 # Set the path to additional CMake modules
@@ -49,18 +53,36 @@ cmake_dependent_option(ENABLE_SANITIZERS
 # Valgrind support
 option(VALGRIND_BUILD "Build with Valgrind support" OFF)
 
-# Add the executable target
+# Option to enable dependency compilation warnings (for debugging)
+option(ENABLE_DEPENDENCY_WARNINGS "Enable warnings for dependencies" OFF)
+
+# === Target Configuration ===
+# Add the executable target and set compile options for Debug builds.
 add_executable(privacyShield)
 
-# Additional checks for the Debug build
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_options(privacyShield PRIVATE
-            -Wall
-            -Wextra
-            -Werror
-            -Wpedantic
-    )
-endif ()
+set(WARNING_FLAGS
+    -Wall
+    -Wextra
+    -Werror
+    -Wpedantic
+)
+
+target_compile_options(privacyShield PRIVATE
+    $<$<CONFIG:Debug>:${WARNING_FLAGS}>
+)
+
+# Define a debug macro to help turn off diagnostics in release builds
+target_compile_definitions(privacyShield PRIVATE
+    $<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:PSHIELD_DEBUG_BUILD=1>
+)
+
+# Define the project version
+target_compile_definitions(privacyShield PRIVATE
+        PRIVACY_SHIELD_VERSION="${PROJECT_VERSION}"
+        PRIVACY_SHIELD_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
+        PRIVACY_SHIELD_VERSION_MINOR=${PROJECT_VERSION_MINOR}
+        PRIVACY_SHIELD_VERSION_PATCH=${PROJECT_VERSION_PATCH}
+)
 
 # project source files
 target_sources(privacyShield PRIVATE
@@ -108,16 +130,19 @@ endif ()
 # Valgrind support
 if (VALGRIND_BUILD)
     add_compile_options(-g) # Valgrind requires debug symbols
-    #    target_link_libraries(privacyShield PRIVATE valgrind)
     set(MI_TRACK_VALGRIND ON)
 endif ()
+
+# === External Dependencies Setup ===
 
 # Find the required packages
 find_package(OpenSSL REQUIRED)
 find_package(Sodium REQUIRED)
 find_package(Gcrypt REQUIRED)
 
-find_package(BLAKE3 QUIET) # See https://github.com/BLAKE3-team/BLAKE3
+find_package(BLAKE3 QUIET)   # See https://github.com/BLAKE3-team/BLAKE3
+find_package(Mimalloc QUIET) # See https://github.com/microsoft/mimalloc
+find_package(Isocline QUIET) # See https://github.com/daanx/isocline
 
 include(FetchContent)
 
@@ -134,6 +159,13 @@ if (NOT TARGET BLAKE3::blake3)
     )
 
     FetchContent_MakeAvailable(blake3)
+
+    # Configure BLAKE3 compilation warnings
+    if (ENABLE_DEPENDENCY_WARNINGS)
+        target_compile_options(blake3 PRIVATE -Wall -Wextra)
+    else ()
+        target_compile_options(blake3 PRIVATE -w)
+    endif ()
 
     # Verify that the BLAKE3 target was successfully fetched and is available
     if (NOT TARGET BLAKE3::blake3)
@@ -161,7 +193,15 @@ set(MI_SECURE ON)
 set(MI_BUILD_TESTS OFF) # Do not build tests
 
 FetchContent_MakeAvailable(mimalloc)
-if (NOT TARGET mimalloc) 
+
+# Configure Mimalloc compilation warnings
+if (ENABLE_DEPENDENCY_WARNINGS)
+    target_compile_options(mimalloc PRIVATE -Wall -Wextra)
+else ()
+    target_compile_options(mimalloc PRIVATE -w)
+endif ()
+
+if (NOT TARGET mimalloc)
     message(FATAL_ERROR "Failed to fetch mimalloc.")
 endif ()
 
@@ -177,6 +217,13 @@ FetchContent_Declare(
         EXCLUDE_FROM_ALL
 )
 FetchContent_MakeAvailable(isocline)
+
+# Configure Isocline compilation warnings
+if (ENABLE_DEPENDENCY_WARNINGS)
+    target_compile_options(isocline PRIVATE -Wall -Wextra)
+else ()
+    target_compile_options(isocline PRIVATE -w)
+endif ()
 
 # Verify that the Isocline target was successfully fetched and is available
 if (NOT TARGET isocline)
@@ -194,7 +241,7 @@ target_link_libraries(privacyShield PRIVATE
         Gcrypt::Gcrypt
         BLAKE3::blake3
         ISOCline::isocline
-        Mimalloc::mimalloc-static
+        Mimalloc::mimalloc
 )
 
 # Install the binary (optional), with 0755 permissions

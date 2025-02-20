@@ -19,6 +19,10 @@
 #include <unistd.h>
 #include <sys/resource.h>
 
+#ifndef PSHIELD_DEBUG_BUILD
+#include <mimalloc.h>
+#endif
+
 #include "mimallocSTL.hpp"
 #include "duplicateFinder/duplicateFinder.hpp"
 #include "encryption/encryption.hpp"
@@ -28,9 +32,19 @@
 #include "utils/utils.hpp"
 
 constexpr auto MINIMUM_LIBGCRYPT_VERSION = "1.10.0";
-constexpr auto PRIVACY_SHIELD_VERSION = "3.0.0";
+
+#ifndef PRIVACY_SHIELD_VERSION
+constexpr auto PRIVACY_SHIELD_VERSION = "Unknown Version";
+#endif
 
 int main(const int argc, const char **argv) {
+#ifndef PSHIELD_DEBUG_BUILD
+    // Disable debug information in non-debug mode
+    mi_option_disable(mi_option_show_errors);
+    mi_option_disable(mi_option_show_stats);
+    mi_option_disable(mi_option_verbose);
+#endif
+
     // The program should be launched in interactive mode
     if (!isatty(STDIN_FILENO)) {
         if (errno == ENOTTY) {
