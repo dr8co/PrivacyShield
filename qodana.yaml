@@ -26,4 +26,4 @@ bootstrap: sudo ./scripts/prepare-qodana.sh
 #  - id: <plugin.id> #(plugin id can be found at https://plugins.jetbrains.com)
 
 #Specify Qodana linter for analysis (Applied in CI/CD pipeline)
-linter: jetbrains/qodana-clang:2024.1-eap
+linter: jetbrains/qodana-clang:2024.3-eap
